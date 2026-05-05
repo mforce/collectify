@@ -1,0 +1,23 @@
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Env
+.env
+.env.local
+
+# .NET
+bin/
+obj/
+*.user
+
+# Node
+node_modules/
+client/dist/
+
+# Local DB / data
+data/
+*.db
+*.db-shm
+*.db-wal
