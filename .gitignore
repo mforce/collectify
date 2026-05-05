@@ -14,7 +14,8 @@ obj/
 
 # Node
 node_modules/
-client/dist/
+src/client/dist/
+*.tsbuildinfo
 
 # Local DB / data
 data/

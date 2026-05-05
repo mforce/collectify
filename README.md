@@ -28,13 +28,13 @@ Two terminals:
 
 ```bash
 # Terminal 1 — API on :8080
-cd server
-dotnet run --project src/Collectify.Api
+cd src/server
+dotnet run --project Collectify.Api
 ```
 
 ```bash
 # Terminal 2 — Vite dev server on :5173, proxies /api → :8080
-cd client
+cd src/client
 npm install
 npm run dev
 ```
@@ -44,12 +44,14 @@ The Vite dev server proxies `/api/*` calls to the .NET app, so you get hot reloa
 ## Project layout
 
 ```
-server/
-  src/Collectify.Api/             # ASP.NET Core API + serves React build
-  src/Collectify.Domain/          # Entities + enums
-  src/Collectify.Infrastructure/  # EF Core DbContext, Identity, (later) metadata clients
-  tests/Collectify.Tests/         # xUnit tests
-client/                           # Vite + React + TS frontend
+src/
+  server/
+    Collectify.slnx               # solution file (also references the client folder)
+    Collectify.Api/               # ASP.NET Core API + serves React build
+    Collectify.Domain/            # Entities + enums
+    Collectify.Infrastructure/    # EF Core DbContext, Identity, (later) metadata clients
+    tests/Collectify.Tests/       # xUnit tests
+  client/                         # Vite + React + TS frontend (sources at root, no nested src/)
 Dockerfile                        # multi-stage: node → React, sdk → publish, aspnet → runtime
 docker-compose.yml                # one service + named data volume
 ```

@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/server/">
+    <Project Path="Collectify.Api/Collectify.Api.csproj" />
+    <Project Path="Collectify.Domain/Collectify.Domain.csproj" />
+    <Project Path="Collectify.Infrastructure/Collectify.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Collectify.Tests/Collectify.Tests.csproj" />
+  </Folder>
+  <Folder Name="/client/">
+    <File Path="../client/package.json" />
+    <File Path="../client/tsconfig.json" />
+    <File Path="../client/vite.config.ts" />
+    <File Path="../client/tailwind.config.js" />
+    <File Path="../client/postcss.config.js" />
+    <File Path="../client/index.html" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="../../AGENTS.md" />
+    <File Path="../../CLAUDE.md" />
+    <File Path="../../README.md" />
+    <File Path="../../docs/architecture.md" />
+    <File Path="../../docs/security.md" />
+    <File Path="../../docs/conventions.md" />
+  </Folder>
+</Solution>

@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Collectify.Api\Collectify.Api.csproj" />
+    <ProjectReference Include="..\..\Collectify.Api\Collectify.Api.csproj" />
   </ItemGroup>
 
 </Project>
