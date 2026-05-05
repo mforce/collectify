@@ -21,6 +21,7 @@
     <File Path="../../README.md" />
     <File Path="../../docs/architecture.md" />
     <File Path="../../docs/security.md" />
+    <File Path="../../docs/data-model.md" />
     <File Path="../../docs/conventions.md" />
   </Folder>
 </Solution>

@@ -36,6 +36,7 @@ Single-user with a password (multi-user is a forward-compatible Phase 4). Design
 ├── docs/
 │   ├── architecture.md    # backend CLEAN architecture + layering rules
 │   ├── security.md        # OWASP Top 10 + frontend hardening checklist
+│   ├── data-model.md      # fields per collection category + tags + enums
 │   └── conventions.md     # coding conventions, error handling, tests
 └── src/
     ├── server/
@@ -147,7 +148,7 @@ See [`docs/conventions.md`](docs/conventions.md). Key points:
 
 | Goal | Start here |
 |---|---|
-| Understand data model | `src/server/Collectify.Domain/Entities/` |
+| Understand data model | [`docs/data-model.md`](docs/data-model.md) (spec) and `src/server/Collectify.Domain/Entities/` (implementation) |
 | Add a new endpoint | `src/server/Collectify.Api/Endpoints/` |
 | Change DB schema | `Collectify.Infrastructure/Data/CollectifyDbContext.cs` then add a migration |
 | Add a frontend page | `src/client/pages/` + register in `src/client/App.tsx` |
