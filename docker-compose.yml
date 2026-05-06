@@ -1,0 +1,19 @@
+services:
+  collectify:
+    build: .
+    image: collectify:latest
+    container_name: collectify
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - collectify-data:/data
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Collectify__DataDir: /data
+    env_file:
+      - path: .env
+        required: false
+
+volumes:
+  collectify-data:

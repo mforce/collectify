@@ -1,0 +1,55 @@
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { useAuth } from './api/auth';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Setup from './pages/Setup';
+import Login from './pages/Login';
+import MoviesList from './pages/MoviesList';
+import MusicList from './pages/MusicList';
+import GamesList from './pages/GamesList';
+import EditPage from './pages/EditPage';
+import AddPage from './pages/AddPage';
+
+export default function App() {
+  const { data: auth, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="p-8 text-slate-400">Loading…</div>;
+  }
+
+  if (auth?.needsSetup) {
+    return (
+      <Routes>
+        <Route path="/setup" element={<Setup />} />
+        <Route path="*" element={<Navigate to="/setup" replace />} />
+      </Routes>
+    );
+  }
+
+  if (!auth?.isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/movies" element={<MoviesList />} />
+        <Route path="/movies/new" element={<AddPage type="movies" />} />
+        <Route path="/movies/:id" element={<EditPage type="movies" />} />
+        <Route path="/music" element={<MusicList />} />
+        <Route path="/music/new" element={<AddPage type="music" />} />
+        <Route path="/music/:id" element={<EditPage type="music" />} />
+        <Route path="/games" element={<GamesList />} />
+        <Route path="/games/new" element={<AddPage type="games" />} />
+        <Route path="/games/:id" element={<EditPage type="games" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Layout>
+  );
+}
