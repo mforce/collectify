@@ -6,7 +6,19 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8080',
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        // Vite serves client modules from the project root, so an import like
+        // `./api/auth` resolves to a request for /api/auth.ts which would
+        // otherwise be proxied to the .NET API and 404. Skip proxying any
+        // request whose path has a file extension; real REST endpoints don't.
+        bypass: (req) => {
+          if (req.url && /\.[a-z0-9]+(\?|$)/i.test(req.url)) {
+            return req.url;
+          }
+        },
+      },
     },
   },
   build: {
