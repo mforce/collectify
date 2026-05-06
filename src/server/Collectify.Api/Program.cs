@@ -68,6 +68,7 @@ app.MapAuthEndpoints();
 app.MapMoviesEndpoints();
 app.MapMusicEndpoints();
 app.MapGamesEndpoints();
+app.MapTagEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 

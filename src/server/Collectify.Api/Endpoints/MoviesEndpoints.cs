@@ -2,7 +2,6 @@ using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +24,19 @@ public static class MoviesEndpoints
         string? TmdbId,
         string? ImdbId,
         string? ImagePath,
+        string? Description,
         string? Notes,
+        int? PersonalRating,
+        CollectionStatus Status,
+        Condition? Condition,
+        DateOnly? AcquiredOn,
+        decimal? AcquisitionPrice,
+        string? AcquisitionCurrency,
+        string? AcquisitionSource,
+        WatchStatus WatchStatus,
+        DateOnly? LastWatchedOn,
+        int WatchCount,
+        string[]? Tags,
         DateTime? AddedAt,
         DateTime? UpdatedAt);
 
@@ -42,7 +53,7 @@ public static class MoviesEndpoints
             HttpContext ctx) =>
         {
             var ownerId = users.GetUserId(ctx.User)!;
-            var q = db.Movies.AsNoTracking().Where(m => m.OwnerId == ownerId);
+            var q = db.Movies.AsNoTracking().Include(m => m.Tags).Where(m => m.OwnerId == ownerId);
             if (!string.IsNullOrWhiteSpace(query))
             {
                 var like = $"%{query}%";
@@ -61,7 +72,8 @@ public static class MoviesEndpoints
         group.MapGet("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
             var ownerId = users.GetUserId(ctx.User)!;
-            var m = await db.Movies.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
+            var m = await db.Movies.AsNoTracking().Include(x => x.Tags)
+                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             return m is null ? Results.NotFound() : Results.Ok(ToDto(m));
         });
 
@@ -71,6 +83,7 @@ public static class MoviesEndpoints
             var ownerId = users.GetUserId(ctx.User)!;
             var m = new Movie { OwnerId = ownerId };
             ApplyDto(m, dto);
+            m.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
             db.Movies.Add(m);
             await db.SaveChangesAsync();
             return Results.Created($"/api/movies/{m.Id}", ToDto(m));
@@ -80,9 +93,11 @@ public static class MoviesEndpoints
         {
             if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
-            var m = await db.Movies.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
+            var m = await db.Movies.Include(x => x.Tags)
+                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             if (m is null) return Results.NotFound();
             ApplyDto(m, dto);
+            m.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
             m.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
             return Results.Ok(ToDto(m));
@@ -101,14 +116,25 @@ public static class MoviesEndpoints
         return app;
     }
 
-    private static IResult? Validate(MovieDto dto) =>
-        string.IsNullOrWhiteSpace(dto.Title)
-            ? Results.BadRequest(new { error = "Title is required." })
-            : null;
+    private static IResult? Validate(MovieDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return Results.BadRequest(new { error = "Title is required." });
+        if (dto.PersonalRating is { } r && (r < 1 || r > 10))
+            return Results.BadRequest(new { error = "PersonalRating must be between 1 and 10." });
+        if (dto.AcquisitionCurrency is { Length: > 0 } c && c.Length != 3)
+            return Results.BadRequest(new { error = "AcquisitionCurrency must be a 3-letter ISO 4217 code." });
+        return null;
+    }
 
     private static MovieDto ToDto(Movie m) => new(
         m.Id, m.Title, m.OriginalTitle, m.Year, m.Formats, m.Director, m.RuntimeMinutes,
-        m.Studio, m.Genres, m.Barcode, m.TmdbId, m.ImdbId, m.ImagePath, m.Notes, m.AddedAt, m.UpdatedAt);
+        m.Studio, m.Genres, m.Barcode, m.TmdbId, m.ImdbId, m.ImagePath, m.Description, m.Notes,
+        m.PersonalRating, m.Status, m.Condition,
+        m.AcquiredOn, m.AcquisitionPrice, m.AcquisitionCurrency, m.AcquisitionSource,
+        m.WatchStatus, m.LastWatchedOn, m.WatchCount,
+        TagResolver.ToNameArray(m.Tags),
+        m.AddedAt, m.UpdatedAt);
 
     private static void ApplyDto(Movie m, MovieDto dto)
     {
@@ -124,6 +150,17 @@ public static class MoviesEndpoints
         m.TmdbId = dto.TmdbId;
         m.ImdbId = dto.ImdbId;
         m.ImagePath = dto.ImagePath;
+        m.Description = dto.Description;
         m.Notes = dto.Notes;
+        m.PersonalRating = dto.PersonalRating;
+        m.Status = dto.Status;
+        m.Condition = dto.Condition;
+        m.AcquiredOn = dto.AcquiredOn;
+        m.AcquisitionPrice = dto.AcquisitionPrice;
+        m.AcquisitionCurrency = string.IsNullOrWhiteSpace(dto.AcquisitionCurrency) ? null : dto.AcquisitionCurrency.ToUpperInvariant();
+        m.AcquisitionSource = dto.AcquisitionSource;
+        m.WatchStatus = dto.WatchStatus;
+        m.LastWatchedOn = dto.LastWatchedOn;
+        m.WatchCount = dto.WatchCount;
     }
 }

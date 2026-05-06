@@ -22,7 +22,19 @@ public static class GamesEndpoints
         string? Barcode,
         string? IgdbId,
         string? ImagePath,
+        string? Description,
         string? Notes,
+        int? PersonalRating,
+        CollectionStatus Status,
+        Condition? Condition,
+        DateOnly? AcquiredOn,
+        decimal? AcquisitionPrice,
+        string? AcquisitionCurrency,
+        string? AcquisitionSource,
+        CompletionStatus CompletionStatus,
+        int? HoursPlayed,
+        DateOnly? LastPlayedOn,
+        string[]? Tags,
         DateTime? AddedAt,
         DateTime? UpdatedAt);
 
@@ -39,7 +51,7 @@ public static class GamesEndpoints
             HttpContext ctx) =>
         {
             var ownerId = users.GetUserId(ctx.User)!;
-            var q = db.Games.AsNoTracking().Where(g => g.OwnerId == ownerId);
+            var q = db.Games.AsNoTracking().Include(g => g.Tags).Where(g => g.OwnerId == ownerId);
             if (!string.IsNullOrWhiteSpace(query))
             {
                 var like = $"%{query}%";
@@ -57,7 +69,8 @@ public static class GamesEndpoints
         group.MapGet("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
             var ownerId = users.GetUserId(ctx.User)!;
-            var g = await db.Games.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
+            var g = await db.Games.AsNoTracking().Include(x => x.Tags)
+                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             return g is null ? Results.NotFound() : Results.Ok(ToDto(g));
         });
 
@@ -67,6 +80,7 @@ public static class GamesEndpoints
             var ownerId = users.GetUserId(ctx.User)!;
             var g = new Game { OwnerId = ownerId };
             ApplyDto(g, dto);
+            g.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
             db.Games.Add(g);
             await db.SaveChangesAsync();
             return Results.Created($"/api/games/{g.Id}", ToDto(g));
@@ -76,9 +90,11 @@ public static class GamesEndpoints
         {
             if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
-            var g = await db.Games.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
+            var g = await db.Games.Include(x => x.Tags)
+                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             if (g is null) return Results.NotFound();
             ApplyDto(g, dto);
+            g.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
             g.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
             return Results.Ok(ToDto(g));
@@ -97,14 +113,25 @@ public static class GamesEndpoints
         return app;
     }
 
-    private static IResult? Validate(GameDto dto) =>
-        string.IsNullOrWhiteSpace(dto.Title)
-            ? Results.BadRequest(new { error = "Title is required." })
-            : null;
+    private static IResult? Validate(GameDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return Results.BadRequest(new { error = "Title is required." });
+        if (dto.PersonalRating is { } r && (r < 1 || r > 10))
+            return Results.BadRequest(new { error = "PersonalRating must be between 1 and 10." });
+        if (dto.AcquisitionCurrency is { Length: > 0 } c && c.Length != 3)
+            return Results.BadRequest(new { error = "AcquisitionCurrency must be a 3-letter ISO 4217 code." });
+        return null;
+    }
 
     private static GameDto ToDto(Game g) => new(
         g.Id, g.Title, g.Platform, g.Year, g.Publisher, g.Developer, g.IsDigital, g.DigitalStore,
-        g.Barcode, g.IgdbId, g.ImagePath, g.Notes, g.AddedAt, g.UpdatedAt);
+        g.Barcode, g.IgdbId, g.ImagePath, g.Description, g.Notes,
+        g.PersonalRating, g.Status, g.Condition,
+        g.AcquiredOn, g.AcquisitionPrice, g.AcquisitionCurrency, g.AcquisitionSource,
+        g.CompletionStatus, g.HoursPlayed, g.LastPlayedOn,
+        TagResolver.ToNameArray(g.Tags),
+        g.AddedAt, g.UpdatedAt);
 
     private static void ApplyDto(Game g, GameDto dto)
     {
@@ -118,6 +145,17 @@ public static class GamesEndpoints
         g.Barcode = dto.Barcode;
         g.IgdbId = dto.IgdbId;
         g.ImagePath = dto.ImagePath;
+        g.Description = dto.Description;
         g.Notes = dto.Notes;
+        g.PersonalRating = dto.PersonalRating;
+        g.Status = dto.Status;
+        g.Condition = dto.Condition;
+        g.AcquiredOn = dto.AcquiredOn;
+        g.AcquisitionPrice = dto.AcquisitionPrice;
+        g.AcquisitionCurrency = string.IsNullOrWhiteSpace(dto.AcquisitionCurrency) ? null : dto.AcquisitionCurrency.ToUpperInvariant();
+        g.AcquisitionSource = dto.AcquisitionSource;
+        g.CompletionStatus = dto.CompletionStatus;
+        g.HoursPlayed = dto.HoursPlayed;
+        g.LastPlayedOn = dto.LastPlayedOn;
     }
 }

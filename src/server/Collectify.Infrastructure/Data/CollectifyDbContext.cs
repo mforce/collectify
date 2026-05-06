@@ -12,6 +12,7 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<MusicAlbum> MusicAlbums => Set<MusicAlbum>();
     public DbSet<Game> Games => Set<Game>();
+    public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<LookupCacheEntry> LookupCache => Set<LookupCacheEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -24,6 +25,8 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
             e.HasIndex(m => m.Title);
             e.HasIndex(m => m.Barcode);
             e.Property(m => m.Title).HasMaxLength(500).IsRequired();
+            e.Property(m => m.AcquisitionCurrency).HasMaxLength(3);
+            e.Property(m => m.AcquisitionPrice).HasColumnType("decimal(18,2)");
         });
 
         builder.Entity<MusicAlbum>(e =>
@@ -34,6 +37,8 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
             e.HasIndex(m => m.Barcode);
             e.Property(m => m.Title).HasMaxLength(500).IsRequired();
             e.Property(m => m.ArtistName).HasMaxLength(500).IsRequired();
+            e.Property(m => m.AcquisitionCurrency).HasMaxLength(3);
+            e.Property(m => m.AcquisitionPrice).HasColumnType("decimal(18,2)");
         });
 
         builder.Entity<Game>(e =>
@@ -42,6 +47,14 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
             e.HasIndex(g => g.Title);
             e.HasIndex(g => g.Barcode);
             e.Property(g => g.Title).HasMaxLength(500).IsRequired();
+            e.Property(g => g.AcquisitionCurrency).HasMaxLength(3);
+            e.Property(g => g.AcquisitionPrice).HasColumnType("decimal(18,2)");
+        });
+
+        builder.Entity<Tag>(e =>
+        {
+            e.Property(t => t.Name).HasMaxLength(100).IsRequired();
+            e.HasIndex(t => new { t.OwnerId, t.Name }).IsUnique();
         });
 
         builder.Entity<LookupCacheEntry>(e =>
