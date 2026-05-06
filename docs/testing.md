@@ -95,16 +95,15 @@ The name is the spec. If the name doesn't fit on one line, the test is doing too
 - Prefer fluent reads: `response.StatusCode.Should().Be(HttpStatusCode.Created)` if we adopt FluentAssertions; otherwise plain xUnit asserts. Pick one and stay consistent.
 - Compare DTOs by value (records make this free), not field-by-field.
 
-## Frontend tests (planned, currently empty)
+## Frontend tests
 
-When the first React test lands:
-
-- **Vitest + React Testing Library**, configured in `src/client/vitest.config.ts`.
+- **Vitest + React Testing Library + jsdom**, configured under the `test` key in [`src/client/vite.config.ts`](../src/client/vite.config.ts) (using `defineConfig` from `vitest/config` so the same file drives dev / build / test).
+- Setup file `src/client/test/setup.ts` registers `@testing-library/jest-dom` matchers and clears the DOM after each test.
 - Test **what the user sees and does**, not implementation details. Query by role / label, never by `data-testid` unless there's no other handle.
 - Mock TanStack Query at the network boundary (`msw`), not at the hook.
 - Co-locate tests next to the component: `MovieForm.test.tsx` next to `MovieForm.tsx`.
 
-A separate issue will track this once Phase 1's UI stabilizes.
+Run with `npm test` (single run) or `npm run test:watch` (interactive). The `client` job in CI runs `npm test` before `npm run build`, so a regression fails the build before the bundle is produced.
 
 ## Running
 

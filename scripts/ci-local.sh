@@ -29,6 +29,7 @@ client_job() {
   bold "==> client (Vite/TS)"
   cd "$REPO_ROOT/src/client"
   npm ci
+  npm test
   npm run build
 }
 

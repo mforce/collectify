@@ -21,7 +21,7 @@ Single-user with a password (multi-user is a forward-compatible Phase 4). Design
 | Auth | ASP.NET Core Identity + cookie auth |
 | Frontend | React 18 + Vite + TypeScript + Tailwind + TanStack Query + React Router |
 | Container | Multi-stage Dockerfile, single image, single port (8080) |
-| Tests | xUnit (server), Vitest planned (client) |
+| Tests | xUnit (server), Vitest + RTL + jsdom (client) |
 
 ## Repo layout
 
@@ -140,6 +140,8 @@ dotnet ef migrations add <Name> \      # add a migration
 # Client
 cd src/client
 npm run build                          # tsc -b && vite build
+npm test                               # vitest run (one-shot)
+npm run test:watch                     # vitest interactive
 npm run dev
 ```
 
