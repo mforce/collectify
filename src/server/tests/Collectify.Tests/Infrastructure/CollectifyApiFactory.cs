@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Collectify.Tests.Infrastructure;
 
@@ -23,12 +25,18 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Replace the production registration. Because Program.cs builds the
-            // SQLite path inside the AddDbContext callback, removing the original
-            // descriptor here means that callback never runs and no on-disk
-            // directory or file is created.
-            var existing = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<CollectifyDbContext>));
-            if (existing is not null) services.Remove(existing);
+            // Fully replace the production AddDbContext registration. EF Core
+            // registers two services for each AddDbContext call:
+            //   - DbContextOptions<T>        (the resolved options)
+            //   - IDbContextOptionsConfiguration<T>  (a wrapper around the
+            //     configure callback)
+            // Both have to be cleared. If we only remove DbContextOptions<T>
+            // the production callback still runs when options are built and
+            // tries to mkdir the data directory, which blows up for non-root
+            // users on Linux when AppContext.BaseDirectory resolves to "/".
+            services.RemoveAll<DbContextOptions<CollectifyDbContext>>();
+            services.RemoveAll<DbContextOptions>();
+            services.RemoveAll<IDbContextOptionsConfiguration<CollectifyDbContext>>();
 
             services.AddDbContext<CollectifyDbContext>(opt => opt.UseSqlite(_connection));
         });
