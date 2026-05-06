@@ -63,6 +63,7 @@ public static class MusicEndpoints
 
         group.MapPost("/", async ([FromBody] AlbumDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
+            if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var a = new MusicAlbum { OwnerId = ownerId };
             ApplyDto(a, dto);
@@ -73,6 +74,7 @@ public static class MusicEndpoints
 
         group.MapPut("/{id:int}", async (int id, [FromBody] AlbumDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
+            if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var a = await db.MusicAlbums.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             if (a is null) return Results.NotFound();
@@ -93,6 +95,15 @@ public static class MusicEndpoints
         });
 
         return app;
+    }
+
+    private static IResult? Validate(AlbumDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return Results.BadRequest(new { error = "Title is required." });
+        if (string.IsNullOrWhiteSpace(dto.ArtistName))
+            return Results.BadRequest(new { error = "Artist name is required." });
+        return null;
     }
 
     private static AlbumDto ToDto(MusicAlbum a) => new(

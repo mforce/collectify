@@ -67,6 +67,7 @@ public static class MoviesEndpoints
 
         group.MapPost("/", async ([FromBody] MovieDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
+            if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var m = new Movie { OwnerId = ownerId };
             ApplyDto(m, dto);
@@ -77,6 +78,7 @@ public static class MoviesEndpoints
 
         group.MapPut("/{id:int}", async (int id, [FromBody] MovieDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
+            if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var m = await db.Movies.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             if (m is null) return Results.NotFound();
@@ -98,6 +100,11 @@ public static class MoviesEndpoints
 
         return app;
     }
+
+    private static IResult? Validate(MovieDto dto) =>
+        string.IsNullOrWhiteSpace(dto.Title)
+            ? Results.BadRequest(new { error = "Title is required." })
+            : null;
 
     private static MovieDto ToDto(Movie m) => new(
         m.Id, m.Title, m.OriginalTitle, m.Year, m.Formats, m.Director, m.RuntimeMinutes,

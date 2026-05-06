@@ -63,6 +63,7 @@ public static class GamesEndpoints
 
         group.MapPost("/", async ([FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
+            if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var g = new Game { OwnerId = ownerId };
             ApplyDto(g, dto);
@@ -73,6 +74,7 @@ public static class GamesEndpoints
 
         group.MapPut("/{id:int}", async (int id, [FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
+            if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var g = await db.Games.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             if (g is null) return Results.NotFound();
@@ -94,6 +96,11 @@ public static class GamesEndpoints
 
         return app;
     }
+
+    private static IResult? Validate(GameDto dto) =>
+        string.IsNullOrWhiteSpace(dto.Title)
+            ? Results.BadRequest(new { error = "Title is required." })
+            : null;
 
     private static GameDto ToDto(Game g) => new(
         g.Id, g.Title, g.Platform, g.Year, g.Publisher, g.Developer, g.IsDigital, g.DigitalStore,
