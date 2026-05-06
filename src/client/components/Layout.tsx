@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { useAuth, useLogout } from '../api/auth';
+import { useAuth, useLogout } from '../services/auth';
 
 const navItem = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-2 rounded-md text-sm font-medium ${
@@ -20,6 +20,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/movies" className={navItem}>Movies</NavLink>
             <NavLink to="/music" className={navItem}>Music</NavLink>
             <NavLink to="/games" className={navItem}>Games</NavLink>
+            <NavLink to="/tags" className={navItem}>Tags</NavLink>
           </div>
           <div className="flex items-center gap-3 text-sm text-slate-400">
             <span className="hidden sm:inline">{auth?.userName}</span>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSetup } from '../api/auth';
+import { useSetup } from '../services/auth';
 import { Button, Card, Field, Input } from '../components/ui';
 
 export default function Setup() {

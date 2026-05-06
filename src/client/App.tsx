@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { useAuth } from './api/auth';
+import { useAuth } from './services/auth';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Setup from './pages/Setup';
@@ -9,6 +9,7 @@ import MusicList from './pages/MusicList';
 import GamesList from './pages/GamesList';
 import EditPage from './pages/EditPage';
 import AddPage from './pages/AddPage';
+import TagsPage from './pages/Tags';
 
 export default function App() {
   const { data: auth, isLoading } = useAuth();
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/games" element={<GamesList />} />
         <Route path="/games/new" element={<AddPage type="games" />} />
         <Route path="/games/:id" element={<EditPage type="games" />} />
+        <Route path="/tags" element={<TagsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

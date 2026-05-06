@@ -4,7 +4,7 @@ import {
   CONDITIONS,
   type CollectionStatus,
   type Condition,
-} from '../api/types';
+} from '../services/types';
 
 export function Button({ className = '', variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
   const variants = {

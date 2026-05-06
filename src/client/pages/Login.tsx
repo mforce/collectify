@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLogin } from '../api/auth';
+import { useLogin } from '../services/auth';
 import { Button, Card, Field, Input } from '../components/ui';
 
 export default function Login() {

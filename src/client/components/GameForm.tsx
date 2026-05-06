@@ -7,7 +7,7 @@ import {
   type CompletionStatus,
   type DigitalStore,
   type Game,
-} from '../api/types';
+} from '../services/types';
 
 interface Props {
   initial?: Game;

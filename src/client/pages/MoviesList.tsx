@@ -1,5 +1,5 @@
 import CollectionList from '../components/CollectionList';
-import { MOVIE_FORMAT_FLAGS, type Movie } from '../api/types';
+import { MOVIE_FORMAT_FLAGS, type Movie } from '../services/types';
 
 export default function MoviesList() {
   return (

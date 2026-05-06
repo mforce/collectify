@@ -1,5 +1,5 @@
 import CollectionList from '../components/CollectionList';
-import type { Game } from '../api/types';
+import type { Game } from '../services/types';
 
 export default function GamesList() {
   return (

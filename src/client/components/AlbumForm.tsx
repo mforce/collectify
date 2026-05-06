@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
-import { MUSIC_FORMATS, type Album } from '../api/types';
+import { MUSIC_FORMATS, type Album } from '../services/types';
 
 interface Props {
   initial?: Album;
