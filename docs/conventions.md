@@ -27,6 +27,13 @@ Style and process expectations for Collectify. Keep this list short and updated 
 - Name tests `Method_State_Expected`, e.g. `CreateMovie_AsAuthenticatedUser_PersistsRow`.
 - One assertion theme per test. Multiple `Assert` calls are fine when they verify a single behavior.
 
+### Dependencies (Central Package Management)
+- All NuGet versions live in [`src/server/Directory.Packages.props`](../src/server/Directory.Packages.props). `<ManagePackageVersionsCentrally>` is on.
+- `<PackageReference>` in csproj files **must omit `Version=`**. Build will fail otherwise.
+- To add a package: declare `<PackageVersion Include="X" Version="Y" />` in the central props (under the right `Label` group), then `<PackageReference Include="X" />` in the consuming csproj. `PrivateAssets` / `IncludeAssets` stay on the `PackageReference`.
+- To bump a version: edit the central props only.
+- Pin a transitive override (e.g. for a CVE) by adding both a `PackageVersion` entry with a comment citing the advisory and a `PackageReference` (with `PrivateAssets=all` if the parent is design-time only) in the project that drags it in.
+
 ## Frontend (React / TS)
 
 ### Style
