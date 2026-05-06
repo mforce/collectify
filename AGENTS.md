@@ -192,6 +192,6 @@ See [`docs/conventions.md`](docs/conventions.md). Key points:
 | Add a frontend page | `src/client/pages/` + register in `src/client/App.tsx` |
 | Wire an API call | `src/client/api/` (one file per resource) |
 | Configure deployment | `Dockerfile`, `docker-compose.yml`, `.env.example` |
-| Touch CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs server build + xUnit suite and client build on every push / PR |
+| Touch CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs server build + xUnit suite and client build on every push / PR. Run the same jobs locally with [`./scripts/ci-local.sh`](scripts/ci-local.sh) (optionally `server` or `client` to scope). |
 | Read project specs | `docs/` |
 | Write a test | [`docs/testing.md`](docs/testing.md) — TDD workflow, layers, required coverage |
