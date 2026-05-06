@@ -1,4 +1,10 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import {
+  COLLECTION_STATUSES,
+  CONDITIONS,
+  type CollectionStatus,
+  type Condition,
+} from '../api/types';
 
 export function Button({ className = '', variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
   const variants = {
@@ -61,5 +67,186 @@ export function Field({ label, children }: { label: string; children: React.Reac
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`rounded-lg bg-slate-900 border border-slate-800 p-4 ${className}`}>{children}</div>
+  );
+}
+
+export function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-6 mb-2 pb-1 border-b border-slate-800">
+      {children}
+    </h2>
+  );
+}
+
+// ---------- Rating ----------
+
+interface RatingInputProps {
+  value: number | null | undefined;
+  onChange: (next: number | null) => void;
+  ariaLabel?: string;
+}
+
+/**
+ * 1–10 rating selector. Renders 10 numbered buttons; clicking one already
+ * selected clears the rating. Server validates 1..10 inclusive.
+ */
+export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: RatingInputProps) {
+  return (
+    <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1">
+      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
+        const selected = value === n;
+        return (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={`${n} of 10`}
+            onClick={() => onChange(selected ? null : n)}
+            className={`w-8 h-8 rounded-md text-sm font-medium border transition-colors ${
+              selected
+                ? 'bg-amber-500 border-amber-400 text-slate-900'
+                : value != null && n <= value
+                  ? 'bg-amber-500/30 border-amber-500/40 text-amber-200'
+                  : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500'
+            }`}
+          >
+            {n}
+          </button>
+        );
+      })}
+      {value != null && (
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="ml-1 px-2 text-xs text-slate-400 hover:text-slate-200"
+          aria-label="Clear rating"
+        >
+          clear
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---------- Pills ----------
+
+const STATUS_STYLE: Record<CollectionStatus, string> = {
+  Owned: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  Wishlist: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  OnOrder: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  Sold: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+};
+
+export function StatusPill({ status }: { status: CollectionStatus }) {
+  const label = COLLECTION_STATUSES.find((s) => s.value === status)?.label ?? status;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLE[status]}`}>
+      {label}
+    </span>
+  );
+}
+
+export function ConditionPill({ condition }: { condition: Condition }) {
+  const label = CONDITIONS.find((c) => c.value === condition)?.label ?? condition;
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-slate-700/40 text-slate-200 border-slate-600">
+      {label}
+    </span>
+  );
+}
+
+// ---------- Tag chips & input ----------
+
+export function TagChip({ name, onRemove }: { name: string; onRemove?: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-indigo-500/15 text-indigo-200 border border-indigo-500/30">
+      {name}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Remove tag ${name}`}
+          className="-mr-0.5 hover:text-white"
+        >
+          ×
+        </button>
+      )}
+    </span>
+  );
+}
+
+interface TagInputProps {
+  value: string[];
+  onChange: (next: string[]) => void;
+  suggestions?: string[];
+  placeholder?: string;
+}
+
+/**
+ * Free-form tag editor. Press Enter or comma to commit; Backspace on an
+ * empty input removes the last tag. Names are lowercased and de-duped on
+ * commit. Suggestions, when provided, render as quick-add pills below the
+ * input (already-selected ones are filtered out).
+ */
+export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add tag…' }: TagInputProps) {
+  const [draft, setDraft] = useState('');
+
+  const commit = (raw: string) => {
+    const clean = raw.trim().toLowerCase();
+    if (!clean) return;
+    if (value.includes(clean)) {
+      setDraft('');
+      return;
+    }
+    onChange([...value, clean]);
+    setDraft('');
+  };
+
+  const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commit(draft);
+    } else if (e.key === 'Backspace' && draft === '' && value.length > 0) {
+      onChange(value.slice(0, -1));
+    }
+  };
+
+  const remove = (name: string) => onChange(value.filter((t) => t !== name));
+
+  const remaining = suggestions.filter((s) => !value.includes(s)).slice(0, 8);
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1.5 items-center rounded-md bg-slate-900 border border-slate-700 p-1.5 focus-within:border-indigo-400">
+        {value.map((t) => (
+          <TagChip key={t} name={t} onRemove={() => remove(t)} />
+        ))}
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={onKey}
+          onBlur={() => commit(draft)}
+          placeholder={value.length === 0 ? placeholder : ''}
+          aria-label="Add tag"
+          className="flex-1 min-w-[8ch] bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none px-1"
+        />
+      </div>
+      {remaining.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          <span className="text-xs text-slate-500 mr-1">Existing:</span>
+          {remaining.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => commit(s)}
+              className="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700"
+            >
+              + {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useList } from '../api/collection';
-import { Button, Card, Input } from './ui';
-import type { MediaType } from '../api/types';
+import { Button, Card, Input, StatusPill, TagChip } from './ui';
+import type { CollectionItemBase, MediaType } from '../api/types';
+
+interface RenderedItem {
+  primary: string;
+  secondary?: string;
+  tertiary?: string;
+}
 
 interface Props<T extends MediaType> {
   type: T;
   title: string;
   newPath: string;
-  renderItem: (item: any) => { primary: string; secondary?: string; tertiary?: string };
+  renderItem: (item: any) => RenderedItem;
 }
 
 export default function CollectionList<T extends MediaType>({ type, title, newPath, renderItem }: Props<T>) {
@@ -38,14 +44,32 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
       )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {items.map((item: any) => {
+        {items.map((item) => {
+          const base = item as CollectionItemBase & { id?: number };
           const r = renderItem(item);
+          const tags = base.tags ?? [];
           return (
-            <Link key={item.id} to={`${newPath.replace(/\/new$/, '')}/${item.id}`} className="block">
-              <Card className="hover:border-indigo-500 transition-colors h-full">
-                <div className="font-medium text-white truncate">{r.primary}</div>
+            <Link key={base.id} to={`${newPath.replace(/\/new$/, '')}/${base.id}`} className="block">
+              <Card className="hover:border-indigo-500 transition-colors h-full flex flex-col gap-1.5">
+                <div className="flex items-start gap-2">
+                  <div className="font-medium text-white truncate flex-1">{r.primary}</div>
+                  <StatusPill status={base.status} />
+                </div>
                 {r.secondary && <div className="text-sm text-slate-400 truncate">{r.secondary}</div>}
-                {r.tertiary && <div className="text-xs text-slate-500 mt-1 truncate">{r.tertiary}</div>}
+                {r.tertiary && <div className="text-xs text-slate-500 truncate">{r.tertiary}</div>}
+                {base.personalRating != null && (
+                  <div className="text-xs text-amber-300">★ {base.personalRating}/10</div>
+                )}
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {tags.slice(0, 5).map((t) => (
+                      <TagChip key={t} name={t} />
+                    ))}
+                    {tags.length > 5 && (
+                      <span className="text-xs text-slate-500">+{tags.length - 5}</span>
+                    )}
+                  </div>
+                )}
               </Card>
             </Link>
           );

@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Button, Field, Input, Select, Textarea } from './ui';
-import { DIGITAL_STORES, type DigitalStore, type Game } from '../api/types';
+import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import PersonalAcquisitionSection from './PersonalAcquisitionSection';
+import {
+  COMPLETION_STATUSES,
+  DIGITAL_STORES,
+  type CompletionStatus,
+  type DigitalStore,
+  type Game,
+} from '../api/types';
 
 interface Props {
   initial?: Game;
@@ -13,6 +20,9 @@ interface Props {
 const empty: Game = {
   title: '',
   isDigital: false,
+  status: 'Owned',
+  completionStatus: 'NotStarted',
+  tags: [],
 };
 
 export default function GameForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
@@ -20,6 +30,7 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
   useEffect(() => { if (initial) setG(initial); }, [initial]);
 
   const set = <K extends keyof Game>(k: K, v: Game[K]) => setG((prev) => ({ ...prev, [k]: v }));
+  const patch = (p: Partial<Game>) => setG((prev) => ({ ...prev, ...p }));
 
   return (
     <form
@@ -72,6 +83,37 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
             </Select>
           </Field>
         )}
+      </div>
+
+      <PersonalAcquisitionSection value={g} onChange={patch} />
+
+      <SectionHeading>Playing</SectionHeading>
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Field label="Completion">
+          <Select
+            value={g.completionStatus}
+            onChange={(e) => set('completionStatus', e.target.value as CompletionStatus)}
+          >
+            {COMPLETION_STATUSES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Hours played">
+          <Input
+            type="number"
+            min="0"
+            value={g.hoursPlayed ?? ''}
+            onChange={(e) => set('hoursPlayed', e.target.value ? Number(e.target.value) : null)}
+          />
+        </Field>
+        <Field label="Last played">
+          <Input
+            type="date"
+            value={g.lastPlayedOn ?? ''}
+            onChange={(e) => set('lastPlayedOn', e.target.value || null)}
+          />
+        </Field>
       </div>
 
       <Field label="Notes">

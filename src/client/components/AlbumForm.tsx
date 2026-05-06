@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Field, Input, Select, Textarea } from './ui';
+import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import { MUSIC_FORMATS, type Album } from '../api/types';
 
 interface Props {
@@ -14,6 +15,9 @@ const empty: Album = {
   title: '',
   artistName: '',
   format: 'Cd',
+  status: 'Owned',
+  listenCount: 0,
+  tags: [],
 };
 
 export default function AlbumForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
@@ -21,6 +25,7 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
   useEffect(() => { if (initial) setA(initial); }, [initial]);
 
   const set = <K extends keyof Album>(k: K, v: Album[K]) => setA((prev) => ({ ...prev, [k]: v }));
+  const patch = (p: Partial<Album>) => setA((prev) => ({ ...prev, ...p }));
 
   return (
     <form
@@ -55,6 +60,27 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
         </Field>
         <Field label="Barcode">
           <Input value={a.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
+        </Field>
+      </div>
+
+      <PersonalAcquisitionSection value={a} onChange={patch} />
+
+      <SectionHeading>Listening</SectionHeading>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Field label="Listen count">
+          <Input
+            type="number"
+            min="0"
+            value={a.listenCount}
+            onChange={(e) => set('listenCount', Number(e.target.value || 0))}
+          />
+        </Field>
+        <Field label="Last played">
+          <Input
+            type="date"
+            value={a.lastPlayedOn ?? ''}
+            onChange={(e) => set('lastPlayedOn', e.target.value || null)}
+          />
         </Field>
       </div>
 

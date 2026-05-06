@@ -1,3 +1,58 @@
+// ---------- Shared (Phase 1.1) ----------
+
+export type CollectionStatus = 'Owned' | 'Wishlist' | 'OnOrder' | 'Sold';
+export const COLLECTION_STATUSES: { value: CollectionStatus; label: string }[] = [
+  { value: 'Owned', label: 'Owned' },
+  { value: 'Wishlist', label: 'Wishlist' },
+  { value: 'OnOrder', label: 'On order' },
+  { value: 'Sold', label: 'Sold' },
+];
+
+export type Condition = 'New' | 'LikeNew' | 'Good' | 'Fair' | 'Poor';
+export const CONDITIONS: { value: Condition; label: string }[] = [
+  { value: 'New', label: 'New' },
+  { value: 'LikeNew', label: 'Like new' },
+  { value: 'Good', label: 'Good' },
+  { value: 'Fair', label: 'Fair' },
+  { value: 'Poor', label: 'Poor' },
+];
+
+export type WatchStatus = 'Unwatched' | 'Watching' | 'Watched';
+export const WATCH_STATUSES: { value: WatchStatus; label: string }[] = [
+  { value: 'Unwatched', label: 'Unwatched' },
+  { value: 'Watching', label: 'Watching' },
+  { value: 'Watched', label: 'Watched' },
+];
+
+export type CompletionStatus = 'NotStarted' | 'Playing' | 'Beaten' | 'HundredPercent' | 'Abandoned';
+export const COMPLETION_STATUSES: { value: CompletionStatus; label: string }[] = [
+  { value: 'NotStarted', label: 'Not started' },
+  { value: 'Playing', label: 'Playing' },
+  { value: 'Beaten', label: 'Beaten' },
+  { value: 'HundredPercent', label: '100%' },
+  { value: 'Abandoned', label: 'Abandoned' },
+];
+
+export interface Tag {
+  id: number;
+  name: string;
+}
+
+// Common Phase 1.1 fields surfaced on every collection item.
+export interface CollectionItemBase {
+  description?: string | null;
+  personalRating?: number | null;       // 1..10
+  status: CollectionStatus;
+  condition?: Condition | null;
+  acquiredOn?: string | null;            // 'YYYY-MM-DD'
+  acquisitionPrice?: number | null;
+  acquisitionCurrency?: string | null;   // 3-letter ISO 4217
+  acquisitionSource?: string | null;
+  tags?: string[];
+}
+
+// ---------- Movies ----------
+
 export type MovieFormat = 'None' | 'Dvd' | 'BluRay' | 'UhdBluRay';
 
 export const MOVIE_FORMAT_FLAGS: { value: number; key: Exclude<MovieFormat, 'None'>; label: string }[] = [
@@ -6,7 +61,7 @@ export const MOVIE_FORMAT_FLAGS: { value: number; key: Exclude<MovieFormat, 'Non
   { value: 4, key: 'UhdBluRay', label: 'UHD Blu-ray' },
 ];
 
-export interface Movie {
+export interface Movie extends CollectionItemBase {
   id?: number;
   title: string;
   originalTitle?: string | null;
@@ -21,9 +76,14 @@ export interface Movie {
   imdbId?: string | null;
   imagePath?: string | null;
   notes?: string | null;
+  watchStatus: WatchStatus;
+  lastWatchedOn?: string | null;
+  watchCount: number;
   addedAt?: string;
   updatedAt?: string;
 }
+
+// ---------- Music ----------
 
 export type MusicFormat = 'Cd' | 'Vinyl' | 'Other';
 export const MUSIC_FORMATS: { value: MusicFormat; label: string }[] = [
@@ -32,7 +92,7 @@ export const MUSIC_FORMATS: { value: MusicFormat; label: string }[] = [
   { value: 'Other', label: 'Other' },
 ];
 
-export interface Album {
+export interface Album extends CollectionItemBase {
   id?: number;
   title: string;
   artistName: string;
@@ -45,9 +105,13 @@ export interface Album {
   discogsId?: string | null;
   imagePath?: string | null;
   notes?: string | null;
+  listenCount: number;
+  lastPlayedOn?: string | null;
   addedAt?: string;
   updatedAt?: string;
 }
+
+// ---------- Games ----------
 
 export type DigitalStore = 'Steam' | 'Gog' | 'Epic' | 'Xbox' | 'Psn' | 'Nintendo' | 'Other';
 export const DIGITAL_STORES: { value: DigitalStore; label: string }[] = [
@@ -60,7 +124,7 @@ export const DIGITAL_STORES: { value: DigitalStore; label: string }[] = [
   { value: 'Other', label: 'Other' },
 ];
 
-export interface Game {
+export interface Game extends CollectionItemBase {
   id?: number;
   title: string;
   platform?: string | null;
@@ -73,6 +137,9 @@ export interface Game {
   igdbId?: string | null;
   imagePath?: string | null;
   notes?: string | null;
+  completionStatus: CompletionStatus;
+  hoursPlayed?: number | null;
+  lastPlayedOn?: string | null;
   addedAt?: string;
   updatedAt?: string;
 }

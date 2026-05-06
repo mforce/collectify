@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, Field, Input, Textarea } from './ui';
-import { MOVIE_FORMAT_FLAGS, type Movie } from '../api/types';
+import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import PersonalAcquisitionSection from './PersonalAcquisitionSection';
+import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../api/types';
 
 interface Props {
   initial?: Movie;
@@ -13,6 +14,10 @@ interface Props {
 const empty: Movie = {
   title: '',
   formats: 0,
+  status: 'Owned',
+  watchStatus: 'Unwatched',
+  watchCount: 0,
+  tags: [],
 };
 
 export default function MovieForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
@@ -20,6 +25,7 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
   useEffect(() => { if (initial) setM(initial); }, [initial]);
 
   const set = <K extends keyof Movie>(k: K, v: Movie[K]) => setM((prev) => ({ ...prev, [k]: v }));
+  const patch = (p: Partial<Movie>) => setM((prev) => ({ ...prev, ...p }));
   const toggleFormat = (flag: number) => set('formats', (m.formats ?? 0) ^ flag);
 
   return (
@@ -74,6 +80,37 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
             );
           })}
         </div>
+      </div>
+
+      <PersonalAcquisitionSection value={m} onChange={patch} />
+
+      <SectionHeading>Watching</SectionHeading>
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Field label="Watch status">
+          <Select
+            value={m.watchStatus}
+            onChange={(e) => set('watchStatus', e.target.value as WatchStatus)}
+          >
+            {WATCH_STATUSES.map((w) => (
+              <option key={w.value} value={w.value}>{w.label}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Last watched">
+          <Input
+            type="date"
+            value={m.lastWatchedOn ?? ''}
+            onChange={(e) => set('lastWatchedOn', e.target.value || null)}
+          />
+        </Field>
+        <Field label="Watch count">
+          <Input
+            type="number"
+            min="0"
+            value={m.watchCount}
+            onChange={(e) => set('watchCount', Number(e.target.value || 0))}
+          />
+        </Field>
       </div>
 
       <Field label="Notes">
