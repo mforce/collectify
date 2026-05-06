@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useList } from '../api/collection';
+import { useList } from '../services/collection';
 import { Card } from '../components/ui';
 
 export default function Dashboard() {

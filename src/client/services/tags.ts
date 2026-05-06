@@ -24,6 +24,13 @@ export function useDeleteTag() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => api(`/api/tags/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      // Tags can be attached to any media type; deleting one invalidates the
+      // chip lists on every collection page, not just /tags itself.
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ['movies'] });
+      qc.invalidateQueries({ queryKey: ['music'] });
+      qc.invalidateQueries({ queryKey: ['games'] });
+    },
   });
 }

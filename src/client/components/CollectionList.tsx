@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useList } from '../api/collection';
+import { useList } from '../services/collection';
 import { Button, Card, Input, StatusPill, TagChip } from './ui';
-import type { CollectionItemBase, MediaType } from '../api/types';
+import type { CollectionItemBase, MediaType } from '../services/types';
 
 interface RenderedItem {
   primary: string;

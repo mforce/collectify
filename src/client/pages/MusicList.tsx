@@ -1,5 +1,5 @@
 import CollectionList from '../components/CollectionList';
-import { MUSIC_FORMATS, type Album } from '../api/types';
+import { MUSIC_FORMATS, type Album } from '../services/types';
 
 export default function MusicList() {
   return (

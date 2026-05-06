@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useCreate } from '../api/collection';
-import type { Album, Game, MediaType, Movie } from '../api/types';
+import { useCreate } from '../services/collection';
+import type { Album, Game, MediaType, Movie } from '../services/types';
 import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';

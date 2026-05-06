@@ -4,8 +4,8 @@ import {
   type CollectionItemBase,
   type CollectionStatus,
   type Condition,
-} from '../api/types';
-import { useTags } from '../api/tags';
+} from '../services/types';
+import { useTags } from '../services/tags';
 import { Field, Input, RatingInput, SectionHeading, Select, TagInput, Textarea } from './ui';
 
 interface Props<T extends CollectionItemBase> {
