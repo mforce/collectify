@@ -37,6 +37,7 @@ Single-user with a password (multi-user is a forward-compatible Phase 4). Design
 │   ├── architecture.md    # backend CLEAN architecture + layering rules
 │   ├── security.md        # OWASP Top 10 + frontend hardening checklist
 │   ├── data-model.md      # fields per collection category + tags + enums
+│   ├── testing.md         # TDD workflow + test pyramid + endpoint coverage rules
 │   └── conventions.md     # coding conventions, error handling, tests
 ├── graphify-out/                        # knowledge graph (see "Knowledge graph" below)
 └── src/
@@ -192,3 +193,4 @@ See [`docs/conventions.md`](docs/conventions.md). Key points:
 | Wire an API call | `src/client/api/` (one file per resource) |
 | Configure deployment | `Dockerfile`, `docker-compose.yml`, `.env.example` |
 | Read project specs | `docs/` |
+| Write a test | [`docs/testing.md`](docs/testing.md) — TDD workflow, layers, required coverage |

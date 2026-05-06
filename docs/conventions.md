@@ -22,10 +22,9 @@ Style and process expectations for Collectify. Keep this list short and updated 
 - Don't leak exception messages to the client; log them with `ILogger<T>` and return a generic message.
 
 ### Tests
+See [`docs/testing.md`](testing.md) for the full TDD workflow, layered strategy, and per-endpoint coverage requirements. Naming-only summary:
 - xUnit + `WebApplicationFactory<Program>` for integration tests.
-- Use a SQLite in-memory connection (`Data Source=:memory:`) seeded per-test.
-- Name tests `Method_State_Expected`, e.g. `CreateMovie_AsAuthenticatedUser_PersistsRow`.
-- One assertion theme per test. Multiple `Assert` calls are fine when they verify a single behavior.
+- Tests are named `Method_State_Expected`, e.g. `CreateMovie_AsAuthenticatedUser_PersistsRow`.
 
 ### Dependencies (Central Package Management)
 - All NuGet versions live in [`src/server/Directory.Packages.props`](../src/server/Directory.Packages.props). `<ManagePackageVersionsCentrally>` is on.
