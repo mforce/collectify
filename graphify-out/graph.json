@@ -5519,9 +5519,9 @@
       "source_file": "server/Collectify.Api/Endpoints/GamesEndpoints.cs",
       "source_location": "L116",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_gamesendpoints_gamesendpoints",
-      "target": "endpoints_gamesendpoints_gamesendpoints_validate",
-      "confidence_score": 1.0
+      "target": "endpoints_gamesendpoints_gamesendpoints_validate"
     },
     {
       "relation": "method",
@@ -5561,9 +5561,9 @@
       "source_file": "server/Collectify.Api/Endpoints/GamesEndpoints.cs",
       "source_location": "L79",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_gamesendpoints_gamesendpoints_mapgamesendpoints",
-      "target": "endpoints_gamesendpoints_gamesendpoints_validate",
-      "confidence_score": 1.0
+      "target": "endpoints_gamesendpoints_gamesendpoints_validate"
     },
     {
       "relation": "calls",
@@ -5602,9 +5602,9 @@
       "source_file": "server/Collectify.Api/Endpoints/MoviesEndpoints.cs",
       "source_location": "L119",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_moviesendpoints_moviesendpoints",
-      "target": "endpoints_moviesendpoints_moviesendpoints_validate",
-      "confidence_score": 1.0
+      "target": "endpoints_moviesendpoints_moviesendpoints_validate"
     },
     {
       "relation": "method",
@@ -5644,9 +5644,9 @@
       "source_file": "server/Collectify.Api/Endpoints/MoviesEndpoints.cs",
       "source_location": "L82",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_moviesendpoints_moviesendpoints_mapmoviesendpoints",
-      "target": "endpoints_moviesendpoints_moviesendpoints_validate",
-      "confidence_score": 1.0
+      "target": "endpoints_moviesendpoints_moviesendpoints_validate"
     },
     {
       "relation": "calls",
@@ -5685,9 +5685,9 @@
       "source_file": "server/Collectify.Api/Endpoints/MusicEndpoints.cs",
       "source_location": "L115",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_musicendpoints_musicendpoints",
-      "target": "endpoints_musicendpoints_musicendpoints_validate",
-      "confidence_score": 1.0
+      "target": "endpoints_musicendpoints_musicendpoints_validate"
     },
     {
       "relation": "method",
@@ -5727,9 +5727,9 @@
       "source_file": "server/Collectify.Api/Endpoints/MusicEndpoints.cs",
       "source_location": "L78",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_musicendpoints_musicendpoints_mapmusicendpoints",
-      "target": "endpoints_musicendpoints_musicendpoints_validate",
-      "confidence_score": 1.0
+      "target": "endpoints_musicendpoints_musicendpoints_validate"
     },
     {
       "relation": "calls",
@@ -5748,9 +5748,9 @@
       "source_file": "server/Collectify.Api/Endpoints/TagEndpoints.cs",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_collectify_api_endpoints_tagendpoints_cs",
-      "target": "endpoints_tagendpoints_tagendpoints",
-      "confidence_score": 1.0
+      "target": "endpoints_tagendpoints_tagendpoints"
     },
     {
       "relation": "method",
@@ -5758,9 +5758,9 @@
       "source_file": "server/Collectify.Api/Endpoints/TagEndpoints.cs",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_tagendpoints_tagendpoints",
-      "target": "endpoints_tagendpoints_tagendpoints_maptagendpoints",
-      "confidence_score": 1.0
+      "target": "endpoints_tagendpoints_tagendpoints_maptagendpoints"
     },
     {
       "relation": "contains",
@@ -5768,9 +5768,9 @@
       "source_file": "server/Collectify.Api/Endpoints/TagResolver.cs",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_collectify_api_endpoints_tagresolver_cs",
-      "target": "endpoints_tagresolver_tagresolver",
-      "confidence_score": 1.0
+      "target": "endpoints_tagresolver_tagresolver"
     },
     {
       "relation": "method",
@@ -5778,9 +5778,9 @@
       "source_file": "server/Collectify.Api/Endpoints/TagResolver.cs",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_tagresolver_tagresolver",
-      "target": "endpoints_tagresolver_tagresolver_resolveasync",
-      "confidence_score": 1.0
+      "target": "endpoints_tagresolver_tagresolver_resolveasync"
     },
     {
       "relation": "method",
@@ -5788,9 +5788,9 @@
       "source_file": "server/Collectify.Api/Endpoints/TagResolver.cs",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "endpoints_tagresolver_tagresolver",
-      "target": "endpoints_tagresolver_tagresolver_tonamearray",
-      "confidence_score": 1.0
+      "target": "endpoints_tagresolver_tagresolver_tonamearray"
     },
     {
       "relation": "contains",
@@ -5838,9 +5838,9 @@
       "source_file": "server/Collectify.Domain/Entities/Tag.cs",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_collectify_domain_entities_tag_cs",
-      "target": "entities_tag_tag",
-      "confidence_score": 1.0
+      "target": "entities_tag_tag"
     },
     {
       "relation": "contains",
@@ -5958,9 +5958,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.cs",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields",
-      "target": "migration",
-      "confidence_score": 1.0
+      "target": "migration"
     },
     {
       "relation": "contains",
@@ -5968,9 +5968,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.Designer.cs",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_collectify_infrastructure_data_migrations_20260506051007_addpersonalacquisitionandtagfields_designer_cs",
-      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_designer_collectify_infrastructure_data_migrations",
-      "confidence_score": 1.0
+      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_designer_collectify_infrastructure_data_migrations"
     },
     {
       "relation": "contains",
@@ -5978,9 +5978,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.Designer.cs",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_collectify_infrastructure_data_migrations_20260506051007_addpersonalacquisitionandtagfields_designer_cs",
-      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_designer_addpersonalacquisitionandtagfields",
-      "confidence_score": 1.0
+      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_designer_addpersonalacquisitionandtagfields"
     },
     {
       "relation": "method",
@@ -5988,9 +5988,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.Designer.cs",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "migrations_20260506051007_addpersonalacquisitionandtagfields_designer_addpersonalacquisitionandtagfields",
-      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_designer_addpersonalacquisitionandtagfields_buildtargetmodel",
-      "confidence_score": 1.0
+      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_designer_addpersonalacquisitionandtagfields_buildtargetmodel"
     },
     {
       "relation": "contains",
@@ -5998,9 +5998,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.cs",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_collectify_infrastructure_data_migrations_20260506051007_addpersonalacquisitionandtagfields_cs",
-      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_collectify_infrastructure_data_migrations",
-      "confidence_score": 1.0
+      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_collectify_infrastructure_data_migrations"
     },
     {
       "relation": "contains",
@@ -6008,9 +6008,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.cs",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_collectify_infrastructure_data_migrations_20260506051007_addpersonalacquisitionandtagfields_cs",
-      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields",
-      "confidence_score": 1.0
+      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields"
     },
     {
       "relation": "method",
@@ -6018,9 +6018,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.cs",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields",
-      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields_up",
-      "confidence_score": 1.0
+      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields_up"
     },
     {
       "relation": "method",
@@ -6028,9 +6028,9 @@
       "source_file": "server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.cs",
       "source_location": "L325",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields",
-      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields_down",
-      "confidence_score": 1.0
+      "target": "migrations_20260506051007_addpersonalacquisitionandtagfields_addpersonalacquisitionandtagfields_down"
     },
     {
       "relation": "contains",
@@ -6098,9 +6098,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_api_authendpointstests_cs",
-      "target": "api_authendpointstests_authendpointstests",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests"
     },
     {
       "relation": "method",
@@ -6108,9 +6108,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_getme_beforeanyuserexists_returnsneedssetup",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_getme_beforeanyuserexists_returnsneedssetup"
     },
     {
       "relation": "method",
@@ -6118,9 +6118,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_setup_firsttime_createsuserandsignsin",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_setup_firsttime_createsuserandsignsin"
     },
     {
       "relation": "method",
@@ -6128,9 +6128,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_setup_whenuseralreadyexists_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_setup_whenuseralreadyexists_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6138,9 +6138,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L57",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_setup_withmissingusername_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_setup_withmissingusername_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6148,9 +6148,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L69",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_setup_withshortpassword_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_setup_withshortpassword_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6158,9 +6158,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_login_withcorrectcredentials_authenticatessubsequentrequests",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_login_withcorrectcredentials_authenticatessubsequentrequests"
     },
     {
       "relation": "method",
@@ -6168,9 +6168,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L97",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_login_withwrongpassword_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_login_withwrongpassword_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -6178,9 +6178,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L110",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_login_withunknownuser_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_login_withunknownuser_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -6188,9 +6188,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs",
       "source_location": "L123",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_authendpointstests_authendpointstests",
-      "target": "api_authendpointstests_authendpointstests_logout_clearsauthenticationcookie",
-      "confidence_score": 1.0
+      "target": "api_authendpointstests_authendpointstests_logout_clearsauthenticationcookie"
     },
     {
       "relation": "contains",
@@ -6198,9 +6198,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/HealthEndpointTests.cs",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_api_healthendpointtests_cs",
-      "target": "api_healthendpointtests_healthendpointtests",
-      "confidence_score": 1.0
+      "target": "api_healthendpointtests_healthendpointtests"
     },
     {
       "relation": "inherits",
@@ -6208,9 +6208,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/HealthEndpointTests.cs",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_healthendpointtests_healthendpointtests",
-      "target": "iclassfixture",
-      "confidence_score": 1.0
+      "target": "iclassfixture"
     },
     {
       "relation": "references",
@@ -6219,9 +6219,9 @@
       "source_location": "L9",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "api_healthendpointtests_healthendpointtests",
-      "target": "collectifyapifactory",
-      "confidence_score": 1.0
+      "target": "collectifyapifactory"
     },
     {
       "relation": "method",
@@ -6229,9 +6229,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/HealthEndpointTests.cs",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_healthendpointtests_healthendpointtests",
-      "target": "api_healthendpointtests_healthendpointtests_gethealth_unauthenticated_returnsok",
-      "confidence_score": 1.0
+      "target": "api_healthendpointtests_healthendpointtests_gethealth_unauthenticated_returnsok"
     },
     {
       "relation": "contains",
@@ -6239,9 +6239,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_api_tagendpointstests_cs",
-      "target": "api_tagendpointstests_tagendpointstests",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests"
     },
     {
       "relation": "method",
@@ -6249,9 +6249,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_tagendpointstests_tagendpointstests",
-      "target": "api_tagendpointstests_tagendpointstests_list_unauthenticated_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests_list_unauthenticated_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -6259,9 +6259,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_tagendpointstests_tagendpointstests",
-      "target": "api_tagendpointstests_tagendpointstests_create_newname_returns201lowercased",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests_create_newname_returns201lowercased"
     },
     {
       "relation": "method",
@@ -6269,9 +6269,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_tagendpointstests_tagendpointstests",
-      "target": "api_tagendpointstests_tagendpointstests_create_existingname_returns200withexistingtag",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests_create_existingname_returns200withexistingtag"
     },
     {
       "relation": "method",
@@ -6279,9 +6279,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L52",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_tagendpointstests_tagendpointstests",
-      "target": "api_tagendpointstests_tagendpointstests_create_empty_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests_create_empty_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6289,9 +6289,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L63",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_tagendpointstests_tagendpointstests",
-      "target": "api_tagendpointstests_tagendpointstests_list_returnsonlyownerscopedalphabetically",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests_list_returnsonlyownerscopedalphabetically"
     },
     {
       "relation": "method",
@@ -6299,9 +6299,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L79",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_tagendpointstests_tagendpointstests",
-      "target": "api_tagendpointstests_tagendpointstests_delete_owntag_returns204andremovesit",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests_delete_owntag_returns204andremovesit"
     },
     {
       "relation": "method",
@@ -6309,9 +6309,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/TagEndpointsTests.cs",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_tagendpointstests_tagendpointstests",
-      "target": "api_tagendpointstests_tagendpointstests_delete_otheruserstag_returns404andkeepsit",
-      "confidence_score": 1.0
+      "target": "api_tagendpointstests_tagendpointstests_delete_otheruserstag_returns404andkeepsit"
     },
     {
       "relation": "contains",
@@ -6319,9 +6319,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_api_gamesendpointstests_cs",
-      "target": "api_gamesendpointstests_gamesendpointstests",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests"
     },
     {
       "relation": "method",
@@ -6329,9 +6329,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "method",
@@ -6339,9 +6339,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L59",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_list_unauthenticated_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_list_unauthenticated_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -6349,9 +6349,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L70",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_create_unauthenticated_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_create_unauthenticated_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -6359,9 +6359,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_create_asauthenticateduser_returns201withbody",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_create_asauthenticateduser_returns201withbody"
     },
     {
       "relation": "method",
@@ -6369,9 +6369,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L98",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_create_persistsowneridfromauthenticateduser",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_create_persistsowneridfromauthenticateduser"
     },
     {
       "relation": "method",
@@ -6379,9 +6379,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L112",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_get_ownrow_returnsrow",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_get_ownrow_returnsrow"
     },
     {
       "relation": "method",
@@ -6389,9 +6389,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L128",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_get_nonexistentid_returns404",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_get_nonexistentid_returns404"
     },
     {
       "relation": "method",
@@ -6399,9 +6399,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L139",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_update_ownrow_persistschangesandbumpsupdatedat",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_update_ownrow_persistschangesandbumpsupdatedat"
     },
     {
       "relation": "method",
@@ -6409,9 +6409,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L159",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_delete_ownrow_returns204andremovesrow",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_delete_ownrow_returns204andremovesrow"
     },
     {
       "relation": "method",
@@ -6419,9 +6419,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L176",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_get_otherusersrow_returns404",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_get_otherusersrow_returns404"
     },
     {
       "relation": "method",
@@ -6429,9 +6429,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L189",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_update_otherusersrow_returns404",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_update_otherusersrow_returns404"
     },
     {
       "relation": "method",
@@ -6439,9 +6439,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L206",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_delete_otherusersrow_returns404andkeepsrow",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_delete_otherusersrow_returns404andkeepsrow"
     },
     {
       "relation": "method",
@@ -6449,9 +6449,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L222",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_list_onlyreturnsrowsownedbycurrentuser",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_list_onlyreturnsrowsownedbycurrentuser"
     },
     {
       "relation": "method",
@@ -6459,9 +6459,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L239",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_create_withemptytitle_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_create_withemptytitle_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6469,9 +6469,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L250",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_create_withratingoutsiderange_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_create_withratingoutsiderange_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6479,9 +6479,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L263",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_list_filtersbyplatform_returnsexactmatch",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_list_filtersbyplatform_returnsexactmatch"
     },
     {
       "relation": "method",
@@ -6489,9 +6489,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L277",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_list_filtersbydigital_returnsmatchingrows",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_list_filtersbydigital_returnsmatchingrows"
     },
     {
       "relation": "method",
@@ -6499,9 +6499,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L293",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_create_roundtripsallnewscalarfields",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_create_roundtripsallnewscalarfields"
     },
     {
       "relation": "method",
@@ -6509,9 +6509,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L316",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests",
-      "target": "api_gamesendpointstests_gamesendpointstests_create_withtags_createstagsandattachesthem",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_create_withtags_createstagsandattachesthem"
     },
     {
       "relation": "calls",
@@ -6520,9 +6520,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L76",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_create_unauthenticated_returnsunauthorized",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6531,9 +6531,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L89",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_create_asauthenticateduser_returns201withbody",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6542,9 +6542,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L104",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_create_persistsowneridfromauthenticateduser",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6553,9 +6553,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L151",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_update_ownrow_persistschangesandbumpsupdatedat",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6564,9 +6564,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L198",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_update_otherusersrow_returns404",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6575,9 +6575,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L245",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_create_withemptytitle_returnsbadrequest",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6586,9 +6586,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L256",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_create_withratingoutsiderange_returnsbadrequest",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6597,9 +6597,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L300",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_create_roundtripsallnewscalarfields",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6608,9 +6608,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs",
       "source_location": "L322",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_gamesendpointstests_gamesendpointstests_create_withtags_createstagsandattachesthem",
-      "target": "api_gamesendpointstests_gamesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_gamesendpointstests_gamesendpointstests_sample"
     },
     {
       "relation": "contains",
@@ -6618,9 +6618,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_api_moviesendpointstests_cs",
-      "target": "api_moviesendpointstests_moviesendpointstests",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests"
     },
     {
       "relation": "method",
@@ -6628,9 +6628,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "method",
@@ -6638,9 +6638,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L64",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_list_unauthenticated_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_list_unauthenticated_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -6648,9 +6648,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L75",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_unauthenticated_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_unauthenticated_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -6658,9 +6658,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L88",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_asauthenticateduser_returns201withbody",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_asauthenticateduser_returns201withbody"
     },
     {
       "relation": "method",
@@ -6668,9 +6668,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L104",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_persistsowneridfromauthenticateduser",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_persistsowneridfromauthenticateduser"
     },
     {
       "relation": "method",
@@ -6678,9 +6678,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L118",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_get_ownrow_returnsrow",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_get_ownrow_returnsrow"
     },
     {
       "relation": "method",
@@ -6688,9 +6688,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L131",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_get_nonexistentid_returns404",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_get_nonexistentid_returns404"
     },
     {
       "relation": "method",
@@ -6698,9 +6698,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L142",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_update_ownrow_persistschangesandbumpsupdatedat",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_update_ownrow_persistschangesandbumpsupdatedat"
     },
     {
       "relation": "method",
@@ -6708,9 +6708,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L166",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_delete_ownrow_returns204andremovesrow",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_delete_ownrow_returns204andremovesrow"
     },
     {
       "relation": "method",
@@ -6718,9 +6718,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L183",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_get_otherusersrow_returns404",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_get_otherusersrow_returns404"
     },
     {
       "relation": "method",
@@ -6728,9 +6728,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L196",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_update_otherusersrow_returns404",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_update_otherusersrow_returns404"
     },
     {
       "relation": "method",
@@ -6738,9 +6738,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L214",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_delete_otherusersrow_returns404andkeepsrow",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_delete_otherusersrow_returns404andkeepsrow"
     },
     {
       "relation": "method",
@@ -6748,9 +6748,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L230",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_list_onlyreturnsrowsownedbycurrentuser",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_list_onlyreturnsrowsownedbycurrentuser"
     },
     {
       "relation": "method",
@@ -6758,9 +6758,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L247",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_withemptytitle_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_withemptytitle_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6768,9 +6768,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L258",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_withwhitespacetitle_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_withwhitespacetitle_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6778,9 +6778,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L269",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_update_withemptytitle_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_update_withemptytitle_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6788,9 +6788,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L282",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_withratingoutsiderange_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_withratingoutsiderange_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6798,9 +6798,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L296",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_withratingatboundary_returns201",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_withratingatboundary_returns201"
     },
     {
       "relation": "method",
@@ -6808,9 +6808,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L309",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_withcurrencyofwronglength_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_withcurrencyofwronglength_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -6818,9 +6818,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L322",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_list_filtersbyquery_matchestitlesubstring",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_list_filtersbyquery_matchestitlesubstring"
     },
     {
       "relation": "method",
@@ -6828,9 +6828,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L337",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_list_filtersbyyear_returnsexactmatches",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_list_filtersbyyear_returnsexactmatches"
     },
     {
       "relation": "method",
@@ -6838,9 +6838,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L354",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_roundtripsallnewscalarfields",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_roundtripsallnewscalarfields"
     },
     {
       "relation": "method",
@@ -6848,9 +6848,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L381",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_normalizescurrencytouppercase",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_normalizescurrencytouppercase"
     },
     {
       "relation": "method",
@@ -6858,9 +6858,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L395",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_withtags_createstagsandattachesthem",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_withtags_createstagsandattachesthem"
     },
     {
       "relation": "method",
@@ -6868,9 +6868,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L412",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_create_withduplicatetagsinarray_deduplicatesignorecase",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_create_withduplicatetagsinarray_deduplicatesignorecase"
     },
     {
       "relation": "method",
@@ -6878,9 +6878,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L425",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_update_replacestagsetratherthanmerging",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_update_replacestagsetratherthanmerging"
     },
     {
       "relation": "method",
@@ -6888,9 +6888,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L441",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_update_withemptytagarray_removesalltags",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_update_withemptytagarray_removesalltags"
     },
     {
       "relation": "method",
@@ -6898,9 +6898,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L457",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_delete_movie_removesjoinrowsbutkeepstagentity",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_delete_movie_removesjoinrowsbutkeepstagentity"
     },
     {
       "relation": "method",
@@ -6908,9 +6908,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L474",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests",
-      "target": "api_moviesendpointstests_moviesendpointstests_tags_areownerscoped_betweenusers",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_tags_areownerscoped_betweenusers"
     },
     {
       "relation": "calls",
@@ -6919,9 +6919,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_unauthenticated_returnsunauthorized",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6930,9 +6930,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L94",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_asauthenticateduser_returns201withbody",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6941,9 +6941,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L110",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_persistsowneridfromauthenticateduser",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6952,9 +6952,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L157",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_update_ownrow_persistschangesandbumpsupdatedat",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6963,9 +6963,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L205",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_update_otherusersrow_returns404",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6974,9 +6974,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L253",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_withemptytitle_returnsbadrequest",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6985,9 +6985,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L264",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_withwhitespacetitle_returnsbadrequest",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -6996,9 +6996,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L277",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_update_withemptytitle_returnsbadrequest",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7007,9 +7007,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L291",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_withratingoutsiderange_returnsbadrequest",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7018,9 +7018,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L304",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_withratingatboundary_returns201",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7029,9 +7029,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L315",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_withcurrencyofwronglength_returnsbadrequest",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7040,9 +7040,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L360",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_roundtripsallnewscalarfields",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7051,9 +7051,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L387",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_normalizescurrencytouppercase",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7062,9 +7062,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L402",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_withtags_createstagsandattachesthem",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7073,9 +7073,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L419",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_create_withduplicatetagsinarray_deduplicatesignorecase",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7084,9 +7084,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L431",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_update_replacestagsetratherthanmerging",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7095,9 +7095,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L447",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_update_withemptytagarray_removesalltags",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7106,9 +7106,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L463",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_delete_movie_removesjoinrowsbutkeepstagentity",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7117,9 +7117,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs",
       "source_location": "L481",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_moviesendpointstests_moviesendpointstests_tags_areownerscoped_betweenusers",
-      "target": "api_moviesendpointstests_moviesendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_moviesendpointstests_moviesendpointstests_sample"
     },
     {
       "relation": "contains",
@@ -7127,9 +7127,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_api_musicendpointstests_cs",
-      "target": "api_musicendpointstests_musicendpointstests",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests"
     },
     {
       "relation": "method",
@@ -7137,9 +7137,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "method",
@@ -7147,9 +7147,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L57",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_list_unauthenticated_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_list_unauthenticated_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -7157,9 +7157,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L68",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_unauthenticated_returnsunauthorized",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_unauthenticated_returnsunauthorized"
     },
     {
       "relation": "method",
@@ -7167,9 +7167,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_asauthenticateduser_returns201withbody",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_asauthenticateduser_returns201withbody"
     },
     {
       "relation": "method",
@@ -7177,9 +7177,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L96",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_persistsowneridfromauthenticateduser",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_persistsowneridfromauthenticateduser"
     },
     {
       "relation": "method",
@@ -7187,9 +7187,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L110",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_get_ownrow_returnsrow",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_get_ownrow_returnsrow"
     },
     {
       "relation": "method",
@@ -7197,9 +7197,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L126",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_get_nonexistentid_returns404",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_get_nonexistentid_returns404"
     },
     {
       "relation": "method",
@@ -7207,9 +7207,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L137",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_update_ownrow_persistschangesandbumpsupdatedat",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_update_ownrow_persistschangesandbumpsupdatedat"
     },
     {
       "relation": "method",
@@ -7217,9 +7217,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L158",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_delete_ownrow_returns204andremovesrow",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_delete_ownrow_returns204andremovesrow"
     },
     {
       "relation": "method",
@@ -7227,9 +7227,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L178",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_get_otherusersrow_returns404",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_get_otherusersrow_returns404"
     },
     {
       "relation": "method",
@@ -7237,9 +7237,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L194",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_update_otherusersrow_returns404",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_update_otherusersrow_returns404"
     },
     {
       "relation": "method",
@@ -7247,9 +7247,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L214",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_delete_otherusersrow_returns404andkeepsrow",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_delete_otherusersrow_returns404andkeepsrow"
     },
     {
       "relation": "method",
@@ -7257,9 +7257,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L233",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_list_onlyreturnsrowsownedbycurrentuser",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_list_onlyreturnsrowsownedbycurrentuser"
     },
     {
       "relation": "method",
@@ -7267,9 +7267,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L250",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_withemptytitle_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_withemptytitle_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -7277,9 +7277,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L261",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_withemptyartist_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_withemptyartist_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -7287,9 +7287,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L272",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_withratingoutsiderange_returnsbadrequest",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_withratingoutsiderange_returnsbadrequest"
     },
     {
       "relation": "method",
@@ -7297,9 +7297,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L285",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_list_filtersbyquery_matchesartistsubstring",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_list_filtersbyquery_matchesartistsubstring"
     },
     {
       "relation": "method",
@@ -7307,9 +7307,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L301",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_roundtripsallnewscalarfields",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_roundtripsallnewscalarfields"
     },
     {
       "relation": "method",
@@ -7317,9 +7317,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L324",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests",
-      "target": "api_musicendpointstests_musicendpointstests_create_withtags_createstagsandattachesthem",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_create_withtags_createstagsandattachesthem"
     },
     {
       "relation": "calls",
@@ -7328,9 +7328,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_unauthenticated_returnsunauthorized",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7339,9 +7339,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L87",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_asauthenticateduser_returns201withbody",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7350,9 +7350,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L102",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_persistsowneridfromauthenticateduser",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7361,9 +7361,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L150",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_update_ownrow_persistschangesandbumpsupdatedat",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7372,9 +7372,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L206",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_update_otherusersrow_returns404",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7383,9 +7383,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L256",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_withemptytitle_returnsbadrequest",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7394,9 +7394,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L267",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_withemptyartist_returnsbadrequest",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7405,9 +7405,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L278",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_withratingoutsiderange_returnsbadrequest",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7416,9 +7416,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L307",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_roundtripsallnewscalarfields",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "calls",
@@ -7427,9 +7427,9 @@
       "source_file": "server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs",
       "source_location": "L330",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_musicendpointstests_musicendpointstests_create_withtags_createstagsandattachesthem",
-      "target": "api_musicendpointstests_musicendpointstests_sample",
-      "confidence_score": 1.0
+      "target": "api_musicendpointstests_musicendpointstests_sample"
     },
     {
       "relation": "contains",
@@ -7437,9 +7437,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_infrastructure_testextensions_cs",
-      "target": "infrastructure_testextensions_testextensions",
-      "confidence_score": 1.0
+      "target": "infrastructure_testextensions_testextensions"
     },
     {
       "relation": "references",
@@ -7448,9 +7448,9 @@
       "source_location": "L13",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "infrastructure_testextensions_testextensions",
-      "target": "string",
-      "confidence_score": 1.0
+      "target": "string"
     },
     {
       "relation": "references",
@@ -7459,9 +7459,9 @@
       "source_location": "L15",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "infrastructure_testextensions_testextensions",
-      "target": "jsonserializeroptions",
-      "confidence_score": 1.0
+      "target": "jsonserializeroptions"
     },
     {
       "relation": "method",
@@ -7469,9 +7469,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_testextensions_testextensions",
-      "target": "infrastructure_testextensions_testextensions_getjsonasync",
-      "confidence_score": 1.0
+      "target": "infrastructure_testextensions_testextensions_getjsonasync"
     },
     {
       "relation": "method",
@@ -7479,9 +7479,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_testextensions_testextensions",
-      "target": "infrastructure_testextensions_testextensions_readjsonasync",
-      "confidence_score": 1.0
+      "target": "infrastructure_testextensions_testextensions_readjsonasync"
     },
     {
       "relation": "method",
@@ -7489,9 +7489,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_testextensions_testextensions",
-      "target": "infrastructure_testextensions_testextensions_createauthenticateduserasync",
-      "confidence_score": 1.0
+      "target": "infrastructure_testextensions_testextensions_createauthenticateduserasync"
     },
     {
       "relation": "method",
@@ -7499,9 +7499,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs",
       "source_location": "L58",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_testextensions_testextensions",
-      "target": "infrastructure_testextensions_testextensions_seedasync",
-      "confidence_score": 1.0
+      "target": "infrastructure_testextensions_testextensions_seedasync"
     },
     {
       "relation": "method",
@@ -7509,9 +7509,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs",
       "source_location": "L67",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_testextensions_testextensions",
-      "target": "infrastructure_testextensions_testextensions_withdbasync",
-      "confidence_score": 1.0
+      "target": "infrastructure_testextensions_testextensions_withdbasync"
     },
     {
       "relation": "contains",
@@ -7519,9 +7519,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/CollectifyApiFactory.cs",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "server_tests_collectify_tests_infrastructure_collectifyapifactory_cs",
-      "target": "infrastructure_collectifyapifactory_collectifyapifactory",
-      "confidence_score": 1.0
+      "target": "infrastructure_collectifyapifactory_collectifyapifactory"
     },
     {
       "relation": "inherits",
@@ -7529,9 +7529,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/CollectifyApiFactory.cs",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_collectifyapifactory_collectifyapifactory",
-      "target": "webapplicationfactory",
-      "confidence_score": 1.0
+      "target": "webapplicationfactory"
     },
     {
       "relation": "references",
@@ -7540,9 +7540,9 @@
       "source_location": "L14",
       "weight": 1.0,
       "context": "field",
+      "confidence_score": 1.0,
       "source": "infrastructure_collectifyapifactory_collectifyapifactory",
-      "target": "sqliteconnection",
-      "confidence_score": 1.0
+      "target": "sqliteconnection"
     },
     {
       "relation": "method",
@@ -7550,9 +7550,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/CollectifyApiFactory.cs",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_collectifyapifactory_collectifyapifactory",
-      "target": "infrastructure_collectifyapifactory_collectifyapifactory_configurewebhost",
-      "confidence_score": 1.0
+      "target": "infrastructure_collectifyapifactory_collectifyapifactory_configurewebhost"
     },
     {
       "relation": "method",
@@ -7560,9 +7560,9 @@
       "source_file": "server/tests/Collectify.Tests/Infrastructure/CollectifyApiFactory.cs",
       "source_location": "L45",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "infrastructure_collectifyapifactory_collectifyapifactory",
-      "target": "infrastructure_collectifyapifactory_collectifyapifactory_dispose",
-      "confidence_score": 1.0
+      "target": "infrastructure_collectifyapifactory_collectifyapifactory_dispose"
     },
     {
       "relation": "contains",
@@ -9587,5 +9587,5 @@
       "source_file": "docs/architecture.md"
     }
   ],
-  "built_at_commit": "7e408e05475a4f29b5b5dcf0db24a4c4f963a2a2"
+  "built_at_commit": "b9482d380104cbb0cd272bb51a8d91a3971ff703"
 }
