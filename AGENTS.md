@@ -38,6 +38,7 @@ Single-user with a password (multi-user is a forward-compatible Phase 4). Design
 │   ├── security.md        # OWASP Top 10 + frontend hardening checklist
 │   ├── data-model.md      # fields per collection category + tags + enums
 │   └── conventions.md     # coding conventions, error handling, tests
+├── graphify-out/                        # knowledge graph (see "Knowledge graph" below)
 └── src/
     ├── server/
     │   ├── Collectify.slnx              # solution (also references the client folder)
@@ -52,6 +53,41 @@ Single-user with a password (multi-user is a forward-compatible Phase 4). Design
         ├── components/                  # forms, layout, primitives
         └── pages/                       # route components
 ```
+
+## Knowledge graph (consult before grepping)
+
+This repo ships a pre-built [graphify](https://github.com/safishamsi/graphify/blob/v7/README.md) knowledge graph at [`graphify-out/`](graphify-out/). It maps every code symbol, doc concept, and cross-file relationship into a navigable graph with confidence-tagged edges (`EXTRACTED` / `INFERRED` / `AMBIGUOUS`). **Use it instead of brute-force file searches when you need to understand how things connect.** Average query is ~24× cheaper in tokens than re-reading the relevant files.
+
+**Files:**
+
+- [`graphify-out/GRAPH_REPORT.md`](graphify-out/GRAPH_REPORT.md) — **read this first.** Lists god nodes (most-connected concepts), surprising cross-module links, suggested questions the graph is uniquely positioned to answer, and per-community cohesion scores.
+- [`graphify-out/graph.html`](graphify-out/graph.html) — interactive browser viz; humans only.
+- [`graphify-out/graph.json`](graphify-out/graph.json) — raw graph data; the CLI below reads this automatically.
+
+**Query from the terminal** (preferred path for agents):
+
+```bash
+graphify query   "how does the auth cookie reach the data hooks?"   # BFS context
+graphify query   "trace request from MoviesEndpoints to SQLite" --dfs --budget 1500
+graphify path    "App (root router component)" "useList()"         # shortest connection
+graphify explain "CollectifyDbContext"                              # everything linked to a node
+```
+
+Each result cites `source_file:source_location`, so you can jump straight to the line that justifies the edge. Confidence tags tell you what was structurally extracted vs. semantically inferred — never act on an `AMBIGUOUS` edge without verifying.
+
+**Keeping the graph fresh:**
+
+| Change | Refresh command | Cost |
+|---|---|---|
+| Code only | post-commit hook (`graphify hook install`, one-time) | free — AST only, no LLM |
+| Docs / specs / new files | `/graphify . --update` | LLM (only changed files re-extracted) |
+| After a large refactor | `/graphify .` | LLM (full rebuild) |
+
+If you change a `docs/*.md` file or add a new entity, run `/graphify . --update` before claiming the work is done so the next session's agent doesn't navigate by a stale map.
+
+**MCP option:** for tool-call access from inside another agent, `python -m graphify.serve graphify-out/graph.json` exposes `query_graph`, `get_node`, `get_neighbors`, `shortest_path`, and `god_nodes` over stdio MCP.
+
+See the [graphify v7 README](https://github.com/safishamsi/graphify/blob/v7/README.md) for the full command reference, ignore-file syntax, and team workflow.
 
 ## Roadmap
 
@@ -148,6 +184,7 @@ See [`docs/conventions.md`](docs/conventions.md). Key points:
 
 | Goal | Start here |
 |---|---|
+| Get oriented / trace a relationship | [`graphify-out/GRAPH_REPORT.md`](graphify-out/GRAPH_REPORT.md), then `graphify query` / `path` / `explain` |
 | Understand data model | [`docs/data-model.md`](docs/data-model.md) (spec) and `src/server/Collectify.Domain/Entities/` (implementation) |
 | Add a new endpoint | `src/server/Collectify.Api/Endpoints/` |
 | Change DB schema | `Collectify.Infrastructure/Data/CollectifyDbContext.cs` then add a migration |
