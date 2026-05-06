@@ -1,0 +1,13 @@
+<Project>
+
+  <!--
+    Workaround for .NET 10 SDK <= 10.0.105 bug NETSDK1226 where Prune Package
+    data for Microsoft.AspNetCore.App is missing on net10.0 web projects.
+    Patched upstream in 10.0.107+; this opt-in keeps older patch levels happy.
+    Drop once we standardize on SDK >= 10.0.107.
+  -->
+  <PropertyGroup>
+    <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+  </PropertyGroup>
+
+</Project>
