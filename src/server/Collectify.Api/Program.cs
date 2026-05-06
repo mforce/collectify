@@ -7,12 +7,20 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var dataDir = builder.Configuration["Collectify:DataDir"] ?? Path.Combine(AppContext.BaseDirectory, "data");
-Directory.CreateDirectory(dataDir);
-var dbPath = Path.Combine(dataDir, "collectify.db");
-var connString = $"Data Source={dbPath}";
-
-builder.Services.AddDbContext<CollectifyDbContext>(opt => opt.UseSqlite(connString));
+// Resolve / create the data directory inside the registration callback so the
+// filesystem touch happens lazily — only if this DbContext registration is
+// actually used. Tests replace it with an in-memory SqliteConnection and
+// never trigger the mkdir, which avoids platform-specific permission
+// surprises (e.g. AppContext.BaseDirectory resolving to "/" inside the
+// WebApplicationFactory test host).
+builder.Services.AddDbContext<CollectifyDbContext>(opt =>
+{
+    var dataDir = builder.Configuration["Collectify:DataDir"]
+        ?? Path.Combine(AppContext.BaseDirectory, "data");
+    Directory.CreateDirectory(dataDir);
+    var dbPath = Path.Combine(dataDir, "collectify.db");
+    opt.UseSqlite($"Data Source={dbPath}");
+});
 
 builder.Services
     .AddIdentityCore<AppUser>(opt =>
