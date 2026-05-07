@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
+using Collectify.Infrastructure.Lookup;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -61,6 +62,8 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
     opt.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+builder.Services.AddMetadataLookup(builder.Configuration);
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -77,6 +80,7 @@ app.MapMoviesEndpoints();
 app.MapMusicEndpoints();
 app.MapGamesEndpoints();
 app.MapTagEndpoints();
+app.MapLookupEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
