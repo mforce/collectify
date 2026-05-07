@@ -1,45 +1,34 @@
-using Microsoft.Extensions.Configuration;
+using Collectify.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Collectify.Api.Endpoints;
 
 public static class CoversEndpoints
 {
-    private static readonly Dictionary<string, string> ContentTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        [".jpg"] = "image/jpeg",
-        [".jpeg"] = "image/jpeg",
-        [".png"] = "image/png",
-        [".webp"] = "image/webp",
-        [".gif"] = "image/gif",
-    };
-
     /// <summary>
-    /// Streams cached cover images out of the configured covers directory.
+    /// Streams cover-image bytes from the CoverImages table by content hash.
     /// Intentionally not auth-required so img tags work without a fetch
-    /// dance; filenames are content-hashed (16 hex chars + extension) so
-    /// they're not enumerable. The directory is read from configuration on
-    /// each request so test hosts can override Collectify:DataDir.
+    /// dance; the hash is 16 hex chars derived from a URL the user already
+    /// saw in their own collection, so they're effectively unguessable.
     /// </summary>
     public static IEndpointRouteBuilder MapCoversEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/covers/{filename}", (string filename, IConfiguration config) =>
+        app.MapGet("/covers/{hash}", async (string hash, CollectifyDbContext db, CancellationToken ct) =>
         {
-            // Defence in depth against path traversal: the public contract
-            // is a flat, hash-named filename. Reject anything that doesn't
-            // match that shape before touching the filesystem.
-            if (string.IsNullOrEmpty(filename)) return Results.NotFound();
-            if (filename.Contains('/') || filename.Contains('\\') || filename.Contains("..")) return Results.NotFound();
-            if (Path.GetFileName(filename) != filename) return Results.NotFound();
+            // Public contract is a flat 16-char hex hash. Reject anything
+            // else before touching the DB.
+            if (string.IsNullOrEmpty(hash) || hash.Length is < 8 or > 32) return Results.NotFound();
+            for (var i = 0; i < hash.Length; i++)
+            {
+                var c = hash[i];
+                if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return Results.NotFound();
+            }
 
-            var dataDir = config["Collectify:DataDir"] ?? Path.Combine(AppContext.BaseDirectory, "data");
-            var coversDir = Path.Combine(dataDir, "covers");
-            var path = Path.Combine(coversDir, filename);
-            if (!File.Exists(path)) return Results.NotFound();
+            var entry = await db.CoverImages.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Hash == hash, ct);
+            if (entry is null) return Results.NotFound();
 
-            var ext = Path.GetExtension(filename);
-            var contentType = ContentTypes.TryGetValue(ext, out var ct) ? ct : "application/octet-stream";
-
-            return Results.File(path, contentType);
+            return Results.File(entry.Bytes, entry.ContentType);
         });
 
         return app;

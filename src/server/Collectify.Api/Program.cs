@@ -67,18 +67,10 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
 builder.Services.AddMetadataLookup(builder.Configuration);
 builder.Services.AddTmdbMovieProvider(builder.Configuration);
 
-// Cover-image cache. The on-disk path is resolved at DI-resolution time
-// (not at builder time) so test hosts that override Collectify:DataDir
-// via ConfigureAppConfiguration get the right value -- those callbacks
-// fire during Build, which is after this code runs.
+// Cover-image cache. Bytes live in the CoverImages table alongside the
+// rest of the data so a backup of collectify.db is a complete snapshot.
 builder.Services.AddHttpClient(CoverImageStore.HttpClientName);
-builder.Services.AddSingleton<ICoverImageStore>(sp => new CoverImageStore(
-    ResolveCoversDir(sp.GetRequiredService<IConfiguration>()),
-    sp.GetRequiredService<IHttpClientFactory>(),
-    sp.GetRequiredService<ILogger<CoverImageStore>>()));
-
-static string ResolveCoversDir(IConfiguration config) =>
-    Path.Combine(config["Collectify:DataDir"] ?? Path.Combine(AppContext.BaseDirectory, "data"), "covers");
+builder.Services.AddScoped<ICoverImageStore, CoverImageStore>();
 
 var app = builder.Build();
 
