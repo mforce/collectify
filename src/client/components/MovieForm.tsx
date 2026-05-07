@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
+import OnlineSearch from './OnlineSearch';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
+import type { MovieLookupResult } from '../services/lookup';
 
 interface Props {
   initial?: Movie;
@@ -28,6 +30,17 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
   const patch = (p: Partial<Movie>) => setM((prev) => ({ ...prev, ...p }));
   const toggleFormat = (flag: number) => set('formats', (m.formats ?? 0) ^ flag);
 
+  const importLookup = (r: MovieLookupResult) => {
+    patch({
+      title: r.title,
+      originalTitle: r.originalTitle ?? null,
+      year: r.year ?? null,
+      description: r.description ?? null,
+      imagePath: r.imageUrl ?? null,
+      tmdbId: r.provider === 'tmdb' ? r.providerKey : m.tmdbId ?? null,
+    });
+  };
+
   return (
     <form
       className="space-y-4"
@@ -36,6 +49,18 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
         onSubmit({ ...m, title: m.title.trim() });
       }}
     >
+      <OnlineSearch
+        type="movies"
+        label="Search online (TMDB)"
+        placeholder="e.g. Inception"
+        onPick={importLookup}
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: r.description?.slice(0, 120),
+          image: r.imageUrl,
+        })}
+      />
+
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Title">
           <Input value={m.title} onChange={(e) => set('title', e.target.value)} required />
