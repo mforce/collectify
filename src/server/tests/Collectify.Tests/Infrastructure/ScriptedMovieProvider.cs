@@ -14,12 +14,16 @@ public sealed class ScriptedMovieProvider : IMovieMetadataProvider
     public bool IsConfigured { get; init; } = true;
     public IReadOnlyList<MovieLookupResult> SearchResults { get; init; } = [];
     public MovieLookupResult? ById { get; init; }
+    public MovieLookupResult? ByImdbId { get; init; }
 
     public Task<IReadOnlyList<MovieLookupResult>> SearchAsync(string query, CancellationToken ct = default)
         => Task.FromResult(SearchResults);
 
     public Task<MovieLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
         => Task.FromResult(ById);
+
+    public Task<MovieLookupResult?> GetByImdbIdAsync(string imdbId, CancellationToken ct = default)
+        => Task.FromResult(ByImdbId);
 
     /// <summary>Configured + by-id returns the supplied result.</summary>
     public static ScriptedMovieProvider WithFoundResult(MovieLookupResult result) =>
@@ -28,4 +32,8 @@ public sealed class ScriptedMovieProvider : IMovieMetadataProvider
     /// <summary>Configured + by-id returns null (TMDB 404 equivalent).</summary>
     public static ScriptedMovieProvider NotFound() =>
         new() { ById = null };
+
+    /// <summary>Configured + by-imdb-id returns the supplied result.</summary>
+    public static ScriptedMovieProvider WithImdbResult(MovieLookupResult result) =>
+        new() { ByImdbId = result };
 }

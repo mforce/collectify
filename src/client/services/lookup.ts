@@ -95,3 +95,19 @@ export async function lookupMovieById(providerKey: string): Promise<LookupByIdOu
   if (response.results.length === 0) return { kind: 'not-found' };
   return { kind: 'found', result: response.results[0] };
 }
+
+/**
+ * Like {@link lookupMovieById} but uses an external IMDB id (the "tt..." form).
+ * The server resolves it to a TMDB id under the hood; the response shape is
+ * identical so the same caller code handles both flows.
+ */
+export async function lookupMovieByImdbId(imdbId: string): Promise<LookupByIdOutcome> {
+  const trimmed = imdbId.trim();
+  if (!trimmed) return { kind: 'not-found' };
+  const response = await api<LookupResponse<MovieLookupResult>>(
+    `/api/lookup/movies/by-imdb-id/${encodeURIComponent(trimmed)}`,
+  );
+  if (!response.configured) return { kind: 'not-configured' };
+  if (response.results.length === 0) return { kind: 'not-found' };
+  return { kind: 'found', result: response.results[0] };
+}

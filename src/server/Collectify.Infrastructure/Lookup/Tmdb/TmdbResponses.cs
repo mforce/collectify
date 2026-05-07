@@ -39,3 +39,12 @@ internal sealed record TmdbCredits(
 internal sealed record TmdbCrewMember(
     [property: JsonPropertyName("job")] string? Job,
     [property: JsonPropertyName("name")] string? Name);
+
+/// <summary>
+/// Subset of /find/{external_id}?external_source=imdb_id. The endpoint
+/// returns matches across categories (movie / tv / person / …) but we only
+/// consume <c>movie_results</c> here -- TV series and people don't belong
+/// on a MovieForm.
+/// </summary>
+internal sealed record TmdbFindResponse(
+    [property: JsonPropertyName("movie_results")] IReadOnlyList<TmdbMovieSummary>? MovieResults);

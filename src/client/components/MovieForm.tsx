@@ -3,7 +3,7 @@ import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
-import { lookupMovieById, type MovieLookupResult } from '../services/lookup';
+import { lookupMovieById, lookupMovieByImdbId, type LookupByIdOutcome, type MovieLookupResult } from '../services/lookup';
 
 interface Props {
   initial?: Movie;
@@ -44,27 +44,34 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
     });
   };
 
-  const fetchByTmdbId = async () => {
-    const id = (m.tmdbId ?? '').trim();
-    if (!id) {
-      setFetchState({ status: 'idle', message: 'Enter a TMDB ID first.' });
+  const runLookup = async (
+    id: string,
+    label: string,
+    lookup: (id: string) => Promise<LookupByIdOutcome>,
+  ) => {
+    const trimmed = id.trim();
+    if (!trimmed) {
+      setFetchState({ status: 'idle', message: `Enter a ${label} first.` });
       return;
     }
     setFetchState({ status: 'loading' });
     try {
-      const outcome = await lookupMovieById(id);
+      const outcome = await lookup(trimmed);
       if (outcome.kind === 'found') {
         importLookup(outcome.result);
         setFetchState({ status: 'idle', message: 'Populated from TMDB.' });
       } else if (outcome.kind === 'not-configured') {
         setFetchState({ status: 'idle', message: 'TMDB lookup not configured. Set the provider key.' });
       } else {
-        setFetchState({ status: 'idle', message: `No movie with TMDB ID ${id}.` });
+        setFetchState({ status: 'idle', message: `No movie with ${label} ${trimmed}.` });
       }
     } catch (err) {
       setFetchState({ status: 'idle', message: (err as Error).message ?? 'Lookup failed.' });
     }
   };
+
+  const fetchByTmdbId = () => runLookup(m.tmdbId ?? '', 'TMDB ID', lookupMovieById);
+  const fetchByImdbId = () => runLookup(m.imdbId ?? '', 'IMDB ID', lookupMovieByImdbId);
 
   return (
     <form
@@ -173,28 +180,42 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
             urlPrefix="https://www.themoviedb.org/movie/"
             placeholder="e.g. 27205"
           />
-          <div className="flex items-center gap-2">
+          <div>
             <Button
               type="button"
               variant="secondary"
               onClick={fetchByTmdbId}
               disabled={fetchState.status === 'loading' || !(m.tmdbId ?? '').trim()}
+              aria-label="Fetch metadata by TMDB ID"
             >
               {fetchState.status === 'loading' ? 'Fetching…' : 'Fetch metadata'}
             </Button>
-            {fetchState.message && (
-              <span className="text-xs text-slate-400">{fetchState.message}</span>
-            )}
           </div>
         </div>
-        <ExternalIdField
-          label="IMDB ID"
-          value={m.imdbId}
-          onChange={(v) => set('imdbId', v)}
-          urlPrefix="https://www.imdb.com/title/"
-          placeholder="e.g. tt1375666"
-        />
+        <div className="space-y-1">
+          <ExternalIdField
+            label="IMDB ID"
+            value={m.imdbId}
+            onChange={(v) => set('imdbId', v)}
+            urlPrefix="https://www.imdb.com/title/"
+            placeholder="e.g. tt1375666"
+          />
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={fetchByImdbId}
+              disabled={fetchState.status === 'loading' || !(m.imdbId ?? '').trim()}
+              aria-label="Fetch metadata by IMDB ID"
+            >
+              {fetchState.status === 'loading' ? 'Fetching…' : 'Fetch metadata'}
+            </Button>
+          </div>
+        </div>
       </div>
+      {fetchState.message && (
+        <div className="text-xs text-slate-400">{fetchState.message}</div>
+      )}
 
       <Field label="Notes">
         <Textarea rows={3} value={m.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />

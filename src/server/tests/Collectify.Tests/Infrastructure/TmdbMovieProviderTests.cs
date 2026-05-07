@@ -359,6 +359,117 @@ public class TmdbMovieProviderTests : IDisposable
         Assert.Single(idHandler.RequestedUrls); // not satisfied from the search cache
     }
 
+    // ---------- GetByImdbIdAsync ----------
+
+    [Fact]
+    public async Task GetByImdbIdAsync_WithoutApiKey_ShortCircuitsToNull()
+    {
+        var handler = new RoutingStubHandler();
+        var provider = NewProvider(handler, new MetadataLookupOptions());
+
+        Assert.Null(await provider.GetByImdbIdAsync("tt1375666"));
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_WithBlankImdbId_ReturnsNullWithoutCalling()
+    {
+        var handler = new RoutingStubHandler();
+        var provider = NewProvider(handler);
+
+        Assert.Null(await provider.GetByImdbIdAsync(""));
+        Assert.Null(await provider.GetByImdbIdAsync("   "));
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_HitsFindEndpoint_WithExternalSourceImdbId()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var provider = NewProvider(handler);
+
+        await provider.GetByImdbIdAsync("tt1375666");
+
+        var findUrl = handler.RequestedUrls.First(u => u.Contains("find/"));
+        Assert.Contains("find/tt1375666", findUrl);
+        Assert.Contains("external_source=imdb_id", findUrl);
+        Assert.Contains("api_key=key-xyz", findUrl);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_ResolvesToFullDetail_ViaChainedGetById()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var provider = NewProvider(handler);
+
+        var result = await provider.GetByImdbIdAsync("tt1375666");
+
+        Assert.NotNull(result);
+        Assert.Equal("27205", result!.ProviderKey);
+        Assert.Equal("Inception", result.Title);
+        Assert.Equal("Christopher Nolan", result.Director);
+        Assert.Equal(148, result.RuntimeMinutes);
+
+        // Two upstream calls: /find then /movie/27205
+        Assert.Equal(2, handler.RequestedUrls.Count);
+        Assert.Contains(handler.RequestedUrls, u => u.Contains("find/"));
+        Assert.Contains(handler.RequestedUrls, u => u.Contains("movie/27205"));
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_WithEmptyMovieResults_ReturnsNullAndDoesNotResolve()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [] }""");
+        var provider = NewProvider(handler);
+
+        Assert.Null(await provider.GetByImdbIdAsync("tt9999999"));
+        Assert.Single(handler.RequestedUrls); // no chained /movie/{id} call
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_RepeatedCallsServeFromCache()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var p1 = NewProvider(handler);
+        var p2 = NewProvider(handler);
+
+        var first = await p1.GetByImdbIdAsync("tt1375666");
+        var second = await p2.GetByImdbIdAsync("tt1375666");
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal(first!.ProviderKey, second!.ProviderKey);
+        // Initial call: /find + /movie. Second call served from the imdb
+        // cache namespace -- no additional upstream traffic.
+        Assert.Equal(2, handler.RequestedUrls.Count);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_ThenGetByIdAsync_ReusesTheChainedDetailCache()
+    {
+        // After resolving an IMDB id, the subsequent TMDB-id lookup for the
+        // same movie is free -- the chained GetByIdAsync call already wrote
+        // an "id:27205" cache entry.
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var provider = NewProvider(handler);
+
+        await provider.GetByImdbIdAsync("tt1375666");
+        Assert.Equal(2, handler.RequestedUrls.Count);
+
+        var byId = await provider.GetByIdAsync("27205");
+        Assert.NotNull(byId);
+        Assert.Equal(2, handler.RequestedUrls.Count); // still 2 -- served from cache
+    }
+
 
     private sealed class StubHandler : HttpMessageHandler
     {
@@ -381,5 +492,51 @@ public class TmdbMovieProviderTests : IDisposable
                 Content = new StringContent(_body, Encoding.UTF8, "application/json"),
             });
         }
+    }
+
+    /// <summary>
+    /// Stub that picks a response body by matching a substring of the
+    /// request URL. Used by the IMDB-lookup tests because that flow makes
+    /// two upstream calls (/find and /movie/{id}) in a single
+    /// GetByImdbIdAsync call and needs different payloads per URL.
+    /// </summary>
+    private sealed class RoutingStubHandler : HttpMessageHandler
+    {
+        private readonly List<(string urlContains, string body, HttpStatusCode status)> _routes = new();
+        public List<string> RequestedUrls { get; } = new();
+
+        public RoutingStubHandler When(string urlContains, string body, HttpStatusCode status = HttpStatusCode.OK)
+        {
+            _routes.Add((urlContains, body, status));
+            return this;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var url = request.RequestUri!.AbsoluteUri;
+            RequestedUrls.Add(url);
+            foreach (var (contains, body, status) in _routes)
+            {
+                if (url.Contains(contains, StringComparison.Ordinal))
+                {
+                    return Task.FromResult(new HttpResponseMessage(status)
+                    {
+                        Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                    });
+                }
+            }
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
+    }
+
+    private TmdbMovieProvider NewProvider(RoutingStubHandler handler, MetadataLookupOptions? overrideOptions = null)
+    {
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
+        var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
+        var options = overrideOptions ?? new MetadataLookupOptions
+        {
+            Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
+        };
+        return new TmdbMovieProvider(http, cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
 }

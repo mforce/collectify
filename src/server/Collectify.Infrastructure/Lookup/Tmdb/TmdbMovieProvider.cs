@@ -100,6 +100,49 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         return mapped;
     }
 
+    public async Task<MovieLookupResult?> GetByImdbIdAsync(string imdbId, CancellationToken ct = default)
+    {
+        if (!IsConfigured) return null;
+        var trimmed = (imdbId ?? string.Empty).Trim();
+        if (trimmed.Length == 0) return null;
+
+        // Separate cache namespace from id-lookup and search so an unrelated
+        // string that happens to match (e.g. "tt27205") can't satisfy a
+        // different lookup.
+        var cacheKey = "imdb:" + trimmed;
+        var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        if (cached is not null) return cached;
+
+        TmdbFindResponse? body;
+        try
+        {
+            // /find returns matches across categories (movie / tv / person);
+            // we only consume movie_results.
+            var url = $"find/{Uri.EscapeDataString(trimmed)}?external_source=imdb_id&api_key={Uri.EscapeDataString(_options.Tmdb.ApiKey!)}";
+            body = await _http.GetFromJsonAsync<TmdbFindResponse>(url, ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "TMDB find-by-imdb failed for {Id}", trimmed);
+            return null;
+        }
+
+        var first = body?.MovieResults?.FirstOrDefault();
+        if (first is null) return null;
+
+        // Resolve the TMDB id into the full detail. Reuses GetByIdAsync's
+        // cache, so a follow-up by-tmdb-id call for the same movie is free.
+        var detail = await GetByIdAsync(first.Id.ToString(), ct);
+        if (detail is null) return null;
+
+        await _cache.SetAsync(ProviderName, cacheKey, detail, ct);
+        return detail;
+    }
+
     private MovieLookupResult Map(TmdbMovieSummary s) => new(
         Provider: ProviderName,
         ProviderKey: s.Id.ToString(),

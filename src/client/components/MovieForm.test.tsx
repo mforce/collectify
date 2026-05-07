@@ -4,14 +4,16 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MovieForm from './MovieForm';
 
-// Swap the data layer so the form's "Fetch metadata" button can be exercised
+// Swap the data layer so the form's "Fetch metadata" buttons can be exercised
 // without a backend or a TanStack Query refetch dance.
 const mockLookupMovieById = vi.fn();
+const mockLookupMovieByImdbId = vi.fn();
 vi.mock('../services/lookup', async (importOriginal) => {
   const original = await importOriginal<typeof import('../services/lookup')>();
   return {
     ...original,
     lookupMovieById: (id: string) => mockLookupMovieById(id),
+    lookupMovieByImdbId: (id: string) => mockLookupMovieByImdbId(id),
     useLookup: () => ({ data: undefined, isLoading: false, error: null }),
   };
 });
@@ -32,6 +34,7 @@ function renderForm(onSubmit = vi.fn()) {
 describe('MovieForm — Fetch metadata by TMDB ID', () => {
   beforeEach(() => {
     mockLookupMovieById.mockReset();
+    mockLookupMovieByImdbId.mockReset();
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -39,7 +42,7 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
 
   it('disables the fetch button when the TMDB ID field is empty', () => {
     renderForm();
-    const button = screen.getByRole('button', { name: /fetch metadata/i });
+    const button = screen.getByRole('button', { name: /fetch metadata by tmdb id/i });
     expect(button).toBeDisabled();
   });
 
@@ -65,7 +68,7 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
 
     const tmdbInput = screen.getByPlaceholderText('e.g. 27205');
     await user.type(tmdbInput, '27205');
-    await user.click(screen.getByRole('button', { name: /fetch metadata/i }));
+    await user.click(screen.getByRole('button', { name: /fetch metadata by tmdb id/i }));
 
     // Director / Year / Runtime are unique values; Inception fills both
     // Title and Original title so it appears twice.
@@ -85,7 +88,7 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
     const user = userEvent.setup();
     const tmdbInput = screen.getByPlaceholderText('e.g. 27205');
     await user.type(tmdbInput, '27205');
-    await user.click(screen.getByRole('button', { name: /fetch metadata/i }));
+    await user.click(screen.getByRole('button', { name: /fetch metadata by tmdb id/i }));
 
     expect(await screen.findByText(/not configured/i)).toBeInTheDocument();
     // No movie title was injected.
@@ -99,8 +102,55 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
     const user = userEvent.setup();
     const tmdbInput = screen.getByPlaceholderText('e.g. 27205');
     await user.type(tmdbInput, '9999999');
-    await user.click(screen.getByRole('button', { name: /fetch metadata/i }));
+    await user.click(screen.getByRole('button', { name: /fetch metadata by tmdb id/i }));
 
     expect(await screen.findByText(/no movie with tmdb id 9999999/i)).toBeInTheDocument();
+  });
+
+  it('IMDB Fetch populates form fields when the lookup returns a found result', async () => {
+    mockLookupMovieByImdbId.mockResolvedValue({
+      kind: 'found',
+      result: {
+        provider: 'tmdb',
+        providerKey: '603',
+        title: 'The Matrix',
+        originalTitle: 'The Matrix',
+        year: 1999,
+        director: 'Lana Wachowski & Lilly Wachowski',
+        runtimeMinutes: 136,
+        description: 'A hacker discovers the truth.',
+        imageUrl: 'https://image.tmdb.org/t/p/w342/matrix.jpg',
+        genres: null,
+      },
+    });
+
+    renderForm();
+    const user = userEvent.setup();
+
+    const imdbInput = screen.getByPlaceholderText('e.g. tt1375666');
+    await user.type(imdbInput, 'tt0133093');
+    await user.click(screen.getByRole('button', { name: /fetch metadata by imdb id/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByDisplayValue('The Matrix')).toHaveLength(2);
+    });
+    expect(screen.getByDisplayValue('Lana Wachowski & Lilly Wachowski')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('1999')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('136')).toBeInTheDocument();
+    expect(mockLookupMovieByImdbId).toHaveBeenCalledWith('tt0133093');
+    // The TMDB-id lookup must not have been used.
+    expect(mockLookupMovieById).not.toHaveBeenCalled();
+  });
+
+  it('IMDB Fetch shows not-found when the resolver returns nothing', async () => {
+    mockLookupMovieByImdbId.mockResolvedValue({ kind: 'not-found' });
+
+    renderForm();
+    const user = userEvent.setup();
+    const imdbInput = screen.getByPlaceholderText('e.g. tt1375666');
+    await user.type(imdbInput, 'tt9999999');
+    await user.click(screen.getByRole('button', { name: /fetch metadata by imdb id/i }));
+
+    expect(await screen.findByText(/no movie with imdb id tt9999999/i)).toBeInTheDocument();
   });
 });
