@@ -93,23 +93,22 @@ This is the multi-user-readiness contract. Even though we ship single-user, neve
 
 ### External providers (Phase 2)
 
+The seam lives in `Collectify.Infrastructure/Lookup/`. One interface per media type so each result shape stays strongly typed:
+
 ```csharp
-// Domain
-public interface IMetadataProvider<TResult>
+public interface IMovieMetadataProvider
 {
     string Name { get; }
     bool IsConfigured { get; }
-    Task<IReadOnlyList<TResult>> SearchAsync(string query, CancellationToken ct);
-    Task<TResult?> LookupBarcodeAsync(string barcode, CancellationToken ct);
+    Task<IReadOnlyList<MovieLookupResult>> SearchAsync(string query, CancellationToken ct = default);
 }
-
-// Infrastructure
-public class TmdbMovieProvider : IMetadataProvider<MovieSearchResult> { … }
+// + IMusicMetadataProvider, IGameMetadataProvider with their own result records
 ```
 
-- Register as keyed services or via a `Func<MediaType, IMetadataProvider<…>>` factory.
-- Wrap every outbound call with a `LookupCache` lookup (`Provider`, `Key`) that persists the JSON response.
-- Fail closed: if not configured, `IsConfigured = false`; the API returns `503` and the UI hides the button.
+- DI is set up by `services.AddMetadataLookup(config)` (called from `Program.cs`). It binds `MetadataLookupOptions` from `Collectify:Metadata`, registers `IHttpClientFactory`, and wires a `Stub*Provider` for each slot via `TryAddScoped`.
+- A real provider PR (TMDB / MusicBrainz / IGDB) registers its typed `HttpClient` and its `IXxxMetadataProvider` implementation. `Replace()` (or running its registration before `AddMetadataLookup`) swaps the stub out.
+- Outbound calls go through `ILookupCache` (`Provider`, `Key`) which round-trips a JSON payload through the existing `LookupCacheEntry` table. TTL comes from `MetadataLookupOptions.CacheTtl` (default 30 days).
+- Fail-soft: if not configured, `IsConfigured = false`. The lookup endpoint replies with `{ provider, configured: false, results: [] }` so the UI can show a clear "set TMDB__ApiKey to enable" hint instead of an error toast.
 
 ## Migrations
 
