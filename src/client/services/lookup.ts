@@ -72,3 +72,42 @@ export function useLookup<T extends MediaType>(type: T, query: string) {
     staleTime: 60_000,
   });
 }
+
+export type LookupByIdOutcome =
+  | { kind: 'found'; result: MovieLookupResult }
+  | { kind: 'not-found' }
+  | { kind: 'not-configured' };
+
+/**
+ * Direct lookup of a movie by its provider id (e.g. a TMDB id). Imperative
+ * by design -- the user clicks a button to trigger a single fetch, no
+ * debouncing or background revalidation needed. Returns a discriminated
+ * union so the caller can render distinct UX for unconfigured vs unknown
+ * id without sniffing array lengths.
+ */
+export async function lookupMovieById(providerKey: string): Promise<LookupByIdOutcome> {
+  const trimmed = providerKey.trim();
+  if (!trimmed) return { kind: 'not-found' };
+  const response = await api<LookupResponse<MovieLookupResult>>(
+    `/api/lookup/movies/by-id/${encodeURIComponent(trimmed)}`,
+  );
+  if (!response.configured) return { kind: 'not-configured' };
+  if (response.results.length === 0) return { kind: 'not-found' };
+  return { kind: 'found', result: response.results[0] };
+}
+
+/**
+ * Like {@link lookupMovieById} but uses an external IMDB id (the "tt..." form).
+ * The server resolves it to a TMDB id under the hood; the response shape is
+ * identical so the same caller code handles both flows.
+ */
+export async function lookupMovieByImdbId(imdbId: string): Promise<LookupByIdOutcome> {
+  const trimmed = imdbId.trim();
+  if (!trimmed) return { kind: 'not-found' };
+  const response = await api<LookupResponse<MovieLookupResult>>(
+    `/api/lookup/movies/by-imdb-id/${encodeURIComponent(trimmed)}`,
+  );
+  if (!response.configured) return { kind: 'not-configured' };
+  if (response.results.length === 0) return { kind: 'not-found' };
+  return { kind: 'found', result: response.results[0] };
+}

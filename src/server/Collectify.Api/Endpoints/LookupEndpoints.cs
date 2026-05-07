@@ -23,6 +23,48 @@ public static class LookupEndpoints
             return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, true, results));
         });
 
+        // Direct lookup by provider id (e.g. a TMDB movie id). Reuses
+        // LookupResponse so the frontend handles unconfigured / not-found /
+        // found with one shape: 0 results = not-found, 1 result = found,
+        // configured=false signals "set the provider key" instead of
+        // "your id was wrong".
+        group.MapGet("/movies/by-id/{providerKey}", async (
+            string providerKey,
+            IMovieMetadataProvider provider,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(providerKey))
+                return Results.BadRequest(new { error = "Provider key is required." });
+            if (!provider.IsConfigured)
+                return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, false, []));
+
+            var hit = await provider.GetByIdAsync(providerKey.Trim(), ct);
+            IReadOnlyList<MovieLookupResult> results = hit is null
+                ? []
+                : new[] { hit };
+            return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, true, results));
+        });
+
+        // Lookup via an external IMDB id (the "tt..." shape). The provider
+        // resolves it to its own provider key under the hood; the response
+        // shape matches /by-id so the frontend uses the same code path.
+        group.MapGet("/movies/by-imdb-id/{imdbId}", async (
+            string imdbId,
+            IMovieMetadataProvider provider,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(imdbId))
+                return Results.BadRequest(new { error = "IMDB id is required." });
+            if (!provider.IsConfigured)
+                return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, false, []));
+
+            var hit = await provider.GetByImdbIdAsync(imdbId.Trim(), ct);
+            IReadOnlyList<MovieLookupResult> results = hit is null
+                ? []
+                : new[] { hit };
+            return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, true, results));
+        });
+
         group.MapGet("/music", async (
             [FromQuery] string? q,
             IMusicMetadataProvider provider,

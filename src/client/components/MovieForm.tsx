@@ -3,7 +3,7 @@ import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
-import type { MovieLookupResult } from '../services/lookup';
+import { lookupMovieById, lookupMovieByImdbId, type LookupByIdOutcome, type MovieLookupResult } from '../services/lookup';
 
 interface Props {
   initial?: Movie;
@@ -24,6 +24,7 @@ const empty: Movie = {
 
 export default function MovieForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [m, setM] = useState<Movie>(initial ?? empty);
+  const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setM(initial); }, [initial]);
 
   const set = <K extends keyof Movie>(k: K, v: Movie[K]) => setM((prev) => ({ ...prev, [k]: v }));
@@ -35,11 +36,76 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
       title: r.title,
       originalTitle: r.originalTitle ?? null,
       year: r.year ?? null,
+      director: r.director ?? null,
+      runtimeMinutes: r.runtimeMinutes ?? null,
       description: r.description ?? null,
       imagePath: r.imageUrl ?? null,
       tmdbId: r.provider === 'tmdb' ? r.providerKey : m.tmdbId ?? null,
     });
+
+    // /search/movie doesn't carry director or runtime. If the user just
+    // picked a TMDB summary, follow up with /movie/{id} to fill those in.
+    // The chained call is cached, so picking the same row twice or
+    // pasting the same TMDB id later is a free hit.
+    if (r.provider === 'tmdb' && (r.director == null || r.runtimeMinutes == null)) {
+      void enrichFromTmdb(r.providerKey);
+    }
   };
+
+  const enrichFromTmdb = async (tmdbId: string) => {
+    setFetchState({ status: 'loading', message: 'Loading director and runtime…' });
+    try {
+      const outcome = await lookupMovieById(tmdbId);
+      if (outcome.kind !== 'found') {
+        setFetchState({ status: 'idle' });
+        return;
+      }
+      // Use functional setM so a newer pick (different tmdbId already in
+      // state) supersedes this enrichment instead of overwriting fresh
+      // data with the previous movie's. Also preserve any value the user
+      // already typed manually while the enrichment was in flight.
+      setM((prev) => {
+        if (prev.tmdbId !== tmdbId) return prev;
+        return {
+          ...prev,
+          director: prev.director ?? outcome.result.director ?? null,
+          runtimeMinutes: prev.runtimeMinutes ?? outcome.result.runtimeMinutes ?? null,
+        };
+      });
+      setFetchState({ status: 'idle', message: 'Populated from TMDB.' });
+    } catch {
+      setFetchState({ status: 'idle' });
+    }
+  };
+
+  const runLookup = async (
+    id: string,
+    label: string,
+    lookup: (id: string) => Promise<LookupByIdOutcome>,
+  ) => {
+    const trimmed = id.trim();
+    if (!trimmed) {
+      setFetchState({ status: 'idle', message: `Enter a ${label} first.` });
+      return;
+    }
+    setFetchState({ status: 'loading' });
+    try {
+      const outcome = await lookup(trimmed);
+      if (outcome.kind === 'found') {
+        importLookup(outcome.result);
+        setFetchState({ status: 'idle', message: 'Populated from TMDB.' });
+      } else if (outcome.kind === 'not-configured') {
+        setFetchState({ status: 'idle', message: 'TMDB lookup not configured. Set the provider key.' });
+      } else {
+        setFetchState({ status: 'idle', message: `No movie with ${label} ${trimmed}.` });
+      }
+    } catch (err) {
+      setFetchState({ status: 'idle', message: (err as Error).message ?? 'Lookup failed.' });
+    }
+  };
+
+  const fetchByTmdbId = () => runLookup(m.tmdbId ?? '', 'TMDB ID', lookupMovieById);
+  const fetchByImdbId = () => runLookup(m.imdbId ?? '', 'IMDB ID', lookupMovieByImdbId);
 
   return (
     <form
@@ -140,21 +206,50 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
 
       <SectionHeading>External IDs</SectionHeading>
       <div className="grid sm:grid-cols-2 gap-4">
-        <ExternalIdField
-          label="TMDB ID"
-          value={m.tmdbId}
-          onChange={(v) => set('tmdbId', v)}
-          urlPrefix="https://www.themoviedb.org/movie/"
-          placeholder="e.g. 27205"
-        />
-        <ExternalIdField
-          label="IMDB ID"
-          value={m.imdbId}
-          onChange={(v) => set('imdbId', v)}
-          urlPrefix="https://www.imdb.com/title/"
-          placeholder="e.g. tt1375666"
-        />
+        <div className="space-y-1">
+          <ExternalIdField
+            label="TMDB ID"
+            value={m.tmdbId}
+            onChange={(v) => set('tmdbId', v)}
+            urlPrefix="https://www.themoviedb.org/movie/"
+            placeholder="e.g. 27205"
+          />
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={fetchByTmdbId}
+              disabled={fetchState.status === 'loading' || !(m.tmdbId ?? '').trim()}
+              aria-label="Fetch metadata by TMDB ID"
+            >
+              {fetchState.status === 'loading' ? 'Fetching…' : 'Fetch metadata'}
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <ExternalIdField
+            label="IMDB ID"
+            value={m.imdbId}
+            onChange={(v) => set('imdbId', v)}
+            urlPrefix="https://www.imdb.com/title/"
+            placeholder="e.g. tt1375666"
+          />
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={fetchByImdbId}
+              disabled={fetchState.status === 'loading' || !(m.imdbId ?? '').trim()}
+              aria-label="Fetch metadata by IMDB ID"
+            >
+              {fetchState.status === 'loading' ? 'Fetching…' : 'Fetch metadata'}
+            </Button>
+          </div>
+        </div>
       </div>
+      {fetchState.message && (
+        <div className="text-xs text-slate-400">{fetchState.message}</div>
+      )}
 
       <Field label="Notes">
         <Textarea rows={3} value={m.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />

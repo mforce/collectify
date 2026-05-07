@@ -192,6 +192,285 @@ public class TmdbMovieProviderTests : IDisposable
         Assert.Equal(2, handler.RequestedUrls.Count);
     }
 
+    // ---------- GetByIdAsync ----------
+
+    private const string DetailJson = """
+        {
+          "id": 27205,
+          "title": "Inception",
+          "original_title": "Inception",
+          "release_date": "2010-07-15",
+          "runtime": 148,
+          "overview": "A heist on the subconscious.",
+          "poster_path": "/poster123.jpg",
+          "credits": {
+            "crew": [
+              { "job": "Director of Photography", "name": "Wally Pfister" },
+              { "job": "Director", "name": "Christopher Nolan" },
+              { "job": "Editor", "name": "Lee Smith" }
+            ]
+          }
+        }
+        """;
+
+    [Fact]
+    public async Task GetByIdAsync_WithoutApiKey_ShortCircuitsToNull_AndDoesNotCallTmdb()
+    {
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, new MetadataLookupOptions());
+
+        var result = await provider.GetByIdAsync("27205");
+
+        Assert.Null(result);
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithBlankProviderKey_ReturnsNullWithoutCalling()
+    {
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler);
+
+        Assert.Null(await provider.GetByIdAsync(""));
+        Assert.Null(await provider.GetByIdAsync("   "));
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_HitsTmdbWithAppendCredits_AndApiKey()
+    {
+        var handler = new StubHandler(DetailJson);
+        var provider = NewProvider(handler);
+
+        await provider.GetByIdAsync("27205");
+
+        var url = Assert.Single(handler.RequestedUrls);
+        Assert.Contains("movie/27205", url);
+        Assert.Contains("api_key=key-xyz", url);
+        Assert.Contains("append_to_response=credits", url);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_MapsDetailIncludingDirectorAndRuntime()
+    {
+        var provider = NewProvider(new StubHandler(DetailJson));
+
+        var result = await provider.GetByIdAsync("27205");
+
+        Assert.NotNull(result);
+        Assert.Equal("tmdb", result!.Provider);
+        Assert.Equal("27205", result.ProviderKey);
+        Assert.Equal("Inception", result.Title);
+        Assert.Equal("Inception", result.OriginalTitle);
+        Assert.Equal(2010, result.Year);
+        Assert.Equal(148, result.RuntimeMinutes);
+        Assert.Equal("Christopher Nolan", result.Director);
+        Assert.Equal("A heist on the subconscious.", result.Description);
+        Assert.Equal("https://image.tmdb.org/t/p/w342/poster123.jpg", result.ImageUrl);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithMultipleDirectors_JoinsThemWithAmpersand()
+    {
+        const string body = """
+            {
+              "id": 1,
+              "title": "X",
+              "release_date": "1999-01-01",
+              "credits": {
+                "crew": [
+                  { "job": "Director", "name": "Joel Coen" },
+                  { "job": "Director", "name": "Ethan Coen" }
+                ]
+              }
+            }
+            """;
+        var provider = NewProvider(new StubHandler(body));
+
+        var result = await provider.GetByIdAsync("1");
+
+        Assert.Equal("Joel Coen & Ethan Coen", result!.Director);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithoutDirectorInCrew_ReturnsNullDirector()
+    {
+        const string body = """
+            {
+              "id": 1,
+              "title": "X",
+              "release_date": "1999-01-01",
+              "credits": { "crew": [{ "job": "Editor", "name": "Some Editor" }] }
+            }
+            """;
+        var provider = NewProvider(new StubHandler(body));
+
+        var result = await provider.GetByIdAsync("1");
+
+        Assert.Null(result!.Director);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_With404FromTmdb_ReturnsNullWithoutCaching()
+    {
+        var handler = new StubHandler("not found", HttpStatusCode.NotFound);
+        var provider = NewProvider(handler);
+
+        Assert.Null(await provider.GetByIdAsync("999999"));
+
+        // Re-issue: should hit TMDB again rather than serve a cached null.
+        await provider.GetByIdAsync("999999");
+        Assert.Equal(2, handler.RequestedUrls.Count);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_RepeatedCallsServeFromCache()
+    {
+        var handler = new StubHandler(DetailJson);
+        var p1 = NewProvider(handler);
+        var p2 = NewProvider(handler); // shared sqlite cache, fresh provider instance
+
+        var first = await p1.GetByIdAsync("27205");
+        var second = await p2.GetByIdAsync("27205");
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal(first!.Director, second!.Director);
+        Assert.Single(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_AndSearchAsync_UseSeparateCacheNamespaces()
+    {
+        // A search for "27205" must not satisfy a by-id lookup for the
+        // movie whose TMDB id happens to be "27205".
+        var searchHandler = new StubHandler("""
+            { "results": [ { "id": 99, "title": "Different Movie", "release_date": "1990-01-01" } ] }
+            """);
+        var searchProvider = NewProvider(searchHandler);
+        await searchProvider.SearchAsync("27205");
+        Assert.Single(searchHandler.RequestedUrls);
+
+        var idHandler = new StubHandler(DetailJson);
+        var idProvider = NewProvider(idHandler);
+        var byId = await idProvider.GetByIdAsync("27205");
+
+        Assert.Equal("Inception", byId!.Title);
+        Assert.Single(idHandler.RequestedUrls); // not satisfied from the search cache
+    }
+
+    // ---------- GetByImdbIdAsync ----------
+
+    [Fact]
+    public async Task GetByImdbIdAsync_WithoutApiKey_ShortCircuitsToNull()
+    {
+        var handler = new RoutingStubHandler();
+        var provider = NewProvider(handler, new MetadataLookupOptions());
+
+        Assert.Null(await provider.GetByImdbIdAsync("tt1375666"));
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_WithBlankImdbId_ReturnsNullWithoutCalling()
+    {
+        var handler = new RoutingStubHandler();
+        var provider = NewProvider(handler);
+
+        Assert.Null(await provider.GetByImdbIdAsync(""));
+        Assert.Null(await provider.GetByImdbIdAsync("   "));
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_HitsFindEndpoint_WithExternalSourceImdbId()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var provider = NewProvider(handler);
+
+        await provider.GetByImdbIdAsync("tt1375666");
+
+        var findUrl = handler.RequestedUrls.First(u => u.Contains("find/"));
+        Assert.Contains("find/tt1375666", findUrl);
+        Assert.Contains("external_source=imdb_id", findUrl);
+        Assert.Contains("api_key=key-xyz", findUrl);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_ResolvesToFullDetail_ViaChainedGetById()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var provider = NewProvider(handler);
+
+        var result = await provider.GetByImdbIdAsync("tt1375666");
+
+        Assert.NotNull(result);
+        Assert.Equal("27205", result!.ProviderKey);
+        Assert.Equal("Inception", result.Title);
+        Assert.Equal("Christopher Nolan", result.Director);
+        Assert.Equal(148, result.RuntimeMinutes);
+
+        // Two upstream calls: /find then /movie/27205
+        Assert.Equal(2, handler.RequestedUrls.Count);
+        Assert.Contains(handler.RequestedUrls, u => u.Contains("find/"));
+        Assert.Contains(handler.RequestedUrls, u => u.Contains("movie/27205"));
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_WithEmptyMovieResults_ReturnsNullAndDoesNotResolve()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [] }""");
+        var provider = NewProvider(handler);
+
+        Assert.Null(await provider.GetByImdbIdAsync("tt9999999"));
+        Assert.Single(handler.RequestedUrls); // no chained /movie/{id} call
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_RepeatedCallsServeFromCache()
+    {
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var p1 = NewProvider(handler);
+        var p2 = NewProvider(handler);
+
+        var first = await p1.GetByImdbIdAsync("tt1375666");
+        var second = await p2.GetByImdbIdAsync("tt1375666");
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.Equal(first!.ProviderKey, second!.ProviderKey);
+        // Initial call: /find + /movie. Second call served from the imdb
+        // cache namespace -- no additional upstream traffic.
+        Assert.Equal(2, handler.RequestedUrls.Count);
+    }
+
+    [Fact]
+    public async Task GetByImdbIdAsync_ThenGetByIdAsync_ReusesTheChainedDetailCache()
+    {
+        // After resolving an IMDB id, the subsequent TMDB-id lookup for the
+        // same movie is free -- the chained GetByIdAsync call already wrote
+        // an "id:27205" cache entry.
+        var handler = new RoutingStubHandler()
+            .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
+            .When("movie/", DetailJson);
+        var provider = NewProvider(handler);
+
+        await provider.GetByImdbIdAsync("tt1375666");
+        Assert.Equal(2, handler.RequestedUrls.Count);
+
+        var byId = await provider.GetByIdAsync("27205");
+        Assert.NotNull(byId);
+        Assert.Equal(2, handler.RequestedUrls.Count); // still 2 -- served from cache
+    }
+
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly string _body;
@@ -213,5 +492,51 @@ public class TmdbMovieProviderTests : IDisposable
                 Content = new StringContent(_body, Encoding.UTF8, "application/json"),
             });
         }
+    }
+
+    /// <summary>
+    /// Stub that picks a response body by matching a substring of the
+    /// request URL. Used by the IMDB-lookup tests because that flow makes
+    /// two upstream calls (/find and /movie/{id}) in a single
+    /// GetByImdbIdAsync call and needs different payloads per URL.
+    /// </summary>
+    private sealed class RoutingStubHandler : HttpMessageHandler
+    {
+        private readonly List<(string urlContains, string body, HttpStatusCode status)> _routes = new();
+        public List<string> RequestedUrls { get; } = new();
+
+        public RoutingStubHandler When(string urlContains, string body, HttpStatusCode status = HttpStatusCode.OK)
+        {
+            _routes.Add((urlContains, body, status));
+            return this;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var url = request.RequestUri!.AbsoluteUri;
+            RequestedUrls.Add(url);
+            foreach (var (contains, body, status) in _routes)
+            {
+                if (url.Contains(contains, StringComparison.Ordinal))
+                {
+                    return Task.FromResult(new HttpResponseMessage(status)
+                    {
+                        Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                    });
+                }
+            }
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
+    }
+
+    private TmdbMovieProvider NewProvider(RoutingStubHandler handler, MetadataLookupOptions? overrideOptions = null)
+    {
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
+        var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
+        var options = overrideOptions ?? new MetadataLookupOptions
+        {
+            Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
+        };
+        return new TmdbMovieProvider(http, cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
 }

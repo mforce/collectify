@@ -12,6 +12,20 @@ public interface IMovieMetadataProvider
     string Name { get; }
     bool IsConfigured { get; }
     Task<IReadOnlyList<MovieLookupResult>> SearchAsync(string query, CancellationToken ct = default);
+
+    /// <summary>
+    /// Direct lookup by the provider's identifier (e.g. a TMDB id). Returns
+    /// null when the provider doesn't recognise the id; tests may also rely
+    /// on null when <see cref="IsConfigured"/> is false.
+    /// </summary>
+    Task<MovieLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lookup by an IMDB id (the <c>tt…</c> shape). Implementations are
+    /// expected to resolve the IMDB id to their own provider key under the
+    /// hood and return the same shape as <see cref="GetByIdAsync"/>.
+    /// </summary>
+    Task<MovieLookupResult?> GetByImdbIdAsync(string imdbId, CancellationToken ct = default);
 }
 
 public interface IMusicMetadataProvider
