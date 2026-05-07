@@ -1,4 +1,5 @@
 using Collectify.Infrastructure.Data;
+using Collectify.Infrastructure.Lookup.Images;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -39,6 +40,13 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<CollectifyDbContext>>();
 
             services.AddDbContext<CollectifyDbContext>(opt => opt.UseSqlite(_connection));
+
+            // Swap the real cover store out so endpoint tests don't try to
+            // download a real CDN payload. The fake mirrors the public
+            // contract: null/blank/local paths pass through; anything that
+            // looks remote is replaced with "/covers/{12-hex}".
+            services.RemoveAll<ICoverImageStore>();
+            services.AddScoped<ICoverImageStore, FakeCoverImageStore>();
         });
     }
 
@@ -46,5 +54,20 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
     {
         if (disposing) _connection.Dispose();
         base.Dispose(disposing);
+    }
+}
+
+internal sealed class FakeCoverImageStore : ICoverImageStore
+{
+    public Task<string?> EnsureLocalAsync(string? imagePath, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath)) return Task.FromResult<string?>(null);
+        if (!imagePath.StartsWith("http://", StringComparison.Ordinal) &&
+            !imagePath.StartsWith("https://", StringComparison.Ordinal))
+            return Task.FromResult<string?>(imagePath);
+
+        // Deterministic so tests can assert exact values from a remote URL.
+        var hash = Math.Abs(imagePath.GetHashCode()).ToString("x").PadLeft(12, '0');
+        return Task.FromResult<string?>($"/covers/{hash}");
     }
 }

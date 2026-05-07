@@ -14,6 +14,7 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
     public DbSet<Game> Games => Set<Game>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<LookupCacheEntry> LookupCache => Set<LookupCacheEntry>();
+    public DbSet<CoverImage> CoverImages => Set<CoverImage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -60,6 +61,13 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
         builder.Entity<LookupCacheEntry>(e =>
         {
             e.HasIndex(l => new { l.Provider, l.Key }).IsUnique();
+        });
+
+        builder.Entity<CoverImage>(e =>
+        {
+            e.HasKey(c => c.Hash);
+            e.Property(c => c.Hash).HasMaxLength(32);
+            e.Property(c => c.ContentType).HasMaxLength(64).IsRequired();
         });
     }
 }

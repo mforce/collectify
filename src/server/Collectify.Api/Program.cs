@@ -3,6 +3,7 @@ using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup;
+using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.Tmdb;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +67,11 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
 builder.Services.AddMetadataLookup(builder.Configuration);
 builder.Services.AddTmdbMovieProvider(builder.Configuration);
 
+// Cover-image cache. Bytes live in the CoverImages table alongside the
+// rest of the data so a backup of collectify.db is a complete snapshot.
+builder.Services.AddHttpClient(CoverImageStore.HttpClientName);
+builder.Services.AddScoped<ICoverImageStore, CoverImageStore>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -83,6 +89,7 @@ app.MapMusicEndpoints();
 app.MapGamesEndpoints();
 app.MapTagEndpoints();
 app.MapLookupEndpoints();
+app.MapCoversEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 

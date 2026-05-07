@@ -250,3 +250,45 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
     </div>
   );
 }
+
+// ---------- External ID field ----------
+
+interface ExternalIdFieldProps {
+  label: string;
+  value: string | null | undefined;
+  onChange: (next: string | null) => void;
+  /** When set and a value is present, renders a "View ↗" link to `${urlPrefix}${value}`. */
+  urlPrefix?: string;
+  placeholder?: string;
+}
+
+/**
+ * Editable input for a third-party identifier (TMDB, IMDB, MusicBrainz,
+ * IGDB, …). Surfaces the stored value so users can verify what a lookup
+ * populated, manually paste an ID to seed metadata, and jump to the
+ * provider's page in a new tab.
+ */
+export function ExternalIdField({ label, value, onChange, urlPrefix, placeholder }: ExternalIdFieldProps) {
+  return (
+    <Field label={label}>
+      <div className="flex gap-2 items-center">
+        <Input
+          value={value ?? ''}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value || null)}
+        />
+        {value && urlPrefix && (
+          <a
+            href={`${urlPrefix}${value}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-indigo-300 hover:text-indigo-200 underline whitespace-nowrap"
+            aria-label={`Open ${label} on the provider's site`}
+          >
+            View ↗
+          </a>
+        )}
+      </div>
+    </Field>
+  );
+}
