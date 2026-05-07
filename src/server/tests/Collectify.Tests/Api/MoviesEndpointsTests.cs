@@ -306,6 +306,57 @@ public class MoviesEndpointsTests
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
+    // -------- Cover image caching --------
+
+    [Fact]
+    public async Task Create_WithRemoteImageUrl_StoresLocalCoverPath()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var dto = (object)new
+        {
+            Title = "Inception",
+            Formats = MovieFormat.BluRay,
+            Status = CollectionStatus.Owned,
+            WatchStatus = WatchStatus.Unwatched,
+            WatchCount = 0,
+            ImagePath = "https://image.tmdb.org/t/p/w342/poster.jpg",
+            Tags = (string[]?)null,
+        };
+
+        var body = await (await alice.Client.PostAsJsonAsync("/api/movies/", dto))
+            .ReadJsonAsync<MovieResponse>();
+
+        Assert.NotNull(body);
+        Assert.NotNull(body!.ImagePath);
+        Assert.StartsWith("/covers/", body.ImagePath);
+        Assert.DoesNotContain("image.tmdb.org", body.ImagePath);
+    }
+
+    [Fact]
+    public async Task Create_WithLocalImagePath_PassesThroughUntouched()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var dto = (object)new
+        {
+            Title = "Inception",
+            Formats = MovieFormat.BluRay,
+            Status = CollectionStatus.Owned,
+            WatchStatus = WatchStatus.Unwatched,
+            WatchCount = 0,
+            ImagePath = "/covers/already-cached.jpg",
+            Tags = (string[]?)null,
+        };
+
+        var body = await (await alice.Client.PostAsJsonAsync("/api/movies/", dto))
+            .ReadJsonAsync<MovieResponse>();
+
+        Assert.Equal("/covers/already-cached.jpg", body!.ImagePath);
+    }
+
     [Fact]
     public async Task Create_WithCurrencyOfWrongLength_ReturnsBadRequest()
     {

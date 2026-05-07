@@ -3,6 +3,7 @@ using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup;
+using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.Tmdb;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +67,19 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
 builder.Services.AddMetadataLookup(builder.Configuration);
 builder.Services.AddTmdbMovieProvider(builder.Configuration);
 
+// Cover-image cache. The on-disk path is resolved at DI-resolution time
+// (not at builder time) so test hosts that override Collectify:DataDir
+// via ConfigureAppConfiguration get the right value -- those callbacks
+// fire during Build, which is after this code runs.
+builder.Services.AddHttpClient(CoverImageStore.HttpClientName);
+builder.Services.AddSingleton<ICoverImageStore>(sp => new CoverImageStore(
+    ResolveCoversDir(sp.GetRequiredService<IConfiguration>()),
+    sp.GetRequiredService<IHttpClientFactory>(),
+    sp.GetRequiredService<ILogger<CoverImageStore>>()));
+
+static string ResolveCoversDir(IConfiguration config) =>
+    Path.Combine(config["Collectify:DataDir"] ?? Path.Combine(AppContext.BaseDirectory, "data"), "covers");
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -83,6 +97,7 @@ app.MapMusicEndpoints();
 app.MapGamesEndpoints();
 app.MapTagEndpoints();
 app.MapLookupEndpoints();
+app.MapCoversEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 

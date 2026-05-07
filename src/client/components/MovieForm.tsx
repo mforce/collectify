@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
@@ -136,6 +136,24 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
             onChange={(e) => set('watchCount', Number(e.target.value || 0))}
           />
         </Field>
+      </div>
+
+      <SectionHeading>External IDs</SectionHeading>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <ExternalIdField
+          label="TMDB ID"
+          value={m.tmdbId}
+          onChange={(v) => set('tmdbId', v)}
+          urlPrefix="https://www.themoviedb.org/movie/"
+          placeholder="e.g. 27205"
+        />
+        <ExternalIdField
+          label="IMDB ID"
+          value={m.imdbId}
+          onChange={(v) => set('imdbId', v)}
+          urlPrefix="https://www.imdb.com/title/"
+          placeholder="e.g. tt1375666"
+        />
       </div>
 
       <Field label="Notes">

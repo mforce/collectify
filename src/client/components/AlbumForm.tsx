@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import { MUSIC_FORMATS, type Album } from '../services/types';
 
@@ -82,6 +82,24 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
             onChange={(e) => set('lastPlayedOn', e.target.value || null)}
           />
         </Field>
+      </div>
+
+      <SectionHeading>External IDs</SectionHeading>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <ExternalIdField
+          label="MusicBrainz release ID"
+          value={a.musicBrainzReleaseId}
+          onChange={(v) => set('musicBrainzReleaseId', v)}
+          urlPrefix="https://musicbrainz.org/release/"
+          placeholder="e.g. f4e51c80-99e2-39e1-8062-c9b8e2685bdf"
+        />
+        <ExternalIdField
+          label="Discogs ID"
+          value={a.discogsId}
+          onChange={(v) => set('discogsId', v)}
+          urlPrefix="https://www.discogs.com/release/"
+          placeholder="e.g. 12345"
+        />
       </div>
 
       <Field label="Notes">

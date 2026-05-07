@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import {
   COMPLETION_STATUSES,
@@ -114,6 +114,17 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
             onChange={(e) => set('lastPlayedOn', e.target.value || null)}
           />
         </Field>
+      </div>
+
+      <SectionHeading>External IDs</SectionHeading>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <ExternalIdField
+          label="IGDB ID"
+          value={g.igdbId}
+          onChange={(v) => set('igdbId', v)}
+          urlPrefix="https://www.igdb.com/games/"
+          placeholder="e.g. hades"
+        />
       </div>
 
       <Field label="Notes">

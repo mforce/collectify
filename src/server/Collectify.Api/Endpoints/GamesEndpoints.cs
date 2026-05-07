@@ -2,6 +2,7 @@ using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
+using Collectify.Infrastructure.Lookup.Images;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -74,29 +75,31 @@ public static class GamesEndpoints
             return g is null ? Results.NotFound() : Results.Ok(ToDto(g));
         });
 
-        group.MapPost("/", async ([FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
+        group.MapPost("/", async ([FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
         {
             if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var g = new Game { OwnerId = ownerId };
             ApplyDto(g, dto);
+            g.ImagePath = await covers.EnsureLocalAsync(g.ImagePath, ct);
             g.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
             db.Games.Add(g);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(ct);
             return Results.Created($"/api/games/{g.Id}", ToDto(g));
         });
 
-        group.MapPut("/{id:int}", async (int id, [FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
+        group.MapPut("/{id:int}", async (int id, [FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
         {
             if (Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
             var g = await db.Games.Include(x => x.Tags)
-                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
+                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, ct);
             if (g is null) return Results.NotFound();
             ApplyDto(g, dto);
+            g.ImagePath = await covers.EnsureLocalAsync(g.ImagePath, ct);
             g.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
             g.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(ct);
             return Results.Ok(ToDto(g));
         });
 
