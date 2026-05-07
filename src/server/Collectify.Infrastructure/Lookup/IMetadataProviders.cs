@@ -33,6 +33,13 @@ public interface IMusicMetadataProvider
     string Name { get; }
     bool IsConfigured { get; }
     Task<IReadOnlyList<MusicLookupResult>> SearchAsync(string query, CancellationToken ct = default);
+
+    /// <summary>
+    /// Direct lookup by the provider's identifier (e.g. a MusicBrainz
+    /// release MBID). Returns null when the provider doesn't recognise
+    /// the id.
+    /// </summary>
+    Task<MusicLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default);
 }
 
 public interface IGameMetadataProvider

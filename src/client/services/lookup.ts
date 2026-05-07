@@ -73,27 +73,33 @@ export function useLookup<T extends MediaType>(type: T, query: string) {
   });
 }
 
-export type LookupByIdOutcome =
-  | { kind: 'found'; result: MovieLookupResult }
+/**
+ * Three-way outcome for an imperative direct-lookup call. Lets the caller
+ * branch on unconfigured vs not-found without sniffing array lengths.
+ * Generic over the result type so movie / music / game lookups share it.
+ * Defaults to MovieLookupResult so existing callers don't need updates.
+ */
+export type LookupByIdOutcome<T = MovieLookupResult> =
+  | { kind: 'found'; result: T }
   | { kind: 'not-found' }
   | { kind: 'not-configured' };
+
+async function lookupOneOf<T>(url: string): Promise<LookupByIdOutcome<T>> {
+  const response = await api<LookupResponse<T>>(url);
+  if (!response.configured) return { kind: 'not-configured' };
+  if (response.results.length === 0) return { kind: 'not-found' };
+  return { kind: 'found', result: response.results[0] };
+}
 
 /**
  * Direct lookup of a movie by its provider id (e.g. a TMDB id). Imperative
  * by design -- the user clicks a button to trigger a single fetch, no
- * debouncing or background revalidation needed. Returns a discriminated
- * union so the caller can render distinct UX for unconfigured vs unknown
- * id without sniffing array lengths.
+ * debouncing or background revalidation needed.
  */
-export async function lookupMovieById(providerKey: string): Promise<LookupByIdOutcome> {
+export async function lookupMovieById(providerKey: string): Promise<LookupByIdOutcome<MovieLookupResult>> {
   const trimmed = providerKey.trim();
   if (!trimmed) return { kind: 'not-found' };
-  const response = await api<LookupResponse<MovieLookupResult>>(
-    `/api/lookup/movies/by-id/${encodeURIComponent(trimmed)}`,
-  );
-  if (!response.configured) return { kind: 'not-configured' };
-  if (response.results.length === 0) return { kind: 'not-found' };
-  return { kind: 'found', result: response.results[0] };
+  return lookupOneOf<MovieLookupResult>(`/api/lookup/movies/by-id/${encodeURIComponent(trimmed)}`);
 }
 
 /**
@@ -101,13 +107,18 @@ export async function lookupMovieById(providerKey: string): Promise<LookupByIdOu
  * The server resolves it to a TMDB id under the hood; the response shape is
  * identical so the same caller code handles both flows.
  */
-export async function lookupMovieByImdbId(imdbId: string): Promise<LookupByIdOutcome> {
+export async function lookupMovieByImdbId(imdbId: string): Promise<LookupByIdOutcome<MovieLookupResult>> {
   const trimmed = imdbId.trim();
   if (!trimmed) return { kind: 'not-found' };
-  const response = await api<LookupResponse<MovieLookupResult>>(
-    `/api/lookup/movies/by-imdb-id/${encodeURIComponent(trimmed)}`,
-  );
-  if (!response.configured) return { kind: 'not-configured' };
-  if (response.results.length === 0) return { kind: 'not-found' };
-  return { kind: 'found', result: response.results[0] };
+  return lookupOneOf<MovieLookupResult>(`/api/lookup/movies/by-imdb-id/${encodeURIComponent(trimmed)}`);
+}
+
+/**
+ * Direct lookup of a music release by its provider id (a MusicBrainz MBID).
+ * Mirrors {@link lookupMovieById} for the music form's Fetch metadata button.
+ */
+export async function lookupAlbumByMbid(mbid: string): Promise<LookupByIdOutcome<MusicLookupResult>> {
+  const trimmed = mbid.trim();
+  if (!trimmed) return { kind: 'not-found' };
+  return lookupOneOf<MusicLookupResult>(`/api/lookup/music/by-id/${encodeURIComponent(trimmed)}`);
 }

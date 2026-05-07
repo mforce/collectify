@@ -27,6 +27,9 @@ internal sealed class StubMusicProvider : IMusicMetadataProvider
 
     public Task<IReadOnlyList<MusicLookupResult>> SearchAsync(string query, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<MusicLookupResult>>(Array.Empty<MusicLookupResult>());
+
+    public Task<MusicLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
+        => Task.FromResult<MusicLookupResult?>(null);
 }
 
 internal sealed class StubGameProvider : IGameMetadataProvider
