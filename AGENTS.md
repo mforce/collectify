@@ -107,11 +107,11 @@ Always check open issues before starting work and link PRs to the relevant issue
 ### Local dev (two terminals)
 
 ```bash
-# Terminal 1 — API on http://localhost:5041 (or 5089 from Properties/launchSettings.json)
+# Terminal 1 — API on http://localhost:5041 (default from Properties/launchSettings.json)
 cd src/server
 dotnet run --project Collectify.Api
 
-# Terminal 2 — Vite dev server on http://localhost:5173 with /api proxy → :8080
+# Terminal 2 — Vite dev server on http://localhost:5173 with /api proxy → :5041
 cd src/client
 npm install
 npm run dev
