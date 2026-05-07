@@ -8,13 +8,14 @@ import MovieForm from './MovieForm';
 // without a backend or a TanStack Query refetch dance.
 const mockLookupMovieById = vi.fn();
 const mockLookupMovieByImdbId = vi.fn();
+const mockUseLookup = vi.fn().mockReturnValue({ data: undefined, isLoading: false, error: null });
 vi.mock('../services/lookup', async (importOriginal) => {
   const original = await importOriginal<typeof import('../services/lookup')>();
   return {
     ...original,
     lookupMovieById: (id: string) => mockLookupMovieById(id),
     lookupMovieByImdbId: (id: string) => mockLookupMovieByImdbId(id),
-    useLookup: () => ({ data: undefined, isLoading: false, error: null }),
+    useLookup: () => mockUseLookup(),
   };
 });
 vi.mock('../services/tags', () => ({
@@ -35,6 +36,8 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
   beforeEach(() => {
     mockLookupMovieById.mockReset();
     mockLookupMovieByImdbId.mockReset();
+    mockUseLookup.mockReset();
+    mockUseLookup.mockReturnValue({ data: undefined, isLoading: false, error: null });
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -152,5 +155,68 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
     await user.click(screen.getByRole('button', { name: /fetch metadata by imdb id/i }));
 
     expect(await screen.findByText(/no movie with imdb id tt9999999/i)).toBeInTheDocument();
+  });
+
+  it('picking a TMDB search result enriches director and runtime via a follow-up by-id call', async () => {
+    // Search response carries title/year/description but not director or
+    // runtime -- those come from the chained /movie/{id} call.
+    mockUseLookup.mockReturnValue({
+      data: {
+        provider: 'tmdb',
+        configured: true,
+        results: [
+          {
+            provider: 'tmdb',
+            providerKey: '27205',
+            title: 'Inception',
+            originalTitle: 'Inception',
+            year: 2010,
+            director: null,
+            runtimeMinutes: null,
+            description: 'A heist on the subconscious.',
+            imageUrl: 'https://image.tmdb.org/t/p/w342/poster.jpg',
+            genres: null,
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+    mockLookupMovieById.mockResolvedValue({
+      kind: 'found',
+      result: {
+        provider: 'tmdb',
+        providerKey: '27205',
+        title: 'Inception',
+        originalTitle: 'Inception',
+        year: 2010,
+        director: 'Christopher Nolan',
+        runtimeMinutes: 148,
+        description: 'A heist on the subconscious.',
+        imageUrl: 'https://image.tmdb.org/t/p/w342/poster.jpg',
+        genres: null,
+      },
+    });
+
+    renderForm();
+    const user = userEvent.setup();
+
+    // Open the OnlineSearch dropdown by typing into it.
+    await user.type(screen.getByPlaceholderText('e.g. Inception'), 'inc');
+    // Click the suggestion. The dropdown row's primary text is
+    // "Inception (2010)".
+    await user.click(await screen.findByText('Inception (2010)'));
+
+    // The synchronous patch fills title/year right away.
+    await waitFor(() => {
+      expect(screen.getAllByDisplayValue('Inception').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // The async enrichment fills director and runtime once /movie/{id} resolves.
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Christopher Nolan')).toBeInTheDocument();
+    });
+    expect(screen.getByDisplayValue('148')).toBeInTheDocument();
+    expect(mockLookupMovieById).toHaveBeenCalledWith('27205');
   });
 });

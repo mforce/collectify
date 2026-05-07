@@ -42,6 +42,40 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
       imagePath: r.imageUrl ?? null,
       tmdbId: r.provider === 'tmdb' ? r.providerKey : m.tmdbId ?? null,
     });
+
+    // /search/movie doesn't carry director or runtime. If the user just
+    // picked a TMDB summary, follow up with /movie/{id} to fill those in.
+    // The chained call is cached, so picking the same row twice or
+    // pasting the same TMDB id later is a free hit.
+    if (r.provider === 'tmdb' && (r.director == null || r.runtimeMinutes == null)) {
+      void enrichFromTmdb(r.providerKey);
+    }
+  };
+
+  const enrichFromTmdb = async (tmdbId: string) => {
+    setFetchState({ status: 'loading', message: 'Loading director and runtime…' });
+    try {
+      const outcome = await lookupMovieById(tmdbId);
+      if (outcome.kind !== 'found') {
+        setFetchState({ status: 'idle' });
+        return;
+      }
+      // Use functional setM so a newer pick (different tmdbId already in
+      // state) supersedes this enrichment instead of overwriting fresh
+      // data with the previous movie's. Also preserve any value the user
+      // already typed manually while the enrichment was in flight.
+      setM((prev) => {
+        if (prev.tmdbId !== tmdbId) return prev;
+        return {
+          ...prev,
+          director: prev.director ?? outcome.result.director ?? null,
+          runtimeMinutes: prev.runtimeMinutes ?? outcome.result.runtimeMinutes ?? null,
+        };
+      });
+      setFetchState({ status: 'idle', message: 'Populated from TMDB.' });
+    } catch {
+      setFetchState({ status: 'idle' });
+    }
   };
 
   const runLookup = async (
