@@ -1,16 +1,16 @@
 # Graph Report - collectify  (2026-05-06)
 
 ## Corpus Check
-- 79 files · ~26,495 words
+- 91 files · ~30,152 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 397 nodes · 561 edges · 71 communities (43 shown, 28 thin omitted)
-- Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 49 edges (avg confidence: 0.89)
+- 559 nodes · 778 edges · 83 communities (49 shown, 34 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 54 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f851e27f`
+- Built from commit: `7e85c2ec`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -50,35 +50,42 @@
 - [[_COMMUNITY_MusicFormat Enum|MusicFormat Enum]]
 - [[_COMMUNITY_Domain GlobalUsings|Domain GlobalUsings]]
 - [[_COMMUNITY_Domain AssemblyInfo|Domain AssemblyInfo]]
-- [[_COMMUNITY_Community 66|Community 66]]
-- [[_COMMUNITY_Community 67|Community 67]]
-- [[_COMMUNITY_Community 68|Community 68]]
-- [[_COMMUNITY_Community 69|Community 69]]
-- [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Infrastructure GlobalUsings|Infrastructure GlobalUsings]]
+- [[_COMMUNITY_Infrastructure AssemblyInfo|Infrastructure AssemblyInfo]]
+- [[_COMMUNITY_Tests GlobalUsings|Tests GlobalUsings]]
+- [[_COMMUNITY_Tests AssemblyInfo|Tests AssemblyInfo]]
+- [[_COMMUNITY_Test Placeholder|Test Placeholder]]
+- [[_COMMUNITY_API AssemblyInfo (gen)|API AssemblyInfo (gen)]]
+- [[_COMMUNITY_Domain GlobalUsings (gen)|Domain GlobalUsings (gen)]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `MoviesEndpointsTests` - 30 edges
+1. `MoviesEndpointsTests` - 32 edges
 2. `GamesEndpointsTests` - 20 edges
 3. `MusicEndpointsTests` - 20 edges
-4. `Field()` - 12 edges
-5. `docs/architecture.md` - 12 edges
-6. `docs/data-model.md` - 12 edges
-7. `App (root router component)` - 11 edges
-8. `CollectifyDbContext` - 11 edges
-9. `AuthEndpointsTests` - 10 edges
-10. `useAuth()` - 10 edges
+4. `TmdbMovieProviderTests` - 17 edges
+5. `CoverImageStoreTests` - 14 edges
+6. `CollectifyDbContext` - 13 edges
+7. `LookupCacheTests` - 13 edges
+8. `Field()` - 13 edges
+9. `docs/architecture.md` - 12 edges
+10. `docs/data-model.md` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `CollectifyDbContextModelSnapshot` --references--> `CollectifyDbContext`  [INFERRED]
+  src/server/Collectify.Infrastructure/Data/Migrations/CollectifyDbContextModelSnapshot.cs → server/Collectify.Infrastructure/Lookup/Images/CoverImageStore.cs
+- `Dashboard page` --calls--> `useList()`  [EXTRACTED]
+  src/client/pages/Dashboard.tsx → client/api/collection.ts
 - `Collectify.Domain.csproj` --implements--> `Collectify.Domain (Core layer, BCL only)`  [INFERRED]
   src/server/Collectify.Domain/obj/Debug/net10.0/Collectify.Domain.csproj.FileListAbsolute.txt → docs/architecture.md
-- `App (root router component)` --calls--> `useAuth()`  [EXTRACTED]
-  src/client/App.tsx → client/api/auth.ts
-- `useAuth()` --calls--> `api() fetch helper`  [EXTRACTED]
-  client/api/auth.ts → src/client/api/client.ts
-- `useAuth()` --implements--> `AuthState interface`  [EXTRACTED]
-  client/api/auth.ts → src/client/api/auth.ts
-- `useSetup()` --calls--> `api() fetch helper`  [EXTRACTED]
-  client/api/auth.ts → src/client/api/client.ts
+- `CollectifyDbContext` --references--> `LookupCacheEntry entity`  [EXTRACTED]
+  server/Collectify.Infrastructure/Lookup/Images/CoverImageStore.cs → src/server/Collectify.Domain/Entities/LookupCacheEntry.cs
+- `InitialCreate migration` --implements--> `CollectifyDbContext`  [INFERRED]
+  src/server/Collectify.Infrastructure/Data/Migrations/20260505174247_InitialCreate.cs → server/Collectify.Infrastructure/Lookup/Images/CoverImageStore.cs
 
 ## Hyperedges (group relationships)
 - **Auth lifecycle (setup/login/logout/state)** — api_auth_useauth, api_auth_usesetup, api_auth_uselogin, api_auth_uselogout, backend_api_auth_endpoints [EXTRACTED 1.00]
@@ -91,75 +98,79 @@
 - **Three-collection-types data model with shared owner scoping** — concept_movie_entity, concept_musicalbum_entity, concept_game_entity, concept_tag_entity, concept_ownership_scoping [EXTRACTED 1.00]
 - **Phase 2 metadata-lookup flow (providers + cache + abstraction)** — concept_metadata_provider, concept_lookup_cache, concept_tmdb_provider, concept_musicbrainz_provider, concept_igdb_provider [EXTRACTED 1.00]
 
-## Communities (71 total, 28 thin omitted)
+## Communities (83 total, 34 thin omitted)
 
 ### Community 0 - "Client Data Hooks & DTOs"
-Cohesion: 0.1
-Nodes (31): api() fetch helper, useCreate(), useDelete(), useItem(), useList(), useUpdate(), Album interface, DIGITAL_STORES list (+23 more)
+Cohesion: 0.05
+Nodes (57): docs/architecture.md, Collectify.Api.csproj, Collectify.Domain.csproj, Collectify.Infrastructure.csproj, Collectify.Tests.csproj, Collectify.Api (Presentation layer / composition root), AppUser : IdentityUser, ASP.NET Core Identity + cookie auth (+49 more)
+
+### Community 1 - "Project Docs & Build Files"
+Cohesion: 0.07
+Nodes (11): DbContextOptions, FakeTimeProvider, ICoverImageStore, IDisposable, CollectifyApiFactory, FakeCoverImageStore, CoverImageStoreTests, LookupCacheTests (+3 more)
 
 ### Community 2 - "Domain Model & Enums"
-Cohesion: 0.12
-Nodes (31): docs/architecture.md, Collectify.Api.csproj, Collectify.Domain.csproj, Collectify.Infrastructure.csproj, Collectify.Tests.csproj, Collectify.Api (Presentation layer / composition root), Clean / Onion Architecture (layered backend), CollectifyDbContext (+23 more)
+Cohesion: 0.08
+Nodes (29): AuthState interface, useAuth(), useLogin(), useLogout(), useSetup(), api(), ApiError, useTags() (+21 more)
 
 ### Community 3 - "Client Auth & API Client"
-Cohesion: 0.08
-Nodes (26): AppUser : IdentityUser, ASP.NET Core Identity + cookie auth, Collectify (self-hostable media tracker), Content-Security-Policy and security headers, CSRF mitigation (SameSite=Lax cookie + same-origin), Data Protection keys persisted to /data/keys, collectify-data Docker named volume (/data), Multi-stage Docker (single image, port 8080) (+18 more)
+Cohesion: 0.09
+Nodes (23): api() fetch helper, useCreate(), useDelete(), useItem(), useList(), useUpdate(), Game interface, MediaType union (movies|music|games) (+15 more)
 
 ### Community 4 - "Server Endpoints & Persistence"
-Cohesion: 0.19
-Nodes (10): Button(), commit(), Field(), Input(), Label(), onKey(), SectionHeading(), Select() (+2 more)
+Cohesion: 0.07
+Nodes (19): byte, HttpClient, HttpMessageHandler, HttpStatusCode, IHttpClientFactory, ILogger, ILookupCache, CoverImageStore (+11 more)
 
-### Community 7 - "Initial EF Migration"
+### Community 6 - "Security & Deployment"
+Cohesion: 0.13
+Nodes (19): Album interface, DIGITAL_STORES list, MOVIE_FORMAT_FLAGS bitfield map, MUSIC_FORMATS list, AlbumForm, GameForm, MovieForm, Button() (+11 more)
+
+### Community 9 - "Movies Endpoints"
 Cohesion: 0.27
 Nodes (20): AlbumDto record, AppUser (IdentityUser), AuthEndpoints, CollectifyDbContext, CollectifyDbContextModelSnapshot, DigitalStore enum, Game entity, GameDto record (+12 more)
 
-### Community 8 - "Games Endpoints"
-Cohesion: 0.18
-Nodes (13): AuthState interface, useAuth(), useLogin(), useLogout(), useSetup(), /api/auth/* server endpoints, App(), Layout (top nav shell) (+5 more)
+### Community 10 - "Music Endpoints"
+Cohesion: 0.12
+Nodes (7): Migration, Collectify.Infrastructure.Data.Migrations, InitialCreate, AddPersonalAcquisitionAndTagFields, Collectify.Infrastructure.Data.Migrations, AddCoverImages, Collectify.Infrastructure.Data.Migrations
 
-### Community 9 - "Movies Endpoints"
-Cohesion: 0.18
-Nodes (5): Migration, Collectify.Infrastructure.Data.Migrations, InitialCreate, AddPersonalAcquisitionAndTagFields, Collectify.Infrastructure.Data.Migrations
-
-### Community 12 - "DbContext Configuration"
-Cohesion: 0.22
-Nodes (3): TestExtensions, JsonSerializerOptions, string
+### Community 11 - "EF Model Snapshot"
+Cohesion: 0.13
+Nodes (5): TestExtensions, JsonSerializerOptions, ILookupCache, LookupCache, TimeProvider
 
 ### Community 13 - "Migration Designer"
-Cohesion: 0.25
-Nodes (3): api(), ApiError, useTags()
+Cohesion: 0.2
+Nodes (6): IGameMetadataProvider, IMovieMetadataProvider, IMusicMetadataProvider, StubGameProvider, StubMovieProvider, StubMusicProvider
 
-### Community 17 - "API Entry Point"
-Cohesion: 0.33
-Nodes (3): CollectifyApiFactory, SqliteConnection, WebApplicationFactory
+### Community 15 - "AppUser Identity"
+Cohesion: 0.29
+Nodes (3): IGameMetadataProvider, IMovieMetadataProvider, IMusicMetadataProvider
 
-### Community 18 - "Game Entity"
+### Community 21 - "MusicAlbum Entity"
 Cohesion: 0.4
 Nodes (3): Collectify.Infrastructure.Data.Migrations, CollectifyDbContextModelSnapshot, ModelSnapshot
 
-### Community 19 - "Lookup Cache"
+### Community 22 - "Frontend Build Tooling"
 Cohesion: 0.4
 Nodes (3): HealthEndpointTests, CollectifyApiFactory, IClassFixture
 
 ## Knowledge Gaps
-- **42 isolated node(s):** `Program`, `Game`, `LookupCacheEntry`, `Movie`, `MusicAlbum` (+37 more)
+- **50 isolated node(s):** `Game`, `LookupCacheEntry`, `Movie`, `MusicAlbum`, `Tag` (+45 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **28 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `App (root router component)` connect `Client Data Hooks & DTOs` to `Games Endpoints`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `docs/architecture.md` connect `Domain Model & Enums` to `Client Auth & API Client`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `useAuth()` connect `Games Endpoints` to `Client Data Hooks & DTOs`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **What connects `Program`, `Game`, `LookupCacheEntry` to the rest of the system?**
-  _42 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `string` connect `Server Endpoints & Persistence` to `EF Model Snapshot`?**
+  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+- **Why does `CoverImageStore` connect `Server Endpoints & Persistence` to `Movies Endpoints`?**
+  _High betweenness centrality (0.020) - this node is a cross-community bridge._
+- **Why does `CollectifyDbContext` connect `Movies Endpoints` to `EF Model Snapshot`, `Server Endpoints & Persistence`?**
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **What connects `Game`, `LookupCacheEntry`, `Movie` to the rest of the system?**
+  _50 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Client Data Hooks & DTOs` be split into smaller, more focused modules?**
-  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Project Docs & Build Files` be split into smaller, more focused modules?**
-  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
 - **Should `Domain Model & Enums` be split into smaller, more focused modules?**
-  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
