@@ -292,3 +292,31 @@ export function ExternalIdField({ label, value, onChange, urlPrefix, placeholder
     </Field>
   );
 }
+
+// ---------- Cover preview ----------
+
+interface CoverPreviewProps {
+  src?: string | null;
+  alt?: string;
+}
+
+/**
+ * Renders the items poster / album art / game art at a medium size
+ * centered above the form on the product page. When src is null/empty
+ * (e.g. a brand-new item that has no cover yet) the component renders
+ * nothing -- the form starts at its first field instead of with a wide
+ * empty placeholder.
+ */
+export function CoverPreview({ src, alt = "" }: CoverPreviewProps) {
+  if (!src) return null;
+  return (
+    <div className="flex justify-center">
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        className="max-h-72 max-w-xs object-contain rounded-md shadow-lg bg-slate-800"
+      />
+    </div>
+  );
+}

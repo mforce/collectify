@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import {
   COMPLETION_STATUSES,
@@ -40,6 +40,8 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
         onSubmit({ ...g, title: g.title.trim() });
       }}
     >
+      <CoverPreview src={g.imagePath} alt={g.title ? `${g.title} cover` : ''} />
+
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Title">
           <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />

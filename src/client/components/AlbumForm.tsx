@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MUSIC_FORMATS, type Album } from '../services/types';
@@ -77,6 +77,8 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
         onSubmit({ ...a, title: a.title.trim(), artistName: a.artistName.trim() });
       }}
     >
+      <CoverPreview src={a.imagePath} alt={a.title ? `${a.title} cover` : ''} />
+
       <OnlineSearch
         type="music"
         label="Search online (MusicBrainz)"

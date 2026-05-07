@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
@@ -115,6 +115,8 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
         onSubmit({ ...m, title: m.title.trim() });
       }}
     >
+      <CoverPreview src={m.imagePath} alt={m.title ? `${m.title} poster` : ''} />
+
       <OnlineSearch
         type="movies"
         label="Search online (TMDB)"
