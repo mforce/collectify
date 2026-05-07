@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -63,6 +64,42 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         return mapped;
     }
 
+    public async Task<MovieLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
+    {
+        if (!IsConfigured) return null;
+        if (string.IsNullOrWhiteSpace(providerKey)) return null;
+
+        // Separate cache namespace from search so the two flows can't poison
+        // each other's results.
+        var cacheKey = "id:" + providerKey;
+        var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        if (cached is not null) return cached;
+
+        TmdbMovieDetail? detail;
+        try
+        {
+            // append_to_response=credits saves us a /credits round trip and
+            // gives us director + runtime in the same payload.
+            var url = $"movie/{Uri.EscapeDataString(providerKey)}?api_key={Uri.EscapeDataString(_options.Tmdb.ApiKey!)}&append_to_response=credits";
+            detail = await _http.GetFromJsonAsync<TmdbMovieDetail>(url, ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // TMDB doesn't recognise the id; not an error worth shouting about.
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "TMDB lookup-by-id failed for {Id}", providerKey);
+            return null;
+        }
+
+        if (detail is null) return null;
+        var mapped = MapDetail(detail);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        return mapped;
+    }
+
     private MovieLookupResult Map(TmdbMovieSummary s) => new(
         Provider: ProviderName,
         ProviderKey: s.Id.ToString(),
@@ -74,6 +111,32 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         Description: s.Overview,
         ImageUrl: BuildImageUrl(s.PosterPath),
         Genres: null);
+
+    private MovieLookupResult MapDetail(TmdbMovieDetail d) => new(
+        Provider: ProviderName,
+        ProviderKey: d.Id.ToString(),
+        Title: d.Title ?? d.OriginalTitle ?? string.Empty,
+        OriginalTitle: d.OriginalTitle,
+        Year: ParseYear(d.ReleaseDate),
+        Director: ExtractDirector(d.Credits),
+        RuntimeMinutes: d.Runtime,
+        Description: d.Overview,
+        ImageUrl: BuildImageUrl(d.PosterPath),
+        Genres: null);
+
+    private static string? ExtractDirector(TmdbCredits? credits)
+    {
+        if (credits?.Crew is null) return null;
+        // Co-directed films get joined by " & " for clarity. Order is
+        // whatever TMDB returns -- usually the primary director first.
+        var directors = credits.Crew
+            .Where(c => string.Equals(c.Job, "Director", StringComparison.Ordinal))
+            .Select(c => c.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Cast<string>()
+            .ToList();
+        return directors.Count == 0 ? null : string.Join(" & ", directors);
+    }
 
     private static int? ParseYear(string? releaseDate)
     {

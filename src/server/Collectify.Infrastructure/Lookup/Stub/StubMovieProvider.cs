@@ -12,6 +12,9 @@ internal sealed class StubMovieProvider : IMovieMetadataProvider
 
     public Task<IReadOnlyList<MovieLookupResult>> SearchAsync(string query, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<MovieLookupResult>>(Array.Empty<MovieLookupResult>());
+
+    public Task<MovieLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
+        => Task.FromResult<MovieLookupResult?>(null);
 }
 
 internal sealed class StubMusicProvider : IMusicMetadataProvider

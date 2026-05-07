@@ -1,4 +1,5 @@
 using Collectify.Infrastructure.Data;
+using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Images;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -13,6 +14,13 @@ namespace Collectify.Tests.Infrastructure;
 public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection _connection;
+
+    /// <summary>
+    /// Optional override for tests that want a scripted movie provider. Set
+    /// via init-only property so xUnit's IClassFixture (which requires a
+    /// single public parameterless ctor) still works.
+    /// </summary>
+    public IMovieMetadataProvider? MovieProvider { get; init; }
 
     public CollectifyApiFactory()
     {
@@ -47,6 +55,17 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             // looks remote is replaced with "/covers/{12-hex}".
             services.RemoveAll<ICoverImageStore>();
             services.AddScoped<ICoverImageStore, FakeCoverImageStore>();
+
+            // Optional override for tests that want a scripted movie
+            // provider (e.g. lookup-by-id behaviour). Without this,
+            // production's TmdbMovieProvider is registered with an
+            // unset API key, which is fine for "configured: false"
+            // assertions.
+            if (MovieProvider is not null)
+            {
+                services.RemoveAll<IMovieMetadataProvider>();
+                services.AddSingleton(MovieProvider);
+            }
         });
     }
 

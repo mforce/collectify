@@ -3,7 +3,7 @@ import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
-import type { MovieLookupResult } from '../services/lookup';
+import { lookupMovieById, type MovieLookupResult } from '../services/lookup';
 
 interface Props {
   initial?: Movie;
@@ -24,6 +24,7 @@ const empty: Movie = {
 
 export default function MovieForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [m, setM] = useState<Movie>(initial ?? empty);
+  const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setM(initial); }, [initial]);
 
   const set = <K extends keyof Movie>(k: K, v: Movie[K]) => setM((prev) => ({ ...prev, [k]: v }));
@@ -35,10 +36,34 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
       title: r.title,
       originalTitle: r.originalTitle ?? null,
       year: r.year ?? null,
+      director: r.director ?? null,
+      runtimeMinutes: r.runtimeMinutes ?? null,
       description: r.description ?? null,
       imagePath: r.imageUrl ?? null,
       tmdbId: r.provider === 'tmdb' ? r.providerKey : m.tmdbId ?? null,
     });
+  };
+
+  const fetchByTmdbId = async () => {
+    const id = (m.tmdbId ?? '').trim();
+    if (!id) {
+      setFetchState({ status: 'idle', message: 'Enter a TMDB ID first.' });
+      return;
+    }
+    setFetchState({ status: 'loading' });
+    try {
+      const outcome = await lookupMovieById(id);
+      if (outcome.kind === 'found') {
+        importLookup(outcome.result);
+        setFetchState({ status: 'idle', message: 'Populated from TMDB.' });
+      } else if (outcome.kind === 'not-configured') {
+        setFetchState({ status: 'idle', message: 'TMDB lookup not configured. Set the provider key.' });
+      } else {
+        setFetchState({ status: 'idle', message: `No movie with TMDB ID ${id}.` });
+      }
+    } catch (err) {
+      setFetchState({ status: 'idle', message: (err as Error).message ?? 'Lookup failed.' });
+    }
   };
 
   return (
@@ -140,13 +165,28 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
 
       <SectionHeading>External IDs</SectionHeading>
       <div className="grid sm:grid-cols-2 gap-4">
-        <ExternalIdField
-          label="TMDB ID"
-          value={m.tmdbId}
-          onChange={(v) => set('tmdbId', v)}
-          urlPrefix="https://www.themoviedb.org/movie/"
-          placeholder="e.g. 27205"
-        />
+        <div className="space-y-1">
+          <ExternalIdField
+            label="TMDB ID"
+            value={m.tmdbId}
+            onChange={(v) => set('tmdbId', v)}
+            urlPrefix="https://www.themoviedb.org/movie/"
+            placeholder="e.g. 27205"
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={fetchByTmdbId}
+              disabled={fetchState.status === 'loading' || !(m.tmdbId ?? '').trim()}
+            >
+              {fetchState.status === 'loading' ? 'Fetching…' : 'Fetch metadata'}
+            </Button>
+            {fetchState.message && (
+              <span className="text-xs text-slate-400">{fetchState.message}</span>
+            )}
+          </div>
+        </div>
         <ExternalIdField
           label="IMDB ID"
           value={m.imdbId}
