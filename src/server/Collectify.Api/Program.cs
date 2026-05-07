@@ -3,6 +3,7 @@ using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup;
+using Collectify.Infrastructure.Lookup.Tmdb;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -63,6 +64,7 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
 });
 
 builder.Services.AddMetadataLookup(builder.Configuration);
+builder.Services.AddTmdbMovieProvider(builder.Configuration);
 
 var app = builder.Build();
 

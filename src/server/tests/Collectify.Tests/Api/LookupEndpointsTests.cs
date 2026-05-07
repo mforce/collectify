@@ -40,7 +40,7 @@ public class LookupEndpointsTests
     }
 
     [Fact]
-    public async Task SearchMovies_WithStubProvider_ReportsNotConfiguredAndEmpty()
+    public async Task SearchMovies_WithoutConfiguredProvider_ReturnsEmpty()
     {
         await using var factory = new CollectifyApiFactory();
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
@@ -49,8 +49,7 @@ public class LookupEndpointsTests
             "/api/lookup/movies?q=inception");
 
         Assert.NotNull(body);
-        Assert.Equal("stub", body!.Provider);
-        Assert.False(body.Configured);
+        Assert.False(body!.Configured);
         Assert.Empty(body.Results);
     }
 
