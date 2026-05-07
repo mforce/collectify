@@ -222,4 +222,76 @@ public class LookupEndpointsTests
         Assert.True(body!.Configured);
         Assert.Empty(body.Results);
     }
+
+    // ---------- /api/lookup/music/by-id/{providerKey} ----------
+
+    private record MusicLookupResult(
+        string Provider, string ProviderKey, string Title, string ArtistName,
+        int? Year, string? Label, string? Description, string? ImageUrl, string? Genres);
+
+    [Fact]
+    public async Task GetMusicById_Unauthenticated_ReturnsUnauthorized()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/lookup/music/by-id/f4e51c80");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetMusicById_WithoutConfiguredProvider_ReturnsConfiguredFalseAndEmpty()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<MusicLookupResult>>(
+            "/api/lookup/music/by-id/f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
+
+        Assert.NotNull(body);
+        Assert.False(body!.Configured);
+        Assert.Empty(body.Results);
+    }
+
+    [Fact]
+    public async Task GetMusicById_WithConfiguredProviderAndKnownId_ReturnsOneResult()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.MusicLookupResult(
+            Provider: "musicbrainz",
+            ProviderKey: "f4e51c80-99e2-39e1-8062-c9b8e2685bdf",
+            Title: "OK Computer",
+            ArtistName: "Radiohead",
+            Year: 1997,
+            Label: "Parlophone",
+            Description: null,
+            ImageUrl: "https://coverartarchive.org/release/f4e51c80-99e2-39e1-8062-c9b8e2685bdf/front-500",
+            Genres: null);
+        await using var factory = new CollectifyApiFactory { MusicProvider = ScriptedMusicProvider.WithFoundResult(seeded) };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<MusicLookupResult>>(
+            "/api/lookup/music/by-id/f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        var hit = Assert.Single(body.Results);
+        Assert.Equal("OK Computer", hit.Title);
+        Assert.Equal("Radiohead", hit.ArtistName);
+        Assert.Equal("Parlophone", hit.Label);
+    }
+
+    [Fact]
+    public async Task GetMusicById_WithConfiguredProviderAndUnknownId_ReturnsConfiguredTrueAndEmpty()
+    {
+        await using var factory = new CollectifyApiFactory { MusicProvider = ScriptedMusicProvider.NotFound() };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<MusicLookupResult>>(
+            "/api/lookup/music/by-id/00000000-0000-0000-0000-000000000000");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.Empty(body.Results);
+    }
 }

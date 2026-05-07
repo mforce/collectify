@@ -4,6 +4,7 @@ using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Images;
+using Collectify.Infrastructure.Lookup.MusicBrainz;
 using Collectify.Infrastructure.Lookup.Tmdb;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +67,7 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
 
 builder.Services.AddMetadataLookup(builder.Configuration);
 builder.Services.AddTmdbMovieProvider(builder.Configuration);
+builder.Services.AddMusicBrainzMusicProvider(builder.Configuration);
 
 // Cover-image cache. Bytes live in the CoverImages table alongside the
 // rest of the data so a backup of collectify.db is a complete snapshot.

@@ -77,6 +77,26 @@ public static class LookupEndpoints
             return Results.Ok(new LookupResponse<MusicLookupResult>(provider.Name, true, results));
         });
 
+        // Direct lookup by provider id (e.g. a MusicBrainz release MBID).
+        // Same response shape as /movies/by-id so the frontend can use
+        // one code path.
+        group.MapGet("/music/by-id/{providerKey}", async (
+            string providerKey,
+            IMusicMetadataProvider provider,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(providerKey))
+                return Results.BadRequest(new { error = "Provider key is required." });
+            if (!provider.IsConfigured)
+                return Results.Ok(new LookupResponse<MusicLookupResult>(provider.Name, false, []));
+
+            var hit = await provider.GetByIdAsync(providerKey.Trim(), ct);
+            IReadOnlyList<MusicLookupResult> results = hit is null
+                ? []
+                : new[] { hit };
+            return Results.Ok(new LookupResponse<MusicLookupResult>(provider.Name, true, results));
+        });
+
         group.MapGet("/games", async (
             [FromQuery] string? q,
             IGameMetadataProvider provider,

@@ -22,6 +22,9 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
     /// </summary>
     public IMovieMetadataProvider? MovieProvider { get; init; }
 
+    /// <summary>Optional override for tests that want a scripted music provider.</summary>
+    public IMusicMetadataProvider? MusicProvider { get; init; }
+
     public CollectifyApiFactory()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
@@ -65,6 +68,11 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             {
                 services.RemoveAll<IMovieMetadataProvider>();
                 services.AddSingleton(MovieProvider);
+            }
+            if (MusicProvider is not null)
+            {
+                services.RemoveAll<IMusicMetadataProvider>();
+                services.AddSingleton(MusicProvider);
             }
         });
     }
