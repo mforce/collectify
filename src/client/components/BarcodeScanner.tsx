@@ -40,32 +40,44 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
     setStatus('requesting');
 
     let cancelled = false;
+    let myStream: MediaStream | null = null;
     const reader = new BrowserMultiFormatReader();
 
-    // Capture the start promise so cleanup can await it and stop the
-    // stream even if the IScannerControls haven't been resolved yet.
-    // Without this, React 18 StrictMode's mount-unmount-mount cycle in
-    // dev tears down the ref before ZXing finishes attaching, so the
-    // first stream keeps running and its in-flight video.play() is
-    // aborted by the second mount's srcObject swap (DOMException:
-    // "fetching … aborted at the user's request").
-    const startPromise = reader.decodeFromVideoDevice(
-      undefined,
+    // ZXing's IScannerControls.stop() pauses the video element and
+    // detaches its srcObject -- which is unsafe under React 18
+    // StrictMode in dev: the synthetic mount → unmount → mount cycle
+    // means the first cleanup runs while the second mount is already
+    // attaching its own stream to the same video element. Calling the
+    // first controls.stop() then nukes the second mount's srcObject and
+    // we end up with a black viewfinder.
+    //
+    // Workaround: track the MediaStream ZXing attached for *this* mount
+    // and tear down only its tracks on cleanup. The video element's
+    // srcObject is left alone -- whoever owns the active stream still
+    // owns the playback. (`facingMode: environment` prefers the rear
+    // camera on phones, falling back to the front when no rear camera
+    // is available.)
+    const startPromise = reader.decodeFromConstraints(
+      { video: { facingMode: { ideal: 'environment' } } },
       videoRef.current!,
       (result, _err, ctl) => {
         if (cancelled || !result) return;
-        // First positive read wins; stop the stream so the next scan
-        // isn't a duplicate fire while the parent is still navigating
-        // through its state transitions.
+        // First positive read wins; ctl.stop() here is fine because
+        // by that point this mount is the active one.
         ctl.stop();
         onDetected(result.getText());
       },
     );
 
     startPromise
-      .then((controls) => {
-        if (cancelled) controls.stop();
-        else setStatus('streaming');
+      .then(() => {
+        myStream = (videoRef.current?.srcObject as MediaStream) ?? null;
+        if (cancelled) {
+          myStream?.getTracks().forEach((t) => t.stop());
+          myStream = null;
+          return;
+        }
+        setStatus('streaming');
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -76,10 +88,15 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
 
     return () => {
       cancelled = true;
-      // Always wait for startup to finish before tearing down. If it
-      // resolved, stop the stream; if it rejected, swallow -- there's
-      // nothing to stop.
-      startPromise.then((c) => c.stop()).catch(() => {});
+      // Stop just our tracks; don't touch the video element's srcObject
+      // (a sibling mount may already own it under StrictMode).
+      if (myStream) {
+        myStream.getTracks().forEach((t) => t.stop());
+        myStream = null;
+      } else {
+        // Startup hadn't resolved yet; once it does, the .then sees
+        // cancelled=true and stops our tracks.
+      }
     };
   }, [open, onDetected]);
 

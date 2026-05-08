@@ -15,8 +15,8 @@ const stop = vi.fn();
 
 vi.mock('@zxing/browser', () => ({
   BrowserMultiFormatReader: class {
-    decodeFromVideoDevice(
-      _deviceId: unknown,
+    decodeFromConstraints(
+      _constraints: unknown,
       _video: HTMLVideoElement,
       callback: (
         result: { getText: () => string } | null,
