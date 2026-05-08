@@ -1,3 +1,4 @@
+using Collectify.Infrastructure.Lookup.GiantBomb;
 using Collectify.Infrastructure.Lookup.Stub;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +29,10 @@ public static class MetadataLookupServiceCollectionExtensions
         services.TryAddScoped<IMovieMetadataProvider, StubMovieProvider>();
         services.TryAddScoped<IMusicMetadataProvider, StubMusicProvider>();
         services.TryAddScoped<IGameMetadataProvider, StubGameProvider>();
+        // GiantBomb is opt-in (free key but requires sign-up). A stub
+        // keeps the IGDB game provider's DI graph satisfied when it's
+        // not configured; the fallback chain just skips it.
+        services.TryAddScoped<IGiantBombGameUpcClient, StubGiantBombGameUpcClient>();
 
         return services;
     }

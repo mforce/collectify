@@ -28,7 +28,12 @@ public class IgdbGameProviderTests : IDisposable
 
     public void Dispose() => _connection.Dispose();
 
-    private IgdbGameProvider NewProvider(HttpMessageHandler handler, FakeAuth? auth = null, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
+    private IgdbGameProvider NewProvider(
+        HttpMessageHandler handler,
+        FakeAuth? auth = null,
+        MetadataLookupOptions? overrideOptions = null,
+        FakeUpcClient? upc = null,
+        FakeGiantBombClient? giantBomb = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.igdb.com/v4/") };
         var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
@@ -36,7 +41,14 @@ public class IgdbGameProviderTests : IDisposable
         {
             Igdb = new IgdbOptions { TwitchClientId = "client", TwitchClientSecret = "secret" },
         };
-        return new IgdbGameProvider(http, auth ?? new FakeAuth("client", "tok"), upc ?? FakeUpcClient.NotRecognised(), cache, Options.Create(options), NullLogger<IgdbGameProvider>.Instance);
+        return new IgdbGameProvider(
+            http,
+            auth ?? new FakeAuth("client", "tok"),
+            upc ?? FakeUpcClient.NotRecognised(),
+            giantBomb ?? FakeGiantBombClient.NotConfigured(),
+            cache,
+            Options.Create(options),
+            NullLogger<IgdbGameProvider>.Instance);
     }
 
     private const string SingleGameJson = """
@@ -355,6 +367,67 @@ public class IgdbGameProviderTests : IDisposable
         await p2.SearchByBarcodeAsync("0883929473076");
 
         Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_FallsBackToGiantBomb_WhenUpcMisses()
+    {
+        // UPCitemdb didn't recognise the code; GiantBomb did. The
+        // GiantBomb-resolved title drives the IGDB Apicalypse search.
+        var upc = FakeUpcClient.NotRecognised();
+        var giantBomb = FakeGiantBombClient.Returning("Halo 3");
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler, upc: upc, giantBomb: giantBomb);
+
+        var hits = await provider.SearchByBarcodeAsync("0883929473076");
+
+        Assert.Single(hits);
+        Assert.Single(upc.RequestedBarcodes);
+        Assert.Single(giantBomb.RequestedBarcodes);
+        var req = Assert.Single(handler.Requests);
+        Assert.Contains("search \"Halo 3\";", req.Body);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_DoesNotCallGiantBomb_WhenUpcAlreadyHit()
+    {
+        // Belt-and-braces: when the primary UPC source resolves the
+        // code, we shouldn't fan out to GiantBomb (saves a request and
+        // keeps results consistent with the primary).
+        var upc = FakeUpcClient.Returning("The Witcher 3");
+        var giantBomb = FakeGiantBombClient.Returning("Different Game");
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler, upc: upc, giantBomb: giantBomb);
+
+        await provider.SearchByBarcodeAsync("0883929473076");
+
+        Assert.Empty(giantBomb.RequestedBarcodes);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_BothSourcesMiss_ReturnsEmptyWithoutTitleSearch()
+    {
+        var upc = FakeUpcClient.NotRecognised();
+        var giantBomb = FakeGiantBombClient.ConfiguredNotRecognised();
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, upc: upc, giantBomb: giantBomb);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("0000000000000"));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_SkipsGiantBomb_WhenItIsNotConfigured()
+    {
+        // Default fake = NotConfigured; the provider must not consult
+        // it (the IsConfigured guard short-circuits before any call).
+        var upc = FakeUpcClient.NotRecognised();
+        var giantBomb = FakeGiantBombClient.NotConfigured();
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, upc: upc, giantBomb: giantBomb);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("0000000000000"));
+        Assert.Empty(giantBomb.RequestedBarcodes);
     }
 
     private sealed class FakeAuth : IIgdbAuth

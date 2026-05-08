@@ -3,6 +3,7 @@ using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup;
+using Collectify.Infrastructure.Lookup.GiantBomb;
 using Collectify.Infrastructure.Lookup.Igdb;
 using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.MusicBrainz;
@@ -68,9 +69,10 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
 });
 
 builder.Services.AddMetadataLookup(builder.Configuration);
-// UPC client first: TMDB and IGDB providers depend on it for barcode
-// lookups (MusicBrainz indexes barcodes natively and skips it).
+// UPC clients first: TMDB and IGDB providers depend on them for barcode
+// lookups (MusicBrainz indexes barcodes natively and skips them).
 builder.Services.AddUpcItemDbLookup(builder.Configuration);
+builder.Services.AddGiantBombGameUpcClient(builder.Configuration);
 builder.Services.AddTmdbMovieProvider(builder.Configuration);
 builder.Services.AddMusicBrainzMusicProvider(builder.Configuration);
 builder.Services.AddIgdbGameProvider(builder.Configuration);

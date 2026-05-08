@@ -15,6 +15,7 @@ public sealed class MetadataLookupOptions
     public MusicBrainzOptions MusicBrainz { get; set; } = new();
     public IgdbOptions Igdb { get; set; } = new();
     public UpcOptions Upc { get; set; } = new();
+    public GiantBombOptions GiantBomb { get; set; } = new();
 }
 
 public sealed class TmdbOptions
@@ -49,4 +50,19 @@ public sealed class IgdbOptions
 public sealed class UpcOptions
 {
     public string BaseUrl { get; set; } = "https://api.upcitemdb.com/";
+}
+
+/// <summary>
+/// Bound from "Collectify:Metadata:GiantBomb". GiantBomb's
+/// <c>/api/releases/?filter=upc:</c> endpoint is the most useful free
+/// barcode-indexed source for video games (UPCitemdb's coverage of
+/// console / cartridge releases is patchy). Both the free API key and a
+/// contact User-Agent are required -- GiantBomb returns 403 without a
+/// UA, and unset credentials disable the source entirely.
+/// </summary>
+public sealed class GiantBombOptions
+{
+    public string? ApiKey { get; set; }
+    public string? UserAgent { get; set; }
+    public string BaseUrl { get; set; } = "https://www.giantbomb.com/api/";
 }

@@ -1,4 +1,21 @@
+using Collectify.Infrastructure.Lookup.GiantBomb;
+using Collectify.Infrastructure.Lookup.Upc;
+
 namespace Collectify.Infrastructure.Lookup.Stub;
+
+/// <summary>
+/// Default <see cref="IGiantBombGameUpcClient"/> registered when the
+/// real one isn't wired up. Always reports unconfigured + null so the
+/// game provider's UPC fallback chain skips it gracefully.
+/// </summary>
+internal sealed class StubGiantBombGameUpcClient : IGiantBombGameUpcClient
+{
+    public string Name => "stub-giantbomb";
+    public bool IsConfigured => false;
+
+    public Task<UpcLookupResult?> LookupAsync(string barcode, CancellationToken ct = default)
+        => Task.FromResult<UpcLookupResult?>(null);
+}
 
 /// <summary>
 /// Fallback provider used when no concrete movie provider has been registered.

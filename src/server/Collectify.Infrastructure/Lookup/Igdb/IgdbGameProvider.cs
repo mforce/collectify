@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using Collectify.Infrastructure.Lookup.GiantBomb;
 using Collectify.Infrastructure.Lookup.Upc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -43,6 +44,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     private readonly HttpClient _http;
     private readonly IIgdbAuth _auth;
     private readonly IUpcLookupClient _upc;
+    private readonly IGiantBombGameUpcClient _giantBomb;
     private readonly ILookupCache _cache;
     private readonly MetadataLookupOptions _options;
     private readonly ILogger<IgdbGameProvider> _log;
@@ -51,6 +53,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         HttpClient http,
         IIgdbAuth auth,
         IUpcLookupClient upc,
+        IGiantBombGameUpcClient giantBomb,
         ILookupCache cache,
         IOptions<MetadataLookupOptions> options,
         ILogger<IgdbGameProvider> log)
@@ -58,6 +61,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         _http = http;
         _auth = auth;
         _upc = upc;
+        _giantBomb = giantBomb;
         _cache = cache;
         _options = options.Value;
         _log = log;
@@ -120,11 +124,16 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
-        // IGDB has no barcode field; resolve via UPCitemdb to a product
-        // title, then run our regular Apicalypse search. UPC lookups are
-        // independently cached so a second scan is free even before this
-        // wrapping cache layer kicks in.
+        // IGDB has no barcode field; resolve via UPCitemdb first (broad
+        // generic-retail coverage). When UPCitemdb misses, fall back to
+        // GiantBomb's /api/releases/?filter=upc: which has much better
+        // coverage of console / cartridge / collector releases. Both
+        // sources are independently cached, so a re-scan stays in-process.
         var upcHit = await _upc.LookupAsync(trimmed, ct);
+        if (upcHit is null && _giantBomb.IsConfigured)
+        {
+            upcHit = await _giantBomb.LookupAsync(trimmed, ct);
+        }
         if (upcHit is null) return [];
 
         var hits = await SearchAsync(upcHit.Title, ct);
