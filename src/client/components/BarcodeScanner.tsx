@@ -121,11 +121,22 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
       role="dialog"
       aria-modal="true"
       aria-label="Scan barcode"
-      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 flex-col gap-4"
+      // h-dvh / w-dvw use the *visible* viewport. Mobile browsers
+      // (Samsung Internet in particular) compute 100vh against the
+      // maximum viewport, including the area behind the address bar
+      // -- with `inset-0` alone the modal centred its content below
+      // the visible fold, so the video looked off-centre. Tailwind
+      // 3.4+ provides h-dvh / w-dvw for the visual viewport.
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/95 p-4 h-dvh w-dvw"
     >
       <video
         ref={videoRef}
-        className="max-w-full max-h-[60vh] w-full sm:w-auto rounded-md bg-slate-900"
+        // Fixed-height + object-cover gives a predictable viewfinder
+        // regardless of the camera's intrinsic aspect ratio (phones
+        // commonly stream 16:9 even when held portrait). Without
+        // object-cover the stream was stretched / mis-cropped, leaving
+        // the slate-900 fallback bg visible alongside the live frame.
+        className="h-[60dvh] w-full max-w-md rounded-md bg-slate-900 object-cover"
         muted
         playsInline
       />
