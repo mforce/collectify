@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
+import BarcodeLookup from './BarcodeLookup';
 import {
   COMPLETION_STATUSES,
   DIGITAL_STORES,
@@ -87,6 +88,16 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
         type="games"
         label="Search online (IGDB)"
         placeholder="e.g. The Witcher 3"
+        onPick={importLookup}
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: [r.developer, r.platform].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          image: r.imageUrl,
+        })}
+      />
+
+      <BarcodeLookup
+        type="games"
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),

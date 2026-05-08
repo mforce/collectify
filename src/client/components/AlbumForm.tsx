@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
+import BarcodeLookup from './BarcodeLookup';
 import { MUSIC_FORMATS, type Album } from '../services/types';
 import { lookupAlbumByMbid, type LookupByIdOutcome, type MusicLookupResult } from '../services/lookup';
 
@@ -81,6 +82,16 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
         type="music"
         label="Search online (MusicBrainz)"
         placeholder="e.g. OK Computer"
+        onPick={importLookup}
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: r.artistName + (r.label ? ` · ${r.label}` : ''),
+          image: r.imageUrl,
+        })}
+      />
+
+      <BarcodeLookup
+        type="music"
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
