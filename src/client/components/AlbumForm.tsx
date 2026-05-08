@@ -40,6 +40,43 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
       imagePath: r.imageUrl ?? null,
       musicBrainzReleaseId: r.provider === 'musicbrainz' ? r.providerKey : a.musicBrainzReleaseId ?? null,
     });
+
+    // MusicBrainz search results (including barcode searches) can be
+    // sparse: title + MBID land, but artist-credit / date / label-info
+    // aren't always in the search index. The full /release/{mbid}?inc=
+    // artist-credits+labels response always has them. Chase that for any
+    // missing field; the call is cached server-side, so picking the same
+    // row twice (or pasting the same MBID later) is free.
+    if (r.provider === 'musicbrainz' && (!r.artistName || r.year == null || !r.label)) {
+      void enrichFromMb(r.providerKey);
+    }
+  };
+
+  const enrichFromMb = async (mbid: string) => {
+    setFetchState({ status: 'loading', message: 'Loading artist & label…' });
+    try {
+      const outcome = await lookupAlbumByMbid(mbid);
+      if (outcome.kind !== 'found') {
+        setFetchState({ status: 'idle' });
+        return;
+      }
+      // Functional setA with an MBID guard so a newer pick (different
+      // mbid already in state) supersedes this enrichment instead of
+      // overwriting fresh data with the previous album's. Preserves any
+      // value the user typed manually while the enrichment was in flight.
+      setA((prev) => {
+        if (prev.musicBrainzReleaseId !== mbid) return prev;
+        return {
+          ...prev,
+          artistName: prev.artistName || outcome.result.artistName,
+          year: prev.year ?? outcome.result.year ?? null,
+          label: prev.label ?? outcome.result.label ?? null,
+        };
+      });
+      setFetchState({ status: 'idle', message: 'Populated from MusicBrainz.' });
+    } catch {
+      setFetchState({ status: 'idle' });
+    }
   };
 
   const runLookup = async (
