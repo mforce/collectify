@@ -8,6 +8,12 @@ import { lookupAlbumByMbid, type LookupByIdOutcome, type MusicLookupResult } fro
 
 interface Props {
   initial?: Album;
+  /**
+   * Lookup result to seed the form with on first mount (e.g. when the
+   * user scanned a barcode on the list page). Runs the same import +
+   * enrichment chain as picking from in-form search.
+   */
+  prefillLookup?: MusicLookupResult;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit: (a: Album) => void;
@@ -23,7 +29,7 @@ const empty: Album = {
   tags: [],
 };
 
-export default function AlbumForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
+export default function AlbumForm({ initial, prefillLookup, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [a, setA] = useState<Album>(initial ?? empty);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setA(initial); }, [initial]);
@@ -78,6 +84,10 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
       setFetchState({ status: 'idle' });
     }
   };
+
+  // Seed once on mount when a prefill arrives via navigation state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
 
   const runLookup = async (
     id: string,

@@ -8,6 +8,14 @@ import { lookupMovieById, lookupMovieByImdbId, type LookupByIdOutcome, type Movi
 
 interface Props {
   initial?: Movie;
+  /**
+   * Lookup result to seed the form with on first mount (e.g. when the
+   * user scanned a barcode on the list page and was redirected here).
+   * Runs the same import + enrichment chain as picking from in-form
+   * search, so missing fields like director / runtime fill in once the
+   * follow-up call lands.
+   */
+  prefillLookup?: MovieLookupResult;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit: (m: Movie) => void;
@@ -23,7 +31,7 @@ const empty: Movie = {
   tags: [],
 };
 
-export default function MovieForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
+export default function MovieForm({ initial, prefillLookup, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [m, setM] = useState<Movie>(initial ?? empty);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setM(initial); }, [initial]);
@@ -78,6 +86,12 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
       setFetchState({ status: 'idle' });
     }
   };
+
+  // Seed the form once on mount when the parent passed a prefill (e.g.
+  // arrived here from a list-page barcode scan). Runs the same path as
+  // picking from in-form search so the enrichment chain still kicks in.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
 
   const runLookup = async (
     id: string,

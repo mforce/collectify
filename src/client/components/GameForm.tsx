@@ -14,6 +14,12 @@ import { lookupGameByIgdbId, type GameLookupResult, type LookupByIdOutcome } fro
 
 interface Props {
   initial?: Game;
+  /**
+   * Lookup result to seed the form with on first mount (e.g. when the
+   * user scanned a barcode on the list page). Runs the same import as
+   * picking from in-form search.
+   */
+  prefillLookup?: GameLookupResult;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit: (g: Game) => void;
@@ -28,7 +34,7 @@ const empty: Game = {
   tags: [],
 };
 
-export default function GameForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
+export default function GameForm({ initial, prefillLookup, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [g, setG] = useState<Game>(initial ?? empty);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setG(initial); }, [initial]);
@@ -47,6 +53,10 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
       igdbId: r.provider === 'igdb' ? r.providerKey : g.igdbId ?? null,
     });
   };
+
+  // Seed once on mount when a prefill arrives via navigation state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
 
   const runLookup = async (
     id: string,

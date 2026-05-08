@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
 interface BarcodeScannerProps {
@@ -28,6 +28,15 @@ type Status = 'requesting' | 'streaming' | 'denied' | 'no-camera' | 'no-https';
 export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<Status>('requesting');
+  const [manualCode, setManualCode] = useState('');
+
+  const submitManual = (e: FormEvent) => {
+    e.preventDefault();
+    const code = manualCode.trim();
+    if (!code) return;
+    setManualCode('');
+    onDetected(code);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -139,6 +148,26 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
           Camera access requires a secure context (HTTPS or localhost).
         </p>
       )}
+
+      <form onSubmit={submitManual} className="flex gap-2 items-stretch w-full max-w-sm">
+        <input
+          value={manualCode}
+          onChange={(e) => setManualCode(e.target.value)}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="Or type a barcode"
+          aria-label="Barcode"
+          className="flex-1 rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
+        />
+        <button
+          type="submit"
+          disabled={!manualCode.trim()}
+          className="px-3 py-2 rounded-md bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium"
+        >
+          Look up
+        </button>
+      </form>
+
       <button
         type="button"
         onClick={onClose}
