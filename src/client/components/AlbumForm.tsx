@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
+import BarcodeLookup from './BarcodeLookup';
 import { MUSIC_FORMATS, type Album } from '../services/types';
 import { lookupAlbumByMbid, type LookupByIdOutcome, type MusicLookupResult } from '../services/lookup';
 
 interface Props {
   initial?: Album;
+  /**
+   * Lookup result to seed the form with on first mount (e.g. when the
+   * user scanned a barcode on the list page). Runs the same import +
+   * enrichment chain as picking from in-form search.
+   */
+  prefillLookup?: MusicLookupResult;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit: (a: Album) => void;
@@ -22,7 +29,7 @@ const empty: Album = {
   tags: [],
 };
 
-export default function AlbumForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
+export default function AlbumForm({ initial, prefillLookup, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [a, setA] = useState<Album>(initial ?? empty);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setA(initial); }, [initial]);
@@ -39,7 +46,48 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
       imagePath: r.imageUrl ?? null,
       musicBrainzReleaseId: r.provider === 'musicbrainz' ? r.providerKey : a.musicBrainzReleaseId ?? null,
     });
+
+    // MusicBrainz search results (including barcode searches) can be
+    // sparse: title + MBID land, but artist-credit / date / label-info
+    // aren't always in the search index. The full /release/{mbid}?inc=
+    // artist-credits+labels response always has them. Chase that for any
+    // missing field; the call is cached server-side, so picking the same
+    // row twice (or pasting the same MBID later) is free.
+    if (r.provider === 'musicbrainz' && (!r.artistName || r.year == null || !r.label)) {
+      void enrichFromMb(r.providerKey);
+    }
   };
+
+  const enrichFromMb = async (mbid: string) => {
+    setFetchState({ status: 'loading', message: 'Loading artist & label…' });
+    try {
+      const outcome = await lookupAlbumByMbid(mbid);
+      if (outcome.kind !== 'found') {
+        setFetchState({ status: 'idle' });
+        return;
+      }
+      // Functional setA with an MBID guard so a newer pick (different
+      // mbid already in state) supersedes this enrichment instead of
+      // overwriting fresh data with the previous album's. Preserves any
+      // value the user typed manually while the enrichment was in flight.
+      setA((prev) => {
+        if (prev.musicBrainzReleaseId !== mbid) return prev;
+        return {
+          ...prev,
+          artistName: prev.artistName || outcome.result.artistName,
+          year: prev.year ?? outcome.result.year ?? null,
+          label: prev.label ?? outcome.result.label ?? null,
+        };
+      });
+      setFetchState({ status: 'idle', message: 'Populated from MusicBrainz.' });
+    } catch {
+      setFetchState({ status: 'idle' });
+    }
+  };
+
+  // Seed once on mount when a prefill arrives via navigation state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
 
   const runLookup = async (
     id: string,
@@ -81,6 +129,16 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
         type="music"
         label="Search online (MusicBrainz)"
         placeholder="e.g. OK Computer"
+        onPick={importLookup}
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: r.artistName + (r.label ? ` · ${r.label}` : ''),
+          image: r.imageUrl,
+        })}
+      />
+
+      <BarcodeLookup
+        type="music"
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),

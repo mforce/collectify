@@ -1,8 +1,16 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useList } from '../services/collection';
 import { Button, Card, Input, StatusPill, TagChip } from './ui';
+import BarcodeLookup from './BarcodeLookup';
 import type { CollectionItemBase, MediaType } from '../services/types';
+import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
+
+type ResultMap = {
+  movies: MovieLookupResult;
+  music: MusicLookupResult;
+  games: GameLookupResult;
+};
 
 interface RenderedItem {
   primary: string;
@@ -21,14 +29,27 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
   const [query, setQuery] = useState('');
   const list = useList(type, query);
   const items = list.data ?? [];
+  const navigate = useNavigate();
+
+  // Picking a barcode candidate from the list-page scanner skips the
+  // intermediate landing -- we go straight to /{type}/new and seed the
+  // form via React Router state. AddPage reads this and hands it to the
+  // form as prefillLookup so the same enrichment chain runs as if the
+  // user had scanned from inside the form.
+  const onBarcodePick = (item: ResultMap[T]) => {
+    navigate(newPath, { state: { prefill: item } });
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold text-white">{title}</h1>
-        <Link to={newPath}>
-          <Button>+ Add</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <BarcodeLookup type={type} onPick={onBarcodePick} />
+          <Link to={newPath}>
+            <Button>+ Add</Button>
+          </Link>
+        </div>
       </div>
 
       <Input

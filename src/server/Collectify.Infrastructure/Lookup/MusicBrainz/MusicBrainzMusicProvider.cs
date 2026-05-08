@@ -105,6 +105,37 @@ public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
         return mapped;
     }
 
+    public async Task<IReadOnlyList<MusicLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default)
+    {
+        if (!IsConfigured) return [];
+        var trimmed = (barcode ?? string.Empty).Trim();
+        if (trimmed.Length == 0) return [];
+
+        // MB indexes barcodes natively via the "barcode:" Lucene field on
+        // the /release search index, so we can skip UPCitemdb entirely.
+        // Cache key is namespaced "barcode:" so it can't collide with
+        // free-text searches whose content happens to be a 12-digit number.
+        var cacheKey = "barcode:" + trimmed;
+        var cached = await _cache.GetAsync<List<MusicLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        if (cached is not null) return cached;
+
+        MbReleaseSearchResponse? body;
+        try
+        {
+            var url = $"release?query=barcode:{Uri.EscapeDataString(trimmed)}&fmt=json&limit=10";
+            body = await _http.GetFromJsonAsync<MbReleaseSearchResponse>(url, ct);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "MusicBrainz barcode search failed for {Barcode}", trimmed);
+            return [];
+        }
+
+        var mapped = (body?.Releases ?? []).Select(Map).ToList();
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        return mapped;
+    }
+
     private MusicLookupResult Map(MbRelease r) => new(
         Provider: ProviderName,
         ProviderKey: r.Id,

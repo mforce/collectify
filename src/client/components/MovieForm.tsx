@@ -2,11 +2,20 @@ import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
+import BarcodeLookup from './BarcodeLookup';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
 import { lookupMovieById, lookupMovieByImdbId, type LookupByIdOutcome, type MovieLookupResult } from '../services/lookup';
 
 interface Props {
   initial?: Movie;
+  /**
+   * Lookup result to seed the form with on first mount (e.g. when the
+   * user scanned a barcode on the list page and was redirected here).
+   * Runs the same import + enrichment chain as picking from in-form
+   * search, so missing fields like director / runtime fill in once the
+   * follow-up call lands.
+   */
+  prefillLookup?: MovieLookupResult;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit: (m: Movie) => void;
@@ -22,7 +31,7 @@ const empty: Movie = {
   tags: [],
 };
 
-export default function MovieForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
+export default function MovieForm({ initial, prefillLookup, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [m, setM] = useState<Movie>(initial ?? empty);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setM(initial); }, [initial]);
@@ -78,6 +87,12 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
     }
   };
 
+  // Seed the form once on mount when the parent passed a prefill (e.g.
+  // arrived here from a list-page barcode scan). Runs the same path as
+  // picking from in-form search so the enrichment chain still kicks in.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
+
   const runLookup = async (
     id: string,
     label: string,
@@ -119,6 +134,16 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
         type="movies"
         label="Search online (TMDB)"
         placeholder="e.g. Inception"
+        onPick={importLookup}
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: r.description?.slice(0, 120),
+          image: r.imageUrl,
+        })}
+      />
+
+      <BarcodeLookup
+        type="movies"
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),

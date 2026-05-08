@@ -247,6 +247,77 @@ public class MusicBrainzMusicProviderTests : IDisposable
         Assert.Single(idHandler.RequestedUrls);
     }
 
+    // ---------- SearchByBarcodeAsync ----------
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_NotConfigured_ReturnsEmptyWithoutCalling()
+    {
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, new MetadataLookupOptions());
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("0883929473076"));
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_BlankBarcode_ReturnsEmptyWithoutCalling()
+    {
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("   "));
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_HitsReleaseEndpointWithBarcodeQuery()
+    {
+        var handler = new StubHandler(SearchJson);
+        var provider = NewProvider(handler);
+
+        await provider.SearchByBarcodeAsync("634904012623");
+
+        var url = Assert.Single(handler.RequestedUrls);
+        Assert.Contains("release?", url);
+        // MB's Lucene "barcode:" field uses a literal colon -- it's a
+        // valid query-string sub-delim, no percent-escape needed.
+        Assert.Contains("query=barcode:634904012623", url);
+        Assert.Contains("fmt=json", url);
+        Assert.Contains("limit=10", url);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_RepeatedCallsServeFromCache()
+    {
+        var handler = new StubHandler(SearchJson);
+        var p1 = NewProvider(handler);
+        var p2 = NewProvider(handler);
+
+        await p1.SearchByBarcodeAsync("634904012623");
+        await p2.SearchByBarcodeAsync("634904012623");
+
+        Assert.Single(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_AndSearchAsync_UseSeparateCacheNamespaces()
+    {
+        // A free-text search whose query happens to be a 12-digit number
+        // must not satisfy a barcode lookup for the same digits.
+        var searchHandler = new StubHandler("""
+            { "releases": [ { "id": "different", "title": "Different", "date": "2000-01-01" } ] }
+            """);
+        await NewProvider(searchHandler).SearchAsync("634904012623");
+        Assert.Single(searchHandler.RequestedUrls);
+
+        var barcodeHandler = new StubHandler(SearchJson);
+        var barcodeHits = await NewProvider(barcodeHandler).SearchByBarcodeAsync("634904012623");
+
+        Assert.Single(barcodeHits);
+        Assert.Equal("OK Computer", barcodeHits[0].Title);
+        Assert.Single(barcodeHandler.RequestedUrls);
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly string _body;

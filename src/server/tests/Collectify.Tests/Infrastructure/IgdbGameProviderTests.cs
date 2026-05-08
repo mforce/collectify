@@ -28,7 +28,7 @@ public class IgdbGameProviderTests : IDisposable
 
     public void Dispose() => _connection.Dispose();
 
-    private IgdbGameProvider NewProvider(HttpMessageHandler handler, FakeAuth? auth = null, MetadataLookupOptions? overrideOptions = null)
+    private IgdbGameProvider NewProvider(HttpMessageHandler handler, FakeAuth? auth = null, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.igdb.com/v4/") };
         var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
@@ -36,7 +36,7 @@ public class IgdbGameProviderTests : IDisposable
         {
             Igdb = new IgdbOptions { TwitchClientId = "client", TwitchClientSecret = "secret" },
         };
-        return new IgdbGameProvider(http, auth ?? new FakeAuth("client", "tok"), cache, Options.Create(options), NullLogger<IgdbGameProvider>.Instance);
+        return new IgdbGameProvider(http, auth ?? new FakeAuth("client", "tok"), upc ?? FakeUpcClient.NotRecognised(), cache, Options.Create(options), NullLogger<IgdbGameProvider>.Instance);
     }
 
     private const string SingleGameJson = """
@@ -290,6 +290,71 @@ public class IgdbGameProviderTests : IDisposable
 
         Assert.Empty(await provider.SearchAsync("witcher"));
         Assert.Empty(handler.Requests);
+    }
+
+    // ---------- SearchByBarcodeAsync ----------
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_NotConfigured_ShortCircuitsAndDoesNotHitUpc()
+    {
+        var upc = FakeUpcClient.Returning("Hades");
+        var provider = NewProvider(new StubHandler(SingleGameJson), overrideOptions: new MetadataLookupOptions(), upc: upc);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("0123456789012"));
+        Assert.Empty(upc.RequestedBarcodes);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_BlankBarcode_ReturnsEmptyWithoutCalling()
+    {
+        var upc = FakeUpcClient.Returning("Hades");
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, upc: upc);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("   "));
+        Assert.Empty(upc.RequestedBarcodes);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_UpcMiss_ReturnsEmptyWithoutTitleSearch()
+    {
+        var upc = FakeUpcClient.NotRecognised();
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, upc: upc);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("0000000000000"));
+        Assert.Single(upc.RequestedBarcodes);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_DispatchesToIgdbTitleSearch_WithUpcTitle()
+    {
+        var upc = FakeUpcClient.Returning("The Witcher 3");
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler, upc: upc);
+
+        var hits = await provider.SearchByBarcodeAsync("0883929473076");
+
+        Assert.Single(hits);
+        var req = Assert.Single(handler.Requests);
+        // The title surfaced by UPC drives the Apicalypse search clause.
+        Assert.Contains("search \"The Witcher 3\";", req.Body);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_RepeatedCallsServeFromCache()
+    {
+        var upc = FakeUpcClient.Returning("The Witcher 3");
+        var handler = new StubHandler(SingleGameJson);
+        var p1 = NewProvider(handler, upc: upc);
+        var p2 = NewProvider(handler, upc: upc); // shared sqlite cache
+
+        await p1.SearchByBarcodeAsync("0883929473076");
+        await p2.SearchByBarcodeAsync("0883929473076");
+
+        Assert.Single(handler.Requests);
     }
 
     private sealed class FakeAuth : IIgdbAuth

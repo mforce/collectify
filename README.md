@@ -56,6 +56,30 @@ Dockerfile                        # multi-stage: node → React, sdk → publish
 docker-compose.yml                # one service + named data volume
 ```
 
+## Barcode scanning
+
+The "Scan barcode" button on each form uses the device camera via
+`@zxing/browser` (lazy-loaded — the ~450 KB decoder bundle only ships
+when a user actually scans). Browsers gate `getUserMedia` on a **secure
+context**, so the scanner only works at:
+
+- `http://localhost` / `http://127.0.0.1` (during development), or
+- `https://…` URLs (production).
+
+Plain HTTP on a LAN address (e.g. `http://192.168.x.x:8080`) will surface
+"Camera access requires a secure context" instead of a viewfinder. To
+test from a phone, terminate TLS at a reverse proxy (Caddy, Traefik,
+Nginx + Let's Encrypt) or generate a local cert with
+[`mkcert`](https://github.com/FiloSottile/mkcert).
+
+Backend dispatch:
+
+- **Music** → MusicBrainz `release?query=barcode:CODE` (no UPC round-trip).
+- **Movies / Games** → UPCitemdb's free trial endpoint resolves the code
+  to a product title, then TMDB / IGDB run their normal title search.
+  UPCitemdb is rate-limited (~100 lookups/day on the free tier); every
+  result is cached in `LookupCache` so a re-scan is free.
+
 ## Roadmap
 
 See [GitHub issues](https://github.com/mforce/collectify/issues) for the active roadmap. Phases:

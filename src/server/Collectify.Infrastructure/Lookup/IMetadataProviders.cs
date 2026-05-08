@@ -26,6 +26,15 @@ public interface IMovieMetadataProvider
     /// hood and return the same shape as <see cref="GetByIdAsync"/>.
     /// </summary>
     Task<MovieLookupResult?> GetByImdbIdAsync(string imdbId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lookup by a UPC/EAN barcode. Implementations may delegate to a UPC
+    /// database (e.g. UPCitemdb) to resolve the barcode to a product title
+    /// and then run their own title search; returns up to a handful of
+    /// candidates so the user can disambiguate when the UPC is shared
+    /// across editions / boxsets.
+    /// </summary>
+    Task<IReadOnlyList<MovieLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default);
 }
 
 public interface IMusicMetadataProvider
@@ -40,6 +49,13 @@ public interface IMusicMetadataProvider
     /// the id.
     /// </summary>
     Task<MusicLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lookup by a UPC/EAN barcode. MusicBrainz indexes barcodes natively;
+    /// other providers may dispatch via UPCitemdb first and then run a
+    /// title search on the resolved name.
+    /// </summary>
+    Task<IReadOnlyList<MusicLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default);
 }
 
 public interface IGameMetadataProvider
@@ -53,4 +69,11 @@ public interface IGameMetadataProvider
     /// Returns null when the provider doesn't recognise the id.
     /// </summary>
     Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default);
+
+    /// <summary>
+    /// Lookup by a UPC/EAN barcode. IGDB doesn't index barcodes, so
+    /// implementations are expected to dispatch via UPCitemdb and then run
+    /// their own title search.
+    /// </summary>
+    Task<IReadOnlyList<GameLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default);
 }

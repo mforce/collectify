@@ -1,32 +1,83 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useCreate } from '../services/collection';
 import type { Album, Game, MediaType, Movie } from '../services/types';
+import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
 import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
 import { Card } from '../components/ui';
 
+interface PrefillState {
+  prefill?: MovieLookupResult | MusicLookupResult | GameLookupResult;
+}
+
+const titleByType: Record<MediaType, string> = {
+  movies: 'Add a movie',
+  music: 'Add an album',
+  games: 'Add a game',
+};
+
 export default function AddPage<T extends MediaType>({ type }: { type: T }) {
   const create = useCreate(type);
   const nav = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as PrefillState | null)?.prefill;
+
+  // Persisted-feedback so the success banner can stay on screen briefly
+  // before we redirect to the detail page.
+  const [feedback, setFeedback] = useState<
+    | { kind: 'idle' }
+    | { kind: 'success'; message: string }
+    | { kind: 'error'; message: string }
+  >({ kind: 'idle' });
+
+  // Surface server / network errors as a banner instead of just a small
+  // line under the form. The mutation reports the latest error via
+  // create.error, but it's clearer to mirror it into our feedback state
+  // so the success / error visuals share one slot.
+  useEffect(() => {
+    if (create.error) {
+      setFeedback({ kind: 'error', message: (create.error as Error).message });
+    }
+  }, [create.error]);
 
   const onSuccess = (id?: number) => {
-    if (id) nav(`/${type}/${id}`);
-    else nav(`/${type}`);
-  };
-
-  const titleByType: Record<MediaType, string> = {
-    movies: 'Add a movie',
-    music: 'Add an album',
-    games: 'Add a game',
+    setFeedback({ kind: 'success', message: 'Saved! Redirecting…' });
+    // Brief hold so the user sees the banner; the page navigates after.
+    setTimeout(() => {
+      if (id) nav(`/${type}/${id}`);
+      else nav(`/${type}`);
+    }, 600);
   };
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold text-white">{titleByType[type]}</h1>
+
+      {feedback.kind === 'success' && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200"
+        >
+          {feedback.message}
+        </div>
+      )}
+      {feedback.kind === 'error' && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
+        >
+          Failed to save: {feedback.message}
+        </div>
+      )}
+
       <Card>
         {type === 'movies' && (
           <MovieForm
+            prefillLookup={prefill as MovieLookupResult | undefined}
             submitting={create.isPending}
             submitLabel="Create"
             onSubmit={(m) =>
@@ -38,6 +89,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         )}
         {type === 'music' && (
           <AlbumForm
+            prefillLookup={prefill as MusicLookupResult | undefined}
             submitting={create.isPending}
             submitLabel="Create"
             onSubmit={(a) =>
@@ -49,6 +101,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         )}
         {type === 'games' && (
           <GameForm
+            prefillLookup={prefill as GameLookupResult | undefined}
             submitting={create.isPending}
             submitLabel="Create"
             onSubmit={(g) =>
@@ -58,7 +111,6 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
             }
           />
         )}
-        {create.error && <p className="mt-3 text-sm text-rose-400">{(create.error as Error).message}</p>}
       </Card>
     </div>
   );

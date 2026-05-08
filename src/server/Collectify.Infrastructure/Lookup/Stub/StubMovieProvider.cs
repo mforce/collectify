@@ -18,6 +18,9 @@ internal sealed class StubMovieProvider : IMovieMetadataProvider
 
     public Task<MovieLookupResult?> GetByImdbIdAsync(string imdbId, CancellationToken ct = default)
         => Task.FromResult<MovieLookupResult?>(null);
+
+    public Task<IReadOnlyList<MovieLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<MovieLookupResult>>(Array.Empty<MovieLookupResult>());
 }
 
 internal sealed class StubMusicProvider : IMusicMetadataProvider
@@ -30,6 +33,9 @@ internal sealed class StubMusicProvider : IMusicMetadataProvider
 
     public Task<MusicLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
         => Task.FromResult<MusicLookupResult?>(null);
+
+    public Task<IReadOnlyList<MusicLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<MusicLookupResult>>(Array.Empty<MusicLookupResult>());
 }
 
 internal sealed class StubGameProvider : IGameMetadataProvider
@@ -42,4 +48,7 @@ internal sealed class StubGameProvider : IGameMetadataProvider
 
     public Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
         => Task.FromResult<GameLookupResult?>(null);
+
+    public Task<IReadOnlyList<GameLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<GameLookupResult>>(Array.Empty<GameLookupResult>());
 }
