@@ -39,4 +39,7 @@ internal sealed class StubGameProvider : IGameMetadataProvider
 
     public Task<IReadOnlyList<GameLookupResult>> SearchAsync(string query, CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<GameLookupResult>>(Array.Empty<GameLookupResult>());
+
+    public Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
+        => Task.FromResult<GameLookupResult?>(null);
 }

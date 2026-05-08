@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
+import OnlineSearch from './OnlineSearch';
 import {
   COMPLETION_STATUSES,
   DIGITAL_STORES,
@@ -8,6 +9,7 @@ import {
   type DigitalStore,
   type Game,
 } from '../services/types';
+import { lookupGameByIgdbId, type GameLookupResult, type LookupByIdOutcome } from '../services/lookup';
 
 interface Props {
   initial?: Game;
@@ -27,10 +29,51 @@ const empty: Game = {
 
 export default function GameForm({ initial, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [g, setG] = useState<Game>(initial ?? empty);
+  const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setG(initial); }, [initial]);
 
   const set = <K extends keyof Game>(k: K, v: Game[K]) => setG((prev) => ({ ...prev, [k]: v }));
   const patch = (p: Partial<Game>) => setG((prev) => ({ ...prev, ...p }));
+
+  const importLookup = (r: GameLookupResult) => {
+    patch({
+      title: r.title,
+      year: r.year ?? null,
+      platform: r.platform ?? g.platform ?? null,
+      publisher: r.publisher ?? null,
+      developer: r.developer ?? null,
+      imagePath: r.imageUrl ?? null,
+      igdbId: r.provider === 'igdb' ? r.providerKey : g.igdbId ?? null,
+    });
+  };
+
+  const runLookup = async (
+    id: string,
+    label: string,
+    lookup: (id: string) => Promise<LookupByIdOutcome<GameLookupResult>>,
+  ) => {
+    const trimmed = id.trim();
+    if (!trimmed) {
+      setFetchState({ status: 'idle', message: `Enter a ${label} first.` });
+      return;
+    }
+    setFetchState({ status: 'loading' });
+    try {
+      const outcome = await lookup(trimmed);
+      if (outcome.kind === 'found') {
+        importLookup(outcome.result);
+        setFetchState({ status: 'idle', message: 'Populated from IGDB.' });
+      } else if (outcome.kind === 'not-configured') {
+        setFetchState({ status: 'idle', message: 'IGDB lookup not configured. Set the Twitch client id and secret.' });
+      } else {
+        setFetchState({ status: 'idle', message: `No game with ${label} ${trimmed}.` });
+      }
+    } catch (err) {
+      setFetchState({ status: 'idle', message: (err as Error).message ?? 'Lookup failed.' });
+    }
+  };
+
+  const fetchByIgdbId = () => runLookup(g.igdbId ?? '', 'IGDB ID', lookupGameByIgdbId);
 
   return (
     <form
@@ -40,6 +83,18 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
         onSubmit({ ...g, title: g.title.trim() });
       }}
     >
+      <OnlineSearch
+        type="games"
+        label="Search online (IGDB)"
+        placeholder="e.g. The Witcher 3"
+        onPick={importLookup}
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: [r.developer, r.platform].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          image: r.imageUrl,
+        })}
+      />
+
       <div className="flex flex-col-reverse sm:flex-row gap-4 items-start">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 w-full">
           <Field label="Title">
@@ -125,14 +180,30 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
 
       <SectionHeading>External IDs</SectionHeading>
       <div className="grid sm:grid-cols-2 gap-4">
-        <ExternalIdField
-          label="IGDB ID"
-          value={g.igdbId}
-          onChange={(v) => set('igdbId', v)}
-          urlPrefix="https://www.igdb.com/games/"
-          placeholder="e.g. hades"
-        />
+        <div className="space-y-1">
+          <ExternalIdField
+            label="IGDB ID"
+            value={g.igdbId}
+            onChange={(v) => set('igdbId', v)}
+            urlPrefix="https://www.igdb.com/games/"
+            placeholder="e.g. 1942"
+          />
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={fetchByIgdbId}
+              disabled={fetchState.status === 'loading' || !(g.igdbId ?? '').trim()}
+              aria-label="Fetch metadata by IGDB ID"
+            >
+              {fetchState.status === 'loading' ? 'Fetching…' : 'Fetch metadata'}
+            </Button>
+          </div>
+        </div>
       </div>
+      {fetchState.message && (
+        <div className="text-xs text-slate-400">{fetchState.message}</div>
+      )}
 
       <Field label="Notes">
         <Textarea rows={3} value={g.notes ?? ''} onChange={(e) => set('notes', e.target.value || null)} />

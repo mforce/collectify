@@ -294,4 +294,82 @@ public class LookupEndpointsTests
         Assert.True(body!.Configured);
         Assert.Empty(body.Results);
     }
+
+    // ---------- /api/lookup/games/by-id/{providerKey} ----------
+
+    private record GameLookupResult(
+        string Provider, string ProviderKey, string Title, string? Platform,
+        int? Year, string? Publisher, string? Developer, string? Description,
+        string? ImageUrl, string? Genres);
+
+    [Fact]
+    public async Task GetGameById_Unauthenticated_ReturnsUnauthorized()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/lookup/games/by-id/1942");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetGameById_WithoutConfiguredProvider_ReturnsConfiguredFalseAndEmpty()
+    {
+        // No Twitch credentials set in the test config, so the registered
+        // IgdbGameProvider reports IsConfigured = false. The endpoint
+        // returns configured=false rather than 404 so the frontend can hint
+        // "set the provider key" the same way it does for TMDB / MusicBrainz.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<GameLookupResult>>(
+            "/api/lookup/games/by-id/1942");
+
+        Assert.NotNull(body);
+        Assert.False(body!.Configured);
+        Assert.Empty(body.Results);
+    }
+
+    [Fact]
+    public async Task GetGameById_WithConfiguredProviderAndKnownId_ReturnsOneResult()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            Provider: "igdb",
+            ProviderKey: "1942",
+            Title: "The Witcher 3: Wild Hunt",
+            Platform: "PC",
+            Year: 2015,
+            Publisher: "Warner Bros",
+            Developer: "CD Projekt Red",
+            Description: "A monster hunter searches for his adopted daughter.",
+            ImageUrl: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg",
+            Genres: "RPG, Adventure");
+        await using var factory = new CollectifyApiFactory { GameProvider = ScriptedGameProvider.WithFoundResult(seeded) };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<GameLookupResult>>(
+            "/api/lookup/games/by-id/1942");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        var hit = Assert.Single(body.Results);
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+        Assert.Equal("CD Projekt Red", hit.Developer);
+        Assert.Equal(2015, hit.Year);
+    }
+
+    [Fact]
+    public async Task GetGameById_WithConfiguredProviderAndUnknownId_ReturnsConfiguredTrueAndEmpty()
+    {
+        await using var factory = new CollectifyApiFactory { GameProvider = ScriptedGameProvider.NotFound() };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<GameLookupResult>>(
+            "/api/lookup/games/by-id/9999999");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.Empty(body.Results);
+    }
 }

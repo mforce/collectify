@@ -109,6 +109,26 @@ public static class LookupEndpoints
             return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, results));
         });
 
+        // Direct lookup by provider id (e.g. an IGDB game id). Same response
+        // shape as /movies/by-id and /music/by-id so the frontend reuses
+        // the LookupByIdOutcome decoder.
+        group.MapGet("/games/by-id/{providerKey}", async (
+            string providerKey,
+            IGameMetadataProvider provider,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(providerKey))
+                return Results.BadRequest(new { error = "Provider key is required." });
+            if (!provider.IsConfigured)
+                return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, false, []));
+
+            var hit = await provider.GetByIdAsync(providerKey.Trim(), ct);
+            IReadOnlyList<GameLookupResult> results = hit is null
+                ? []
+                : new[] { hit };
+            return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, results));
+        });
+
         return app;
     }
 

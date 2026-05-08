@@ -25,6 +25,9 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
     /// <summary>Optional override for tests that want a scripted music provider.</summary>
     public IMusicMetadataProvider? MusicProvider { get; init; }
 
+    /// <summary>Optional override for tests that want a scripted game provider.</summary>
+    public IGameMetadataProvider? GameProvider { get; init; }
+
     public CollectifyApiFactory()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
@@ -73,6 +76,11 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             {
                 services.RemoveAll<IMusicMetadataProvider>();
                 services.AddSingleton(MusicProvider);
+            }
+            if (GameProvider is not null)
+            {
+                services.RemoveAll<IGameMetadataProvider>();
+                services.AddSingleton(GameProvider);
             }
         });
     }
