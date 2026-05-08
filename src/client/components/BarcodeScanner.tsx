@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 interface BarcodeScannerProps {
   open: boolean;
@@ -37,27 +37,35 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
       return;
     }
 
-    let cancelled = false;
-    let controls: IScannerControls | null = null;
     setStatus('requesting');
 
+    let cancelled = false;
     const reader = new BrowserMultiFormatReader();
-    reader
-      .decodeFromVideoDevice(undefined, videoRef.current!, (result, _err, ctl) => {
+
+    // Capture the start promise so cleanup can await it and stop the
+    // stream even if the IScannerControls haven't been resolved yet.
+    // Without this, React 18 StrictMode's mount-unmount-mount cycle in
+    // dev tears down the ref before ZXing finishes attaching, so the
+    // first stream keeps running and its in-flight video.play() is
+    // aborted by the second mount's srcObject swap (DOMException:
+    // "fetching … aborted at the user's request").
+    const startPromise = reader.decodeFromVideoDevice(
+      undefined,
+      videoRef.current!,
+      (result, _err, ctl) => {
         if (cancelled || !result) return;
-        // First positive read wins; stop the stream so the next scan isn't
-        // a duplicate fire while the parent component is still navigating
+        // First positive read wins; stop the stream so the next scan
+        // isn't a duplicate fire while the parent is still navigating
         // through its state transitions.
         ctl.stop();
         onDetected(result.getText());
-      })
-      .then((c) => {
-        if (cancelled) {
-          c.stop();
-          return;
-        }
-        controls = c;
-        setStatus('streaming');
+      },
+    );
+
+    startPromise
+      .then((controls) => {
+        if (cancelled) controls.stop();
+        else setStatus('streaming');
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -68,7 +76,10 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
 
     return () => {
       cancelled = true;
-      controls?.stop();
+      // Always wait for startup to finish before tearing down. If it
+      // resolved, stop the stream; if it rejected, swallow -- there's
+      // nothing to stop.
+      startPromise.then((c) => c.stop()).catch(() => {});
     };
   }, [open, onDetected]);
 
@@ -93,7 +104,6 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
       <video
         ref={videoRef}
         className="max-w-full max-h-[60vh] w-full sm:w-auto rounded-md bg-slate-900"
-        autoPlay
         muted
         playsInline
       />
