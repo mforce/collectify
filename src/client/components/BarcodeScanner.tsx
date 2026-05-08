@@ -41,62 +41,58 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
 
     let cancelled = false;
     let myStream: MediaStream | null = null;
-    const reader = new BrowserMultiFormatReader();
 
-    // ZXing's IScannerControls.stop() pauses the video element and
-    // detaches its srcObject -- which is unsafe under React 18
-    // StrictMode in dev: the synthetic mount → unmount → mount cycle
-    // means the first cleanup runs while the second mount is already
-    // attaching its own stream to the same video element. Calling the
-    // first controls.stop() then nukes the second mount's srcObject and
-    // we end up with a black viewfinder.
-    //
-    // Workaround: track the MediaStream ZXing attached for *this* mount
-    // and tear down only its tracks on cleanup. The video element's
-    // srcObject is left alone -- whoever owns the active stream still
-    // owns the playback. (`facingMode: environment` prefers the rear
-    // camera on phones, falling back to the front when no rear camera
-    // is available.)
-    const startPromise = reader.decodeFromConstraints(
-      { video: { facingMode: { ideal: 'environment' } } },
-      videoRef.current!,
-      (result, _err, ctl) => {
-        if (cancelled || !result) return;
-        // First positive read wins; ctl.stop() here is fine because
-        // by that point this mount is the active one.
-        ctl.stop();
-        onDetected(result.getText());
-      },
-    );
+    // Defer ZXing setup by one tick so React 18 StrictMode's synthetic
+    // mount → unmount → mount cycle in dev never spins up two
+    // overlapping streams on the same video element. The first mount's
+    // cleanup runs synchronously and clears the timeout before any
+    // getUserMedia / srcObject / play() ever fires, so mount 2 is the
+    // only one that actually attaches a stream. (Without this, mount
+    // 1's pending video.play() gets aborted the instant mount 2 swaps
+    // srcObject, and the warning shows up as the DOMException the user
+    // saw.)
+    const handle = setTimeout(() => {
+      if (cancelled) return;
 
-    startPromise
-      .then(() => {
-        myStream = (videoRef.current?.srcObject as MediaStream) ?? null;
-        if (cancelled) {
-          myStream?.getTracks().forEach((t) => t.stop());
-          myStream = null;
-          return;
-        }
-        setStatus('streaming');
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const name = (err as { name?: string })?.name;
-        if (name === 'NotAllowedError' || name === 'SecurityError') setStatus('denied');
-        else setStatus('no-camera');
-      });
+      const reader = new BrowserMultiFormatReader();
+      reader
+        .decodeFromConstraints(
+          // Prefer the rear camera on phones; fall back to whatever's
+          // available when there's no rear cam (e.g. laptops).
+          { video: { facingMode: { ideal: 'environment' } } },
+          videoRef.current!,
+          (result, _err, ctl) => {
+            if (cancelled || !result) return;
+            ctl.stop();
+            onDetected(result.getText());
+          },
+        )
+        .then(() => {
+          // Capture the MediaStream ZXing attached so cleanup can stop
+          // just our tracks without touching the video element's
+          // srcObject (paranoid; StrictMode is already short-circuited
+          // by the timeout above).
+          myStream = (videoRef.current?.srcObject as MediaStream) ?? null;
+          if (cancelled) {
+            myStream?.getTracks().forEach((t) => t.stop());
+            myStream = null;
+            return;
+          }
+          setStatus('streaming');
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          const name = (err as { name?: string })?.name;
+          if (name === 'NotAllowedError' || name === 'SecurityError') setStatus('denied');
+          else setStatus('no-camera');
+        });
+    }, 0);
 
     return () => {
       cancelled = true;
-      // Stop just our tracks; don't touch the video element's srcObject
-      // (a sibling mount may already own it under StrictMode).
-      if (myStream) {
-        myStream.getTracks().forEach((t) => t.stop());
-        myStream = null;
-      } else {
-        // Startup hadn't resolved yet; once it does, the .then sees
-        // cancelled=true and stops our tracks.
-      }
+      clearTimeout(handle);
+      myStream?.getTracks().forEach((t) => t.stop());
+      myStream = null;
     };
   }, [open, onDetected]);
 
