@@ -52,4 +52,31 @@ describe('CoverPreview', () => {
     const { container } = render(<CoverPreview src={src as string | null | undefined} alt="x" />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('opens a lightbox when clicked and closes it on Escape', async () => {
+    render(<CoverPreview src="/covers/abc" alt="Inception poster" />);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Inception poster/i }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    // The lightbox renders a second img with the same src.
+    const dialogImg = dialog.querySelector('img');
+    expect(dialogImg).toHaveAttribute('src', '/covers/abc');
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('closes the lightbox when the backdrop is clicked', async () => {
+    render(<CoverPreview src="/covers/abc" alt="Inception poster" />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Inception poster/i }));
+    await userEvent.click(screen.getByRole('dialog'));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });

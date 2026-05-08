@@ -40,27 +40,32 @@ export default function GameForm({ initial, submitting, submitLabel = 'Save', on
         onSubmit({ ...g, title: g.title.trim() });
       }}
     >
-      <CoverPreview src={g.imagePath} alt={g.title ? `${g.title} cover` : ''} />
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Title">
-          <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />
-        </Field>
-        <Field label="Platform">
-          <Input value={g.platform ?? ''} onChange={(e) => set('platform', e.target.value || null)} placeholder="e.g. PS5, Switch, PC" />
-        </Field>
-        <Field label="Year">
-          <Input type="number" value={g.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
-        </Field>
-        <Field label="Publisher">
-          <Input value={g.publisher ?? ''} onChange={(e) => set('publisher', e.target.value || null)} />
-        </Field>
-        <Field label="Developer">
-          <Input value={g.developer ?? ''} onChange={(e) => set('developer', e.target.value || null)} />
-        </Field>
-        <Field label="Barcode">
-          <Input value={g.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
-        </Field>
+      <div className="flex flex-col-reverse sm:flex-row gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 w-full">
+          <Field label="Title">
+            <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />
+          </Field>
+          <Field label="Platform">
+            <Input value={g.platform ?? ''} onChange={(e) => set('platform', e.target.value || null)} placeholder="e.g. PS5, Switch, PC" />
+          </Field>
+          <Field label="Year">
+            <Input type="number" value={g.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
+          </Field>
+          <Field label="Publisher">
+            <Input value={g.publisher ?? ''} onChange={(e) => set('publisher', e.target.value || null)} />
+          </Field>
+          <Field label="Developer">
+            <Input value={g.developer ?? ''} onChange={(e) => set('developer', e.target.value || null)} />
+          </Field>
+          <Field label="Barcode">
+            <Input value={g.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
+          </Field>
+        </div>
+        <CoverPreview
+          src={g.imagePath}
+          alt={g.title ? `${g.title} cover` : ''}
+          className="w-28 sm:w-36 shrink-0"
+        />
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 items-end">
