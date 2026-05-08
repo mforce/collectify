@@ -1,4 +1,4 @@
-import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import {
   COLLECTION_STATUSES,
   CONDITIONS,
@@ -290,5 +290,67 @@ export function ExternalIdField({ label, value, onChange, urlPrefix, placeholder
         )}
       </div>
     </Field>
+  );
+}
+
+// ---------- Cover preview ----------
+
+interface CoverPreviewProps {
+  src?: string | null;
+  alt?: string;
+  className?: string;
+}
+
+/**
+ * Renders the items poster / album art / game art as a small thumbnail
+ * intended to sit alongside the form fields (no extra row). Clicking the
+ * thumbnail opens a fullscreen lightbox; Escape or backdrop-click closes
+ * it. Renders nothing when src is null/empty.
+ */
+export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProps) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  if (!src) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={alt ? `${alt} — click to enlarge` : 'Click to enlarge'}
+        className={`block ${className}`}
+      >
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          className="w-full object-contain rounded-md shadow-lg bg-slate-800 cursor-zoom-in hover:opacity-90"
+        />
+      </button>
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={alt || 'Cover preview'}
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-zoom-out"
+        >
+          <img
+            src={src}
+            alt={alt}
+            className="max-h-full max-w-full object-contain rounded-md shadow-2xl"
+          />
+        </div>
+      )}
+    </>
   );
 }

@@ -1,7 +1,7 @@
 # Graph Report - collectify  (2026-05-07)
 
 ## Corpus Check
-- 110 files · ~39,843 words
+- 110 files · ~40,248 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6da0571c`
+- Built from commit: `a895e262`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -106,47 +106,47 @@
 
 ### Community 0 - "Client Data Hooks & DTOs"
 Cohesion: 0.05
-Nodes (51): api() fetch helper, useCreate(), useDelete(), useItem(), useList(), useUpdate(), Album interface, DIGITAL_STORES list (+43 more)
-
-### Community 1 - "Project Docs & Build Files"
-Cohesion: 0.05
 Nodes (57): docs/architecture.md, Collectify.Api.csproj, Collectify.Domain.csproj, Collectify.Infrastructure.csproj, Collectify.Tests.csproj, Collectify.Api (Presentation layer / composition root), AppUser : IdentityUser, ASP.NET Core Identity + cookie auth (+49 more)
 
-### Community 2 - "Domain Model & Enums"
+### Community 1 - "Project Docs & Build Files"
 Cohesion: 0.06
 Nodes (23): byte, HttpClient, HttpMessageHandler, HttpStatusCode, IHttpClientFactory, ILogger, ILookupCache, CoverImageStore (+15 more)
 
-### Community 3 - "Client Auth & API Client"
+### Community 2 - "Domain Model & Enums"
 Cohesion: 0.07
 Nodes (11): DbContextOptions, FakeTimeProvider, ICoverImageStore, IDisposable, CollectifyApiFactory, FakeCoverImageStore, CoverImageStoreTests, LookupCacheTests (+3 more)
 
+### Community 3 - "Client Auth & API Client"
+Cohesion: 0.08
+Nodes (28): api(), api() fetch helper, ApiError, useCreate(), useDelete(), useItem(), useList(), useUpdate() (+20 more)
+
+### Community 4 - "Server Endpoints & Persistence"
+Cohesion: 0.09
+Nodes (22): CollectionList(), Button(), Card(), commit(), Field(), Input(), Label(), onKey() (+14 more)
+
 ### Community 6 - "Security & Deployment"
+Cohesion: 0.12
+Nodes (25): AuthState interface, useAuth(), useLogin(), useLogout(), useSetup(), App (root router component), /api/auth/* server endpoints, App() (+17 more)
+
+### Community 8 - "Games Endpoints"
 Cohesion: 0.07
 Nodes (8): IGameMetadataProvider, IMovieMetadataProvider, IMusicMetadataProvider, ScriptedMovieProvider, ScriptedMusicProvider, StubGameProvider, StubMovieProvider, StubMusicProvider
 
-### Community 7 - "Initial EF Migration"
-Cohesion: 0.13
-Nodes (21): AuthState interface, useAuth(), useLogin(), useLogout(), useSetup(), App (root router component), /api/auth/* server endpoints, App() (+13 more)
-
-### Community 10 - "Music Endpoints"
+### Community 11 - "EF Model Snapshot"
 Cohesion: 0.27
 Nodes (20): AlbumDto record, AppUser (IdentityUser), AuthEndpoints, CollectifyDbContext, CollectifyDbContextModelSnapshot, DigitalStore enum, Game entity, GameDto record (+12 more)
 
-### Community 12 - "DbContext Configuration"
+### Community 13 - "Migration Designer"
 Cohesion: 0.12
 Nodes (7): Migration, Collectify.Infrastructure.Data.Migrations, InitialCreate, AddPersonalAcquisitionAndTagFields, Collectify.Infrastructure.Data.Migrations, AddCoverImages, Collectify.Infrastructure.Data.Migrations
 
-### Community 13 - "Migration Designer"
+### Community 14 - "Auth Endpoints"
 Cohesion: 0.13
 Nodes (5): TestExtensions, JsonSerializerOptions, ILookupCache, LookupCache, TimeProvider
 
-### Community 15 - "AppUser Identity"
+### Community 16 - "Unit Test Stub"
 Cohesion: 0.2
 Nodes (3): IGameMetadataProvider, IMovieMetadataProvider, IMusicMetadataProvider
-
-### Community 17 - "API Entry Point"
-Cohesion: 0.25
-Nodes (3): api(), ApiError, useTags()
 
 ### Community 22 - "Frontend Build Tooling"
 Cohesion: 0.4
@@ -164,17 +164,17 @@ Nodes (3): HealthEndpointTests, CollectifyApiFactory, IClassFixture
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `string` connect `Domain Model & Enums` to `Client App Shell & Pages`, `Client Auth & API Client`, `Migration Designer`?**
+- **Why does `string` connect `Project Docs & Build Files` to `Domain Model & Enums`, `Auth Endpoints`, `Initial EF Migration`?**
   _High betweenness centrality (0.054) - this node is a cross-community bridge._
-- **Why does `TmdbMovieProviderTests` connect `Client App Shell & Pages` to `Domain Model & Enums`, `Client Auth & API Client`?**
+- **Why does `TmdbMovieProviderTests` connect `Initial EF Migration` to `Project Docs & Build Files`, `Domain Model & Enums`?**
   _High betweenness centrality (0.032) - this node is a cross-community bridge._
-- **Why does `CoverImageStore` connect `Domain Model & Enums` to `Music Endpoints`?**
+- **Why does `CoverImageStore` connect `Project Docs & Build Files` to `EF Model Snapshot`?**
   _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **What connects `Game`, `LookupCacheEntry`, `Movie` to the rest of the system?**
   _48 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Client Data Hooks & DTOs` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Project Docs & Build Files` be split into smaller, more focused modules?**
-  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
-- **Should `Domain Model & Enums` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
+- **Should `Domain Model & Enums` be split into smaller, more focused modules?**
+  _Cohesion score 0.07 - nodes in this community are weakly interconnected._

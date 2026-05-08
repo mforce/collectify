@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
@@ -127,31 +127,38 @@ export default function MovieForm({ initial, submitting, submitLabel = 'Save', o
         })}
       />
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Title">
-          <Input value={m.title} onChange={(e) => set('title', e.target.value)} required />
-        </Field>
-        <Field label="Original title">
-          <Input value={m.originalTitle ?? ''} onChange={(e) => set('originalTitle', e.target.value || null)} />
-        </Field>
-        <Field label="Year">
-          <Input type="number" value={m.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
-        </Field>
-        <Field label="Director">
-          <Input value={m.director ?? ''} onChange={(e) => set('director', e.target.value || null)} />
-        </Field>
-        <Field label="Runtime (min)">
-          <Input type="number" value={m.runtimeMinutes ?? ''} onChange={(e) => set('runtimeMinutes', e.target.value ? Number(e.target.value) : null)} />
-        </Field>
-        <Field label="Studio">
-          <Input value={m.studio ?? ''} onChange={(e) => set('studio', e.target.value || null)} />
-        </Field>
-        <Field label="Genres (comma separated)">
-          <Input value={m.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
-        </Field>
-        <Field label="Barcode">
-          <Input value={m.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
-        </Field>
+      <div className="flex flex-col-reverse sm:flex-row gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 w-full">
+          <Field label="Title">
+            <Input value={m.title} onChange={(e) => set('title', e.target.value)} required />
+          </Field>
+          <Field label="Original title">
+            <Input value={m.originalTitle ?? ''} onChange={(e) => set('originalTitle', e.target.value || null)} />
+          </Field>
+          <Field label="Year">
+            <Input type="number" value={m.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
+          </Field>
+          <Field label="Director">
+            <Input value={m.director ?? ''} onChange={(e) => set('director', e.target.value || null)} />
+          </Field>
+          <Field label="Runtime (min)">
+            <Input type="number" value={m.runtimeMinutes ?? ''} onChange={(e) => set('runtimeMinutes', e.target.value ? Number(e.target.value) : null)} />
+          </Field>
+          <Field label="Studio">
+            <Input value={m.studio ?? ''} onChange={(e) => set('studio', e.target.value || null)} />
+          </Field>
+          <Field label="Genres (comma separated)">
+            <Input value={m.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
+          </Field>
+          <Field label="Barcode">
+            <Input value={m.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
+          </Field>
+        </div>
+        <CoverPreview
+          src={m.imagePath}
+          alt={m.title ? `${m.title} poster` : ''}
+          className="w-28 sm:w-36 shrink-0"
+        />
       </div>
 
       <div>

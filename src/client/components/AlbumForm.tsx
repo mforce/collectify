@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import { MUSIC_FORMATS, type Album } from '../services/types';
@@ -89,32 +89,39 @@ export default function AlbumForm({ initial, submitting, submitLabel = 'Save', o
         })}
       />
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Title">
-          <Input value={a.title} onChange={(e) => set('title', e.target.value)} required />
-        </Field>
-        <Field label="Artist">
-          <Input value={a.artistName} onChange={(e) => set('artistName', e.target.value)} required />
-        </Field>
-        <Field label="Year">
-          <Input type="number" value={a.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
-        </Field>
-        <Field label="Format">
-          <Select value={a.format} onChange={(e) => set('format', e.target.value as Album['format'])}>
-            {MUSIC_FORMATS.map((f) => (
-              <option key={f.value} value={f.value}>{f.label}</option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Label">
-          <Input value={a.label ?? ''} onChange={(e) => set('label', e.target.value || null)} />
-        </Field>
-        <Field label="Genres">
-          <Input value={a.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
-        </Field>
-        <Field label="Barcode">
-          <Input value={a.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
-        </Field>
+      <div className="flex flex-col-reverse sm:flex-row gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 w-full">
+          <Field label="Title">
+            <Input value={a.title} onChange={(e) => set('title', e.target.value)} required />
+          </Field>
+          <Field label="Artist">
+            <Input value={a.artistName} onChange={(e) => set('artistName', e.target.value)} required />
+          </Field>
+          <Field label="Year">
+            <Input type="number" value={a.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
+          </Field>
+          <Field label="Format">
+            <Select value={a.format} onChange={(e) => set('format', e.target.value as Album['format'])}>
+              {MUSIC_FORMATS.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Label">
+            <Input value={a.label ?? ''} onChange={(e) => set('label', e.target.value || null)} />
+          </Field>
+          <Field label="Genres">
+            <Input value={a.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
+          </Field>
+          <Field label="Barcode">
+            <Input value={a.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
+          </Field>
+        </div>
+        <CoverPreview
+          src={a.imagePath}
+          alt={a.title ? `${a.title} cover` : ''}
+          className="w-28 sm:w-36 shrink-0"
+        />
       </div>
 
       <PersonalAcquisitionSection value={a} onChange={patch} />
