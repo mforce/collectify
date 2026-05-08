@@ -47,4 +47,10 @@ public interface IGameMetadataProvider
     string Name { get; }
     bool IsConfigured { get; }
     Task<IReadOnlyList<GameLookupResult>> SearchAsync(string query, CancellationToken ct = default);
+
+    /// <summary>
+    /// Direct lookup by the provider's identifier (e.g. an IGDB game id).
+    /// Returns null when the provider doesn't recognise the id.
+    /// </summary>
+    Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default);
 }

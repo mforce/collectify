@@ -122,3 +122,13 @@ export async function lookupAlbumByMbid(mbid: string): Promise<LookupByIdOutcome
   if (!trimmed) return { kind: 'not-found' };
   return lookupOneOf<MusicLookupResult>(`/api/lookup/music/by-id/${encodeURIComponent(trimmed)}`);
 }
+
+/**
+ * Direct lookup of a game by its IGDB id. Mirrors {@link lookupMovieById}
+ * for the game form's Fetch metadata button.
+ */
+export async function lookupGameByIgdbId(igdbId: string): Promise<LookupByIdOutcome<GameLookupResult>> {
+  const trimmed = igdbId.trim();
+  if (!trimmed) return { kind: 'not-found' };
+  return lookupOneOf<GameLookupResult>(`/api/lookup/games/by-id/${encodeURIComponent(trimmed)}`);
+}
