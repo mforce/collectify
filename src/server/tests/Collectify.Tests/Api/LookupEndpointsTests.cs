@@ -372,4 +372,114 @@ public class LookupEndpointsTests
         Assert.True(body!.Configured);
         Assert.Empty(body.Results);
     }
+
+    // ---------- /api/lookup/{type}/by-barcode/{code} ----------
+
+    [Theory]
+    [InlineData("/api/lookup/movies/by-barcode/0883929473076")]
+    [InlineData("/api/lookup/music/by-barcode/634904012623")]
+    [InlineData("/api/lookup/games/by-barcode/0883929473076")]
+    public async Task GetByBarcode_Unauthenticated_ReturnsUnauthorized(string url)
+    {
+        await using var factory = new CollectifyApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync(url);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetMovieByBarcode_WithoutConfiguredProvider_ReturnsConfiguredFalseAndEmpty()
+    {
+        // Default factory leaves TMDB unconfigured; the endpoint must not
+        // 404 -- it returns configured=false so the UI can hint.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<MovieLookupResult>>(
+            "/api/lookup/movies/by-barcode/0883929473076");
+
+        Assert.NotNull(body);
+        Assert.False(body!.Configured);
+        Assert.Empty(body.Results);
+    }
+
+    [Fact]
+    public async Task GetMovieByBarcode_WithConfiguredProvider_ReturnsScriptedResults()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.MovieLookupResult(
+            Provider: "tmdb",
+            ProviderKey: "27205",
+            Title: "Inception",
+            OriginalTitle: "Inception",
+            Year: 2010,
+            Director: null,
+            RuntimeMinutes: null,
+            Description: null,
+            ImageUrl: null,
+            Genres: null);
+        await using var factory = new CollectifyApiFactory { MovieProvider = ScriptedMovieProvider.WithBarcodeResults(seeded) };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<MovieLookupResult>>(
+            "/api/lookup/movies/by-barcode/0883929473076");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        var hit = Assert.Single(body.Results);
+        Assert.Equal("Inception", hit.Title);
+    }
+
+    [Fact]
+    public async Task GetMusicByBarcode_WithConfiguredProvider_ReturnsScriptedResults()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.MusicLookupResult(
+            Provider: "musicbrainz",
+            ProviderKey: "f4e51c80-99e2-39e1-8062-c9b8e2685bdf",
+            Title: "OK Computer",
+            ArtistName: "Radiohead",
+            Year: 1997,
+            Label: "Parlophone",
+            Description: null,
+            ImageUrl: null,
+            Genres: null);
+        await using var factory = new CollectifyApiFactory { MusicProvider = ScriptedMusicProvider.WithBarcodeResults(seeded) };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<MusicLookupResult>>(
+            "/api/lookup/music/by-barcode/634904012623");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        var hit = Assert.Single(body.Results);
+        Assert.Equal("OK Computer", hit.Title);
+        Assert.Equal("Radiohead", hit.ArtistName);
+    }
+
+    [Fact]
+    public async Task GetGameByBarcode_WithConfiguredProvider_ReturnsScriptedResults()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            Provider: "igdb",
+            ProviderKey: "1942",
+            Title: "The Witcher 3: Wild Hunt",
+            Platform: "PC",
+            Year: 2015,
+            Publisher: null,
+            Developer: "CD Projekt Red",
+            Description: null,
+            ImageUrl: null,
+            Genres: null);
+        await using var factory = new CollectifyApiFactory { GameProvider = ScriptedGameProvider.WithBarcodeResults(seeded) };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<GameLookupResult>>(
+            "/api/lookup/games/by-barcode/0883929473076");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        var hit = Assert.Single(body.Results);
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+    }
 }

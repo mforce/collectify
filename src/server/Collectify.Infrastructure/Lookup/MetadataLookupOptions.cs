@@ -14,6 +14,7 @@ public sealed class MetadataLookupOptions
     public TmdbOptions Tmdb { get; set; } = new();
     public MusicBrainzOptions MusicBrainz { get; set; } = new();
     public IgdbOptions Igdb { get; set; } = new();
+    public UpcOptions Upc { get; set; } = new();
 }
 
 public sealed class TmdbOptions
@@ -38,4 +39,14 @@ public sealed class IgdbOptions
     public string? TwitchClientId { get; set; }
     public string? TwitchClientSecret { get; set; }
     public string BaseUrl { get; set; } = "https://api.igdb.com/v4/";
+}
+
+/// <summary>
+/// Bound from "Collectify:Metadata:Upc". The trial endpoint has no key
+/// (it's IP rate-limited), so the only configurable bit is the BaseUrl
+/// for tests / future paid-tier swaps.
+/// </summary>
+public sealed class UpcOptions
+{
+    public string BaseUrl { get; set; } = "https://api.upcitemdb.com/";
 }

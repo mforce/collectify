@@ -28,7 +28,7 @@ public class TmdbMovieProviderTests : IDisposable
 
     public void Dispose() => _connection.Dispose();
 
-    private TmdbMovieProvider NewProvider(StubHandler handler, MetadataLookupOptions? overrideOptions = null)
+    private TmdbMovieProvider NewProvider(StubHandler handler, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
         var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
@@ -36,8 +36,26 @@ public class TmdbMovieProviderTests : IDisposable
         {
             Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
         };
-        return new TmdbMovieProvider(http, cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
+        return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
+
+    // Reused by the barcode tests below; the search-by-title pipeline that
+    // backs SearchByBarcodeAsync hits /search/movie with whatever title the
+    // UPC client surfaces, so a single stub body is enough.
+    private const string BarcodeSearchJson = """
+        {
+          "results": [
+            {
+              "id": 27205,
+              "title": "Inception",
+              "original_title": "Inception",
+              "release_date": "2010-07-15",
+              "overview": "A heist on the subconscious.",
+              "poster_path": "/poster123.jpg"
+            }
+          ]
+        }
+        """;
 
     [Fact]
     public async Task IsConfigured_ReflectsApiKeyPresence()
@@ -470,6 +488,76 @@ public class TmdbMovieProviderTests : IDisposable
         Assert.Equal(2, handler.RequestedUrls.Count); // still 2 -- served from cache
     }
 
+    // ---------- SearchByBarcodeAsync ----------
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_NotConfigured_ShortCircuitsAndDoesNotHitUpc()
+    {
+        var upc = FakeUpcClient.Returning("Inception");
+        var provider = NewProvider(new StubHandler(BarcodeSearchJson), new MetadataLookupOptions(), upc);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("0883929473076"));
+        Assert.Empty(upc.RequestedBarcodes);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_BlankBarcode_ReturnsEmptyWithoutCalling()
+    {
+        var upc = FakeUpcClient.Returning("Inception");
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, upc: upc);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("  "));
+        Assert.Empty(upc.RequestedBarcodes);
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_UpcMiss_ReturnsEmptyWithoutTitleSearch()
+    {
+        // UPCitemdb didn't recognise the code; we mustn't fall back to
+        // searching TMDB with an empty string.
+        var upc = FakeUpcClient.NotRecognised();
+        var handler = new StubHandler("never called");
+        var provider = NewProvider(handler, upc: upc);
+
+        Assert.Empty(await provider.SearchByBarcodeAsync("0000000000000"));
+        Assert.Single(upc.RequestedBarcodes);
+        Assert.Empty(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_DispatchesToTmdbTitleSearch_WithUpcTitle()
+    {
+        var upc = FakeUpcClient.Returning("Inception");
+        var handler = new StubHandler(BarcodeSearchJson);
+        var provider = NewProvider(handler, upc: upc);
+
+        var hits = await provider.SearchByBarcodeAsync("0883929473076");
+
+        Assert.Single(hits);
+        Assert.Equal("Inception", hits[0].Title);
+        var url = Assert.Single(handler.RequestedUrls);
+        Assert.Contains("search/movie", url);
+        Assert.Contains("query=Inception", url);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_RepeatedCallsServeFromCache()
+    {
+        var upc = FakeUpcClient.Returning("Inception");
+        var handler = new StubHandler(BarcodeSearchJson);
+        var p1 = NewProvider(handler, upc: upc);
+        var p2 = NewProvider(handler, upc: upc); // shared sqlite cache
+
+        await p1.SearchByBarcodeAsync("0883929473076");
+        await p2.SearchByBarcodeAsync("0883929473076");
+
+        // Single TMDB hit across both invocations -- the second call is
+        // satisfied entirely by the barcode-namespaced cache entry.
+        Assert.Single(handler.RequestedUrls);
+    }
+
 
     private sealed class StubHandler : HttpMessageHandler
     {
@@ -529,7 +617,7 @@ public class TmdbMovieProviderTests : IDisposable
         }
     }
 
-    private TmdbMovieProvider NewProvider(RoutingStubHandler handler, MetadataLookupOptions? overrideOptions = null)
+    private TmdbMovieProvider NewProvider(RoutingStubHandler handler, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
         var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
@@ -537,6 +625,6 @@ public class TmdbMovieProviderTests : IDisposable
         {
             Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
         };
-        return new TmdbMovieProvider(http, cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
+        return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
 }

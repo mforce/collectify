@@ -132,3 +132,19 @@ export async function lookupGameByIgdbId(igdbId: string): Promise<LookupByIdOutc
   if (!trimmed) return { kind: 'not-found' };
   return lookupOneOf<GameLookupResult>(`/api/lookup/games/by-id/${encodeURIComponent(trimmed)}`);
 }
+
+/**
+ * Barcode lookup. Returns the full LookupResponse so the caller can show
+ * "not configured" hints, render multiple candidates when the same UPC is
+ * shared across editions, and handle the empty case differently from a
+ * fetch error. Used by the upcoming BarcodeScanner / Scan tab in the add
+ * wizard; the imperative shape mirrors {@link lookupMovieById}.
+ */
+export async function lookupByBarcode<T extends MediaType>(
+  type: T,
+  barcode: string,
+): Promise<LookupResponse<ResultMap[T]>> {
+  return api<LookupResponse<ResultMap[T]>>(
+    `/api/lookup/${type}/by-barcode/${encodeURIComponent(barcode.trim())}`,
+  );
+}

@@ -65,6 +65,24 @@ public static class LookupEndpoints
             return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, true, results));
         });
 
+        // Barcode lookup. Movies don't have a native UPC index, so the
+        // provider falls back to UPCitemdb -> product title -> its own
+        // title search. Returns up to 10 candidates so the user can pick
+        // the right edition (the UPC may be shared across box-sets).
+        group.MapGet("/movies/by-barcode/{code}", async (
+            string code,
+            IMovieMetadataProvider provider,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return Results.BadRequest(new { error = "Barcode is required." });
+            if (!provider.IsConfigured)
+                return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, false, []));
+
+            var results = await provider.SearchByBarcodeAsync(code.Trim(), ct);
+            return Results.Ok(new LookupResponse<MovieLookupResult>(provider.Name, true, results));
+        });
+
         group.MapGet("/music", async (
             [FromQuery] string? q,
             IMusicMetadataProvider provider,
@@ -97,6 +115,23 @@ public static class LookupEndpoints
             return Results.Ok(new LookupResponse<MusicLookupResult>(provider.Name, true, results));
         });
 
+        // Barcode lookup. MusicBrainz indexes barcodes natively (no UPC
+        // round-trip); the response shape stays parallel to the by-id and
+        // search routes so the frontend can reuse the same decoder.
+        group.MapGet("/music/by-barcode/{code}", async (
+            string code,
+            IMusicMetadataProvider provider,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return Results.BadRequest(new { error = "Barcode is required." });
+            if (!provider.IsConfigured)
+                return Results.Ok(new LookupResponse<MusicLookupResult>(provider.Name, false, []));
+
+            var results = await provider.SearchByBarcodeAsync(code.Trim(), ct);
+            return Results.Ok(new LookupResponse<MusicLookupResult>(provider.Name, true, results));
+        });
+
         group.MapGet("/games", async (
             [FromQuery] string? q,
             IGameMetadataProvider provider,
@@ -106,6 +141,23 @@ public static class LookupEndpoints
             if (!provider.IsConfigured)
                 return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, false, []));
             var results = await provider.SearchAsync(q!.Trim(), ct);
+            return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, results));
+        });
+
+        // Barcode lookup for games. IGDB doesn't index barcodes; the
+        // provider dispatches to UPCitemdb first, then runs its own
+        // Apicalypse title search.
+        group.MapGet("/games/by-barcode/{code}", async (
+            string code,
+            IGameMetadataProvider provider,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return Results.BadRequest(new { error = "Barcode is required." });
+            if (!provider.IsConfigured)
+                return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, false, []));
+
+            var results = await provider.SearchByBarcodeAsync(code.Trim(), ct);
             return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, results));
         });
 

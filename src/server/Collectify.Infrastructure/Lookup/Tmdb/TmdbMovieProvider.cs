@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Collectify.Infrastructure.Lookup.Upc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -17,17 +18,20 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
     public const string ProviderName = "tmdb";
 
     private readonly HttpClient _http;
+    private readonly IUpcLookupClient _upc;
     private readonly ILookupCache _cache;
     private readonly MetadataLookupOptions _options;
     private readonly ILogger<TmdbMovieProvider> _log;
 
     public TmdbMovieProvider(
         HttpClient http,
+        IUpcLookupClient upc,
         ILookupCache cache,
         IOptions<MetadataLookupOptions> options,
         ILogger<TmdbMovieProvider> log)
     {
         _http = http;
+        _upc = upc;
         _cache = cache;
         _options = options.Value;
         _log = log;
@@ -141,6 +145,30 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
 
         await _cache.SetAsync(ProviderName, cacheKey, detail, ct);
         return detail;
+    }
+
+    public async Task<IReadOnlyList<MovieLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default)
+    {
+        if (!IsConfigured) return [];
+        var trimmed = (barcode ?? string.Empty).Trim();
+        if (trimmed.Length == 0) return [];
+
+        // Cache the final list per barcode so a second scan of the same
+        // disc is a single DB hit -- no UPC lookup, no TMDB title search.
+        var cacheKey = "barcode:" + trimmed;
+        var cached = await _cache.GetAsync<List<MovieLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        if (cached is not null) return cached;
+
+        // TMDB doesn't index barcodes. Resolve the UPC via UPCitemdb to a
+        // product title, then run our regular title search. UPC client
+        // already caches its own response, so a re-scan stays under the
+        // 100/day trial quota even before this barcode-cache layer.
+        var upcHit = await _upc.LookupAsync(trimmed, ct);
+        if (upcHit is null) return [];
+
+        var hits = await SearchAsync(upcHit.Title, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, hits.ToList(), ct);
+        return hits;
     }
 
     private MovieLookupResult Map(TmdbMovieSummary s) => new(

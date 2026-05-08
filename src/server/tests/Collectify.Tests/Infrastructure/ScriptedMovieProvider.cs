@@ -13,6 +13,7 @@ public sealed class ScriptedMovieProvider : IMovieMetadataProvider
     public string Name { get; init; } = "tmdb";
     public bool IsConfigured { get; init; } = true;
     public IReadOnlyList<MovieLookupResult> SearchResults { get; init; } = [];
+    public IReadOnlyList<MovieLookupResult> ByBarcode { get; init; } = [];
     public MovieLookupResult? ById { get; init; }
     public MovieLookupResult? ByImdbId { get; init; }
 
@@ -25,6 +26,9 @@ public sealed class ScriptedMovieProvider : IMovieMetadataProvider
     public Task<MovieLookupResult?> GetByImdbIdAsync(string imdbId, CancellationToken ct = default)
         => Task.FromResult(ByImdbId);
 
+    public Task<IReadOnlyList<MovieLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default)
+        => Task.FromResult(ByBarcode);
+
     /// <summary>Configured + by-id returns the supplied result.</summary>
     public static ScriptedMovieProvider WithFoundResult(MovieLookupResult result) =>
         new() { ById = result };
@@ -36,4 +40,8 @@ public sealed class ScriptedMovieProvider : IMovieMetadataProvider
     /// <summary>Configured + by-imdb-id returns the supplied result.</summary>
     public static ScriptedMovieProvider WithImdbResult(MovieLookupResult result) =>
         new() { ByImdbId = result };
+
+    /// <summary>Configured + by-barcode returns the supplied results.</summary>
+    public static ScriptedMovieProvider WithBarcodeResults(params MovieLookupResult[] results) =>
+        new() { ByBarcode = results };
 }

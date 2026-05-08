@@ -12,6 +12,7 @@ public sealed class ScriptedGameProvider : IGameMetadataProvider
     public string Name { get; init; } = "igdb";
     public bool IsConfigured { get; init; } = true;
     public IReadOnlyList<GameLookupResult> SearchResults { get; init; } = [];
+    public IReadOnlyList<GameLookupResult> ByBarcode { get; init; } = [];
     public GameLookupResult? ById { get; init; }
 
     public Task<IReadOnlyList<GameLookupResult>> SearchAsync(string query, CancellationToken ct = default)
@@ -20,9 +21,15 @@ public sealed class ScriptedGameProvider : IGameMetadataProvider
     public Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
         => Task.FromResult(ById);
 
+    public Task<IReadOnlyList<GameLookupResult>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default)
+        => Task.FromResult(ByBarcode);
+
     public static ScriptedGameProvider WithFoundResult(GameLookupResult result) =>
         new() { ById = result };
 
     public static ScriptedGameProvider NotFound() =>
         new() { ById = null };
+
+    public static ScriptedGameProvider WithBarcodeResults(params GameLookupResult[] results) =>
+        new() { ByBarcode = results };
 }

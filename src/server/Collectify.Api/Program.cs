@@ -7,6 +7,7 @@ using Collectify.Infrastructure.Lookup.Igdb;
 using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.MusicBrainz;
 using Collectify.Infrastructure.Lookup.Tmdb;
+using Collectify.Infrastructure.Lookup.Upc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -67,6 +68,9 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
 });
 
 builder.Services.AddMetadataLookup(builder.Configuration);
+// UPC client first: TMDB and IGDB providers depend on it for barcode
+// lookups (MusicBrainz indexes barcodes natively and skips it).
+builder.Services.AddUpcItemDbLookup(builder.Configuration);
 builder.Services.AddTmdbMovieProvider(builder.Configuration);
 builder.Services.AddMusicBrainzMusicProvider(builder.Configuration);
 builder.Services.AddIgdbGameProvider(builder.Configuration);
