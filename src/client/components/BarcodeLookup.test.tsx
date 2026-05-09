@@ -153,6 +153,51 @@ describe('BarcodeLookup', () => {
     expect(await screen.findByText(/No match for 0000000000000/i)).toBeInTheDocument();
   });
 
+  it('exposes a soft-fallback button on miss when onBarcodeFallback is wired', async () => {
+    mockLookupByBarcode.mockResolvedValue({
+      provider: 'tmdb',
+      configured: true,
+      results: [],
+    });
+    const onBarcodeFallback = vi.fn();
+
+    render(
+      <BarcodeLookup
+        type="movies"
+        onPick={vi.fn()}
+        onBarcodeFallback={onBarcodeFallback}
+        fallbackLabel="Add with this barcode"
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Scan barcode/i }));
+    await waitFor(() => expect(fireDetection).not.toBeNull());
+    fireDetection!('0000000000000');
+
+    const fallback = await screen.findByRole('button', { name: /Add with this barcode/i });
+    await userEvent.click(fallback);
+
+    expect(onBarcodeFallback).toHaveBeenCalledTimes(1);
+    expect(onBarcodeFallback).toHaveBeenCalledWith('0000000000000');
+    // The miss UI is dismissed once the fallback fires.
+    expect(screen.queryByText(/No match for/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render the fallback button when onBarcodeFallback is omitted', async () => {
+    mockLookupByBarcode.mockResolvedValue({
+      provider: 'tmdb',
+      configured: true,
+      results: [],
+    });
+
+    render(<BarcodeLookup type="movies" onPick={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /Scan barcode/i }));
+    await waitFor(() => expect(fireDetection).not.toBeNull());
+    fireDetection!('0000000000000');
+
+    expect(await screen.findByText(/No match for/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add with this barcode/i })).not.toBeInTheDocument();
+  });
+
   it('renders an HTTPS hint when getUserMedia is unavailable', async () => {
     // Strip mediaDevices to simulate plain HTTP / non-secure context.
     Object.defineProperty(globalThis.navigator, 'mediaDevices', {

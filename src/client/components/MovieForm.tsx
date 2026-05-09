@@ -16,6 +16,12 @@ interface Props {
    * follow-up call lands.
    */
   prefillLookup?: MovieLookupResult;
+  /**
+   * Soft-fallback prefill: just the barcode, no metadata. Set when the
+   * list-page scanner couldn't resolve the UPC -- the user can finish
+   * via title search without retyping it.
+   */
+  prefillBarcode?: string;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit: (m: Movie) => void;
@@ -31,7 +37,7 @@ const empty: Movie = {
   tags: [],
 };
 
-export default function MovieForm({ initial, prefillLookup, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
+export default function MovieForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [m, setM] = useState<Movie>(initial ?? empty);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setM(initial); }, [initial]);
@@ -93,6 +99,16 @@ export default function MovieForm({ initial, prefillLookup, submitting, submitLa
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
 
+  // Soft-fallback prefill: when a list-page scan resolved but no
+  // candidates came back, the parent passes just the barcode. Drop it
+  // straight into the field so the user can finish via title search
+  // without retyping. Skipped when prefillLookup also fired -- the
+  // lookup result owns the barcode field in that case.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (prefillBarcode && !prefillLookup) set('barcode', prefillBarcode);
+  }, []);
+
   const runLookup = async (
     id: string,
     label: string,
@@ -145,6 +161,8 @@ export default function MovieForm({ initial, prefillLookup, submitting, submitLa
       <BarcodeLookup
         type="movies"
         onPick={importLookup}
+        onBarcodeFallback={(code) => set('barcode', code)}
+        fallbackLabel="Save this barcode anyway"
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
           secondary: r.description?.slice(0, 120),
