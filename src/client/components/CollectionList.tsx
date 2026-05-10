@@ -40,12 +40,25 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
     navigate(newPath, { state: { prefill: item } });
   };
 
+  // Soft fallback: when the scan resolves but no provider candidates
+  // come back (common for movies / games -- UPCitemdb coverage gaps),
+  // still salvage the scan by sending the user to /add with just the
+  // barcode pre-filled. They can finish via the reliable title search
+  // without having to retype the UPC.
+  const onBarcodeFallback = (code: string) => {
+    navigate(newPath, { state: { barcodeOnly: code } });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold text-white">{title}</h1>
         <div className="flex items-center gap-2">
-          <BarcodeLookup type={type} onPick={onBarcodePick} />
+          <BarcodeLookup
+            type={type}
+            onPick={onBarcodePick}
+            onBarcodeFallback={onBarcodeFallback}
+          />
           <Link to={newPath}>
             <Button>+ Add</Button>
           </Link>

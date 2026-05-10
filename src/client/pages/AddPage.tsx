@@ -10,6 +10,13 @@ import { Card } from '../components/ui';
 
 interface PrefillState {
   prefill?: MovieLookupResult | MusicLookupResult | GameLookupResult;
+  /**
+   * Soft-fallback hint from the list-page scanner: a barcode the user
+   * scanned that didn't match any provider. We seed only the barcode
+   * field so the user can finish via the reliable title search without
+   * retyping the UPC.
+   */
+  barcodeOnly?: string;
 }
 
 const titleByType: Record<MediaType, string> = {
@@ -22,7 +29,9 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
   const create = useCreate(type);
   const nav = useNavigate();
   const location = useLocation();
-  const prefill = (location.state as PrefillState | null)?.prefill;
+  const navState = location.state as PrefillState | null;
+  const prefill = navState?.prefill;
+  const prefillBarcode = navState?.barcodeOnly;
 
   // Persisted-feedback so the success banner can stay on screen briefly
   // before we redirect to the detail page.
@@ -78,6 +87,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         {type === 'movies' && (
           <MovieForm
             prefillLookup={prefill as MovieLookupResult | undefined}
+            prefillBarcode={prefillBarcode}
             submitting={create.isPending}
             submitLabel="Create"
             onSubmit={(m) =>
@@ -90,6 +100,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         {type === 'music' && (
           <AlbumForm
             prefillLookup={prefill as MusicLookupResult | undefined}
+            prefillBarcode={prefillBarcode}
             submitting={create.isPending}
             submitLabel="Create"
             onSubmit={(a) =>
@@ -102,6 +113,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         {type === 'games' && (
           <GameForm
             prefillLookup={prefill as GameLookupResult | undefined}
+            prefillBarcode={prefillBarcode}
             submitting={create.isPending}
             submitLabel="Create"
             onSubmit={(g) =>

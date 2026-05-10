@@ -21,6 +21,17 @@ interface Props<T extends MediaType> {
   onPick: (item: ResultMap[T]) => void;
   /** Optional row renderer; mirrors OnlineSearch so callers can share the same fn. */
   renderItem?: (item: ResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
+  /**
+   * Soft-fallback hook fired when the lookup returns 0 candidates for a
+   * scanned code (UPCitemdb's free coverage is patchy for movies / games
+   * in particular). Lets the parent salvage the scan -- e.g. the list
+   * page navigates to /add with the barcode pre-filled so the user can
+   * finish via the reliable title search without retyping the UPC.
+   * If omitted, a "no match" message is shown and that's it.
+   */
+  onBarcodeFallback?: (code: string) => void;
+  /** Label for the fallback button when onBarcodeFallback is wired. */
+  fallbackLabel?: string;
 }
 
 type Phase =
@@ -40,7 +51,13 @@ type Phase =
  * (Blu-ray + UHD + box-set), so we always render a list rather than
  * auto-importing the first hit.
  */
-export default function BarcodeLookup<T extends MediaType>({ type, onPick, renderItem }: Props<T>) {
+export default function BarcodeLookup<T extends MediaType>({
+  type,
+  onPick,
+  renderItem,
+  onBarcodeFallback,
+  fallbackLabel = 'Add with this barcode anyway',
+}: Props<T>) {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
 
@@ -86,7 +103,21 @@ export default function BarcodeLookup<T extends MediaType>({ type, onPick, rende
         </p>
       )}
       {phase.kind === 'results' && phase.configured && phase.results.length === 0 && (
-        <p className="text-xs text-slate-400">No match for {phase.code}.</p>
+        <div className="space-y-1">
+          <p className="text-xs text-slate-400">No match for {phase.code}.</p>
+          {onBarcodeFallback && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                onBarcodeFallback(phase.code);
+                setPhase({ kind: 'idle' });
+              }}
+            >
+              {fallbackLabel}
+            </Button>
+          )}
+        </div>
       )}
       {phase.kind === 'results' && phase.results.length > 0 && (
         <div className="rounded-md bg-slate-900 border border-slate-700 max-h-80 overflow-auto">

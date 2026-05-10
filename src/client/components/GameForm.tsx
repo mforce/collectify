@@ -20,6 +20,11 @@ interface Props {
    * picking from in-form search.
    */
   prefillLookup?: GameLookupResult;
+  /**
+   * Soft-fallback prefill: just the barcode, no metadata. Set when the
+   * list-page scanner couldn't resolve the UPC.
+   */
+  prefillBarcode?: string;
   submitting?: boolean;
   submitLabel?: string;
   onSubmit: (g: Game) => void;
@@ -34,7 +39,7 @@ const empty: Game = {
   tags: [],
 };
 
-export default function GameForm({ initial, prefillLookup, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
+export default function GameForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [g, setG] = useState<Game>(initial ?? empty);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setG(initial); }, [initial]);
@@ -57,6 +62,14 @@ export default function GameForm({ initial, prefillLookup, submitting, submitLab
   // Seed once on mount when a prefill arrives via navigation state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
+
+  // Soft-fallback prefill (list-page scan with no provider candidates):
+  // drop the barcode into the field so the user can finish via title
+  // search. Skipped when a full prefillLookup landed; that owns it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (prefillBarcode && !prefillLookup) set('barcode', prefillBarcode);
+  }, []);
 
   const runLookup = async (
     id: string,
@@ -109,6 +122,8 @@ export default function GameForm({ initial, prefillLookup, submitting, submitLab
       <BarcodeLookup
         type="games"
         onPick={importLookup}
+        onBarcodeFallback={(code) => set('barcode', code)}
+        fallbackLabel="Save this barcode anyway"
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
           secondary: [r.developer, r.platform].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
