@@ -1,14 +1,19 @@
 import { useDeleteTag, useTags } from '../services/tags';
+import { useToast } from '../components/toaster';
 import { Button, Card } from '../components/ui';
 import type { Tag } from '../services/types';
 
 export default function TagsPage() {
   const tags = useTags();
   const del = useDeleteTag();
+  const toast = useToast();
 
   const onDelete = (t: Tag) => {
     if (!confirm(`Delete tag "${t.name}"? It will be removed from every item it's attached to.`)) return;
-    del.mutate(t.id);
+    del.mutate(t.id, {
+      onSuccess: () => toast.success(`Tag "${t.name}" deleted.`),
+      onError: (err) => toast.error(`Failed to delete tag: ${(err as Error).message ?? 'unknown error'}`),
+    });
   };
 
   return (

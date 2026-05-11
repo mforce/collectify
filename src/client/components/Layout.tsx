@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth, useLogout } from '../services/auth';
+import { useToast } from './toaster';
 
 const navItem = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-2 rounded-md text-sm font-medium ${
@@ -10,6 +11,7 @@ const navItem = ({ isActive }: { isActive: boolean }) =>
 export default function Layout({ children }: { children: ReactNode }) {
   const { data: auth } = useAuth();
   const logout = useLogout();
+  const toast = useToast();
 
   return (
     <div className="min-h-full flex flex-col">
@@ -25,7 +27,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3 text-sm text-slate-400">
             <span className="hidden sm:inline">{auth?.userName}</span>
             <button
-              onClick={() => logout.mutate()}
+              onClick={() =>
+                logout.mutate(undefined, { onSuccess: () => toast.success('Signed out.') })
+              }
               className="text-slate-300 hover:text-white"
             >
               Sign out

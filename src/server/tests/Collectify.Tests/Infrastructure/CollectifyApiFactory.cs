@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -28,6 +29,13 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
     /// <summary>Optional override for tests that want a scripted game provider.</summary>
     public IGameMetadataProvider? GameProvider { get; init; }
 
+    /// <summary>
+    /// Toggles the <c>Collectify:Auth:AllowRegistration</c> flag. Defaults
+    /// to <c>false</c> so the registration endpoint stays 404 unless a
+    /// test deliberately opts in.
+    /// </summary>
+    public bool AllowRegistration { get; init; }
+
     public CollectifyApiFactory()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
@@ -37,6 +45,14 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Collectify:Auth:AllowRegistration"] = AllowRegistration ? "true" : "false",
+            });
+        });
 
         builder.ConfigureServices(services =>
         {

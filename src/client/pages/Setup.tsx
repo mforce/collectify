@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSetup } from '../services/auth';
+import { useToast } from '../components/toaster';
 import { Button, Card, Field, Input } from '../components/ui';
 
 export default function Setup() {
@@ -7,6 +8,7 @@ export default function Setup() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const setup = useSetup();
+  const toast = useToast();
   const mismatch = password.length > 0 && confirm.length > 0 && password !== confirm;
 
   return (
@@ -18,7 +20,11 @@ export default function Setup() {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!mismatch) setup.mutate({ userName, password });
+            if (!mismatch)
+              setup.mutate(
+                { userName, password },
+                { onSuccess: () => toast.success('Account created.') },
+              );
           }}
         >
           <Field label="Username">

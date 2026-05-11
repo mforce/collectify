@@ -2,6 +2,7 @@ using Collectify.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Collectify.Api.Endpoints;
 
@@ -9,22 +10,30 @@ public static class AuthEndpoints
 {
     public record SetupRequest(string UserName, string Password);
     public record LoginRequest(string UserName, string Password);
-    public record AuthState(bool NeedsSetup, bool IsAuthenticated, string? UserName);
+    public record RegisterRequest(string UserName, string Password);
+    public record AuthState(
+        bool NeedsSetup,
+        bool IsAuthenticated,
+        string? UserName,
+        bool AllowRegistration);
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/auth");
 
-        group.MapGet("/me", async (HttpContext ctx, UserManager<AppUser> users) =>
+        group.MapGet("/me", async (
+            HttpContext ctx,
+            UserManager<AppUser> users,
+            IOptions<AuthOptions> auth) =>
         {
             var anyUser = await users.Users.AnyAsync();
             if (!anyUser)
-                return Results.Ok(new AuthState(true, false, null));
+                return Results.Ok(new AuthState(true, false, null, auth.Value.AllowRegistration));
 
             if (ctx.User?.Identity?.IsAuthenticated == true)
-                return Results.Ok(new AuthState(false, true, ctx.User.Identity.Name));
+                return Results.Ok(new AuthState(false, true, ctx.User.Identity.Name, auth.Value.AllowRegistration));
 
-            return Results.Ok(new AuthState(false, false, null));
+            return Results.Ok(new AuthState(false, false, null, auth.Value.AllowRegistration));
         });
 
         group.MapPost("/setup", async (
@@ -60,6 +69,40 @@ public static class AuthEndpoints
         group.MapPost("/logout", async (SignInManager<AppUser> signIn) =>
         {
             await signIn.SignOutAsync();
+            return Results.Ok(new { ok = true });
+        });
+
+        // Public self-registration. Gated by Collectify:Auth:AllowRegistration
+        // so single-user installs aren't accidentally open. Returns 404
+        // when disabled, matching the "this URL doesn't exist" feel the
+        // client uses to decide whether to render the link.
+        group.MapPost("/register", async (
+            [FromBody] RegisterRequest req,
+            UserManager<AppUser> users,
+            SignInManager<AppUser> signIn,
+            IOptions<AuthOptions> auth) =>
+        {
+            if (!auth.Value.AllowRegistration)
+                return Results.NotFound();
+
+            // First-run still goes through /setup; refuse here so the
+            // admin bootstrap isn't bypassed by a stranger hitting the
+            // raw URL before the owner has set up their account.
+            if (!await users.Users.AnyAsync())
+                return Results.BadRequest(new { error = "First-run setup hasn't completed. Use /setup." });
+
+            if (string.IsNullOrWhiteSpace(req.UserName) || string.IsNullOrWhiteSpace(req.Password))
+                return Results.BadRequest(new { error = "Username and password required." });
+
+            // UserManager.CreateAsync enforces UserName uniqueness via
+            // the Identity schema, so duplicates fall through to the
+            // IdentityResult.Errors path.
+            var user = new AppUser { UserName = req.UserName };
+            var result = await users.CreateAsync(user, req.Password);
+            if (!result.Succeeded)
+                return Results.BadRequest(new { error = string.Join("; ", result.Errors.Select(e => e.Description)) });
+
+            await signIn.SignInAsync(user, isPersistent: true);
             return Results.Ok(new { ok = true });
         });
 

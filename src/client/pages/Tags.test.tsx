@@ -67,7 +67,10 @@ describe('TagsPage', () => {
     await userEvent.click(screen.getByLabelText('Delete tag sci-fi'));
 
     expect(window.confirm).toHaveBeenCalledOnce();
-    expect(mockMutate).toHaveBeenCalledWith(7);
+    // The page now passes onSuccess / onError options for toast wiring;
+    // assert on the id positional arg and ignore the options object.
+    expect(mockMutate).toHaveBeenCalledOnce();
+    expect(mockMutate.mock.calls[0][0]).toBe(7);
   });
 
   it('skips deletion when the user cancels the confirm dialog', async () => {

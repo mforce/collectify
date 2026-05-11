@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDelete, useItem, useUpdate } from '../services/collection';
+import { useToast } from '../components/toaster';
 import type { Album, Game, MediaType, Movie } from '../services/types';
 import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
@@ -13,6 +13,12 @@ const titleByType: Record<MediaType, string> = {
   games: 'Edit game',
 };
 
+const deletedByType: Record<MediaType, string> = {
+  movies: 'Movie deleted.',
+  music: 'Album deleted.',
+  games: 'Game deleted.',
+};
+
 export default function EditPage<T extends MediaType>({ type }: { type: T }) {
   const { id } = useParams<{ id: string }>();
   const idNum = id ? Number(id) : undefined;
@@ -20,28 +26,7 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
   const update = useUpdate(type);
   const del = useDelete(type);
   const nav = useNavigate();
-
-  // Save feedback shared between success and error so the visuals
-  // mirror AddPage. Success auto-clears; error sticks until the next
-  // attempt.
-  const [feedback, setFeedback] = useState<
-    | { kind: 'idle' }
-    | { kind: 'success'; message: string }
-    | { kind: 'error'; message: string }
-  >({ kind: 'idle' });
-
-  useEffect(() => {
-    if (update.error) {
-      setFeedback({ kind: 'error', message: (update.error as Error).message });
-    }
-  }, [update.error]);
-
-  // Auto-clear the success banner so it doesn't linger forever.
-  useEffect(() => {
-    if (feedback.kind !== 'success') return;
-    const t = setTimeout(() => setFeedback({ kind: 'idle' }), 2000);
-    return () => clearTimeout(t);
-  }, [feedback.kind]);
+  const toast = useToast();
 
   if (item.isLoading) return <p className="text-slate-400">Loading…</p>;
   if (item.error || !item.data) return <p className="text-rose-400">Not found.</p>;
@@ -49,40 +34,29 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
   const onDelete = () => {
     if (!idNum) return;
     if (!confirm('Delete this entry?')) return;
-    del.mutate(idNum, { onSuccess: () => nav(`/${type}`) });
+    del.mutate(idNum, {
+      onSuccess: () => {
+        toast.success(deletedByType[type]);
+        nav(`/${type}`);
+      },
+      onError: (err) => toast.error(`Failed to delete: ${(err as Error).message ?? 'unknown error'}`),
+    });
   };
 
-  const onSaved = () => setFeedback({ kind: 'success', message: 'Saved.' });
+  const onSaved = () => toast.success('Saved.');
+  const onSaveFailure = (err: unknown) =>
+    toast.error(`Failed to save: ${(err as Error).message ?? 'unknown error'}`);
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold text-white">{titleByType[type]}</h1>
-
-      {feedback.kind === 'success' && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200"
-        >
-          {feedback.message}
-        </div>
-      )}
-      {feedback.kind === 'error' && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
-        >
-          Failed to save: {feedback.message}
-        </div>
-      )}
 
       <Card>
         {type === 'movies' && (
           <MovieForm
             initial={item.data as Movie}
             submitting={update.isPending}
-            onSubmit={(m) => update.mutate({ ...m, id: idNum! } as any, { onSuccess: onSaved })}
+            onSubmit={(m) => update.mutate({ ...m, id: idNum! } as any, { onSuccess: onSaved, onError: onSaveFailure })}
             onDelete={onDelete}
           />
         )}
@@ -90,7 +64,7 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
           <AlbumForm
             initial={item.data as Album}
             submitting={update.isPending}
-            onSubmit={(a) => update.mutate({ ...a, id: idNum! } as any, { onSuccess: onSaved })}
+            onSubmit={(a) => update.mutate({ ...a, id: idNum! } as any, { onSuccess: onSaved, onError: onSaveFailure })}
             onDelete={onDelete}
           />
         )}
@@ -98,7 +72,7 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
           <GameForm
             initial={item.data as Game}
             submitting={update.isPending}
-            onSubmit={(g) => update.mutate({ ...g, id: idNum! } as any, { onSuccess: onSaved })}
+            onSubmit={(g) => update.mutate({ ...g, id: idNum! } as any, { onSuccess: onSaved, onError: onSaveFailure })}
             onDelete={onDelete}
           />
         )}
