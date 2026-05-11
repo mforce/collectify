@@ -79,6 +79,7 @@ builder.Services.AddIgdbGameProvider(builder.Configuration);
 // rest of the data so a backup of collectify.db is a complete snapshot.
 builder.Services.AddHttpClient(CoverImageStore.HttpClientName);
 builder.Services.AddScoped<ICoverImageStore, CoverImageStore>();
+builder.Services.AddScoped<CoverImageGarbageCollector>();
 
 var app = builder.Build();
 
@@ -90,6 +91,10 @@ using (var scope = app.Services.CreateScope())
     // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
     // No-ops on a fresh DB or once everything's resolved.
     await GamePlatformBackfill.RunAsync(db);
+    // Drop CoverImages rows no longer referenced by any owning entity.
+    // Keeps the CoverImages table bounded as users re-scan / relookup
+    // metadata over time.
+    await scope.ServiceProvider.GetRequiredService<CoverImageGarbageCollector>().SweepAsync(db);
 }
 
 app.UseAuthentication();
@@ -102,6 +107,7 @@ app.MapGamesEndpoints();
 app.MapTagEndpoints();
 app.MapLookupEndpoints();
 app.MapCoversEndpoints();
+app.MapDashboardEndpoints();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
