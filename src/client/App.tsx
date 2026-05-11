@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './services/auth';
 import Layout from './components/Layout';
+import { Toaster } from './components/toaster';
 import Dashboard from './pages/Dashboard';
 import Setup from './pages/Setup';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import MoviesList from './pages/MoviesList';
 import MusicList from './pages/MusicList';
 import GamesList from './pages/GamesList';
@@ -18,21 +20,30 @@ export default function App() {
     return <div className="p-8 text-slate-400">Loading…</div>;
   }
 
+  // Toaster is mounted outside the auth-state branches so success
+  // toasts survive the navigate after login / logout / setup.
   if (auth?.needsSetup) {
     return (
-      <Routes>
-        <Route path="/setup" element={<Setup />} />
-        <Route path="*" element={<Navigate to="/setup" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/setup" element={<Setup />} />
+          <Route path="*" element={<Navigate to="/setup" replace />} />
+        </Routes>
+        <Toaster />
+      </>
     );
   }
 
   if (!auth?.isAuthenticated) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          {auth?.allowRegistration && <Route path="/register" element={<Register />} />}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+        <Toaster />
+      </>
     );
   }
 
@@ -52,6 +63,7 @@ export default function App() {
         <Route path="/tags" element={<TagsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Toaster />
     </Layout>
   );
 }

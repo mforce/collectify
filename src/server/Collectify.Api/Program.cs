@@ -28,6 +28,9 @@ builder.Services.AddDbContext<CollectifyDbContext>(opt =>
     opt.UseSqlite($"Data Source={dbPath}");
 });
 
+builder.Services.AddOptions<AuthOptions>()
+    .Bind(builder.Configuration.GetSection(AuthOptions.SectionName));
+
 builder.Services
     .AddIdentityCore<AppUser>(opt =>
     {

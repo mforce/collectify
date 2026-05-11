@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { useLogin } from '../services/auth';
+import { Link } from 'react-router-dom';
+import { useAuth, useLogin } from '../services/auth';
+import { useToast } from '../components/toaster';
 import { Button, Card, Field, Input } from '../components/ui';
 
 export default function Login() {
   const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
   const login = useLogin();
+  const { data: auth } = useAuth();
+  const toast = useToast();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -15,7 +19,12 @@ export default function Login() {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            login.mutate({ userName, password });
+            login.mutate(
+              { userName, password },
+              {
+                onSuccess: () => toast.success(`Welcome back, ${userName}.`),
+              },
+            );
           }}
         >
           <Field label="Username">
@@ -29,6 +38,14 @@ export default function Login() {
             {login.isPending ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
+        {auth?.allowRegistration && (
+          <p className="mt-4 text-sm text-slate-400 text-center">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-indigo-300 hover:text-indigo-200 underline">
+              Create one
+            </Link>
+          </p>
+        )}
       </Card>
     </div>
   );

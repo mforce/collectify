@@ -5,6 +5,8 @@ export interface AuthState {
   needsSetup: boolean;
   isAuthenticated: boolean;
   userName: string | null;
+  /** True when the server's Collectify:Auth:AllowRegistration flag is on. */
+  allowRegistration: boolean;
 }
 
 export function useAuth() {
@@ -37,5 +39,19 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api('/api/auth/logout', { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+/**
+ * Self-registration mutation. Only meaningful when the server's
+ * AllowRegistration flag is on; with the flag off the underlying
+ * endpoint returns 404 and this surfaces as a fetch error.
+ */
+export function useRegister() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { userName: string; password: string }) =>
+      api('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['auth'] }),
   });
 }
