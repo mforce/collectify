@@ -48,6 +48,16 @@ public static class GamesEndpoints
             [FromQuery] string? query,
             [FromQuery] GamePlatform? platform,
             [FromQuery] bool? digital,
+            [FromQuery] int? year,
+            [FromQuery] int? yearFrom,
+            [FromQuery] int? yearTo,
+            [FromQuery] string? publisher,
+            [FromQuery] string? developer,
+            [FromQuery] CollectionStatus? status,
+            [FromQuery] CompletionStatus? completionStatus,
+            [FromQuery] DigitalStore? digitalStore,
+            [FromQuery] int? ratingMin,
+            [FromQuery(Name = "tag")] string[]? tag,
             CollectifyDbContext db,
             UserManager<AppUser> users,
             HttpContext ctx) =>
@@ -63,6 +73,29 @@ public static class GamesEndpoints
             }
             if (platform.HasValue) q = q.Where(g => g.Platform == platform.Value);
             if (digital.HasValue) q = q.Where(g => g.IsDigital == digital.Value);
+            if (year.HasValue) q = q.Where(g => g.Year == year);
+            if (yearFrom.HasValue) q = q.Where(g => g.Year != null && g.Year >= yearFrom);
+            if (yearTo.HasValue) q = q.Where(g => g.Year != null && g.Year <= yearTo);
+            if (!string.IsNullOrWhiteSpace(publisher))
+            {
+                var like = $"%{publisher}%";
+                q = q.Where(g => g.Publisher != null && EF.Functions.Like(g.Publisher, like));
+            }
+            if (!string.IsNullOrWhiteSpace(developer))
+            {
+                var like = $"%{developer}%";
+                q = q.Where(g => g.Developer != null && EF.Functions.Like(g.Developer, like));
+            }
+            if (status.HasValue) q = q.Where(g => g.Status == status.Value);
+            if (completionStatus.HasValue) q = q.Where(g => g.CompletionStatus == completionStatus.Value);
+            if (digitalStore.HasValue) q = q.Where(g => g.DigitalStore == digitalStore.Value);
+            if (ratingMin is { } rm) q = q.Where(g => g.PersonalRating != null && g.PersonalRating >= rm);
+            if (tag is { Length: > 0 })
+            {
+                var normalised = tag.Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToArray();
+                if (normalised.Length > 0)
+                    q = q.Where(g => g.Tags.Any(t => normalised.Contains(t.Name)));
+            }
 
             var items = await q.OrderByDescending(g => g.AddedAt).Take(500).ToListAsync();
             return Results.Ok(items.Select(ToDto));

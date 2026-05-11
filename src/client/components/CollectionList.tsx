@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useList } from '../services/collection';
+import { useFiltersState } from '../services/filters';
 import { Button, Card, Input, StatusPill, TagChip } from './ui';
 import BarcodeLookup from './BarcodeLookup';
+import FiltersPanel from './FiltersPanel';
 import type { CollectionItemBase, MediaType } from '../services/types';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
 
@@ -27,7 +29,8 @@ interface Props<T extends MediaType> {
 
 export default function CollectionList<T extends MediaType>({ type, title, newPath, renderItem }: Props<T>) {
   const [query, setQuery] = useState('');
-  const list = useList(type, query);
+  const { filters, setFilters, clear } = useFiltersState(type);
+  const list = useList(type, query, filters);
   const items = list.data ?? [];
   const navigate = useNavigate();
 
@@ -69,6 +72,13 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
         placeholder={`Search ${title.toLowerCase()}…`}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+      />
+
+      <FiltersPanel
+        type={type}
+        value={filters}
+        onChange={setFilters}
+        onClear={clear}
       />
 
       {list.isLoading && <p className="text-slate-400">Loading…</p>}

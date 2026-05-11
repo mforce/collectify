@@ -49,6 +49,15 @@ public static class MoviesEndpoints
             [FromQuery] string? query,
             [FromQuery] MovieFormat? format,
             [FromQuery] int? year,
+            [FromQuery] int? yearFrom,
+            [FromQuery] int? yearTo,
+            [FromQuery] string? director,
+            [FromQuery] string? studio,
+            [FromQuery] string? genre,
+            [FromQuery] CollectionStatus? status,
+            [FromQuery] WatchStatus? watchStatus,
+            [FromQuery] int? ratingMin,
+            [FromQuery(Name = "tag")] string[]? tag,
             CollectifyDbContext db,
             UserManager<AppUser> users,
             HttpContext ctx) =>
@@ -64,7 +73,40 @@ public static class MoviesEndpoints
             }
             if (format.HasValue && format.Value != MovieFormat.None)
                 q = q.Where(m => (m.Formats & format.Value) != 0);
+            // Legacy single-year stays for back-compat; yearFrom/yearTo
+            // is the new range-style filter.
             if (year.HasValue) q = q.Where(m => m.Year == year);
+            if (yearFrom.HasValue) q = q.Where(m => m.Year != null && m.Year >= yearFrom);
+            if (yearTo.HasValue) q = q.Where(m => m.Year != null && m.Year <= yearTo);
+            if (!string.IsNullOrWhiteSpace(director))
+            {
+                var like = $"%{director}%";
+                q = q.Where(m => m.Director != null && EF.Functions.Like(m.Director, like));
+            }
+            if (!string.IsNullOrWhiteSpace(studio))
+            {
+                var like = $"%{studio}%";
+                q = q.Where(m => m.Studio != null && EF.Functions.Like(m.Studio, like));
+            }
+            if (!string.IsNullOrWhiteSpace(genre))
+            {
+                // Genres is stored as a comma-separated string; substring
+                // match is good enough for the volume here.
+                var like = $"%{genre}%";
+                q = q.Where(m => m.Genres != null && EF.Functions.Like(m.Genres, like));
+            }
+            if (status.HasValue) q = q.Where(m => m.Status == status.Value);
+            if (watchStatus.HasValue) q = q.Where(m => m.WatchStatus == watchStatus.Value);
+            if (ratingMin is { } rm) q = q.Where(m => m.PersonalRating != null && m.PersonalRating >= rm);
+            if (tag is { Length: > 0 })
+            {
+                // OR semantics within the multi-value filter: an item
+                // matches if any of its tags is in the requested set.
+                // Normalised to lower-case to match TagResolver.
+                var normalised = tag.Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToArray();
+                if (normalised.Length > 0)
+                    q = q.Where(m => m.Tags.Any(t => normalised.Contains(t.Name)));
+            }
 
             var items = await q.OrderByDescending(m => m.AddedAt).Take(500).ToListAsync();
             return Results.Ok(items.Select(ToDto));
