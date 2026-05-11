@@ -124,10 +124,71 @@ export const DIGITAL_STORES: { value: DigitalStore; label: string }[] = [
   { value: 'Other', label: 'Other' },
 ];
 
+// Mirrors Collectify.Domain.Enums.GamePlatform. Order of the array
+// drives the <Select> dropdown; tweak freely without breaking storage
+// since the JSON wire format uses the string names, not indices.
+export type GamePlatform =
+  | 'Other'
+  | 'Pc' | 'Mac' | 'Linux' | 'Mobile'
+  | 'XboxOriginal' | 'Xbox360' | 'XboxOne' | 'XboxSeriesXS'
+  | 'Ps1' | 'Ps2' | 'Ps3' | 'Ps4' | 'Ps5' | 'Psp' | 'PsVita'
+  | 'Nes' | 'Snes' | 'N64' | 'GameCube' | 'Wii' | 'WiiU' | 'Switch' | 'Switch2'
+  | 'GameBoy' | 'GameBoyColor' | 'GameBoyAdvance' | 'NintendoDs' | 'Nintendo3Ds'
+  | 'SegaGenesis' | 'SegaSaturn' | 'SegaDreamcast'
+  | 'SteamDeck';
+
+export const GAME_PLATFORMS: { value: GamePlatform; label: string; group?: string }[] = [
+  { value: 'Pc',             label: 'PC',                       group: 'Computer' },
+  { value: 'Mac',            label: 'Mac',                      group: 'Computer' },
+  { value: 'Linux',          label: 'Linux',                    group: 'Computer' },
+  { value: 'Mobile',         label: 'Mobile',                   group: 'Computer' },
+  { value: 'SteamDeck',      label: 'Steam Deck',               group: 'Computer' },
+
+  { value: 'XboxOriginal',   label: 'Xbox (original)',          group: 'Xbox' },
+  { value: 'Xbox360',        label: 'Xbox 360',                 group: 'Xbox' },
+  { value: 'XboxOne',        label: 'Xbox One',                 group: 'Xbox' },
+  { value: 'XboxSeriesXS',   label: 'Xbox Series X|S',          group: 'Xbox' },
+
+  { value: 'Ps1',            label: 'PlayStation',              group: 'PlayStation' },
+  { value: 'Ps2',            label: 'PlayStation 2',            group: 'PlayStation' },
+  { value: 'Ps3',            label: 'PlayStation 3',            group: 'PlayStation' },
+  { value: 'Ps4',            label: 'PlayStation 4',            group: 'PlayStation' },
+  { value: 'Ps5',            label: 'PlayStation 5',            group: 'PlayStation' },
+  { value: 'Psp',            label: 'PSP',                      group: 'PlayStation' },
+  { value: 'PsVita',         label: 'PS Vita',                  group: 'PlayStation' },
+
+  { value: 'Nes',            label: 'NES',                      group: 'Nintendo' },
+  { value: 'Snes',           label: 'SNES',                     group: 'Nintendo' },
+  { value: 'N64',            label: 'Nintendo 64',              group: 'Nintendo' },
+  { value: 'GameCube',       label: 'GameCube',                 group: 'Nintendo' },
+  { value: 'Wii',            label: 'Wii',                      group: 'Nintendo' },
+  { value: 'WiiU',           label: 'Wii U',                    group: 'Nintendo' },
+  { value: 'Switch',         label: 'Switch',                   group: 'Nintendo' },
+  { value: 'Switch2',        label: 'Switch 2',                 group: 'Nintendo' },
+  { value: 'GameBoy',        label: 'Game Boy',                 group: 'Nintendo' },
+  { value: 'GameBoyColor',   label: 'Game Boy Color',           group: 'Nintendo' },
+  { value: 'GameBoyAdvance', label: 'Game Boy Advance',         group: 'Nintendo' },
+  { value: 'NintendoDs',     label: 'Nintendo DS',              group: 'Nintendo' },
+  { value: 'Nintendo3Ds',    label: 'Nintendo 3DS',             group: 'Nintendo' },
+
+  { value: 'SegaGenesis',    label: 'Sega Genesis / Mega Drive',group: 'Sega' },
+  { value: 'SegaSaturn',     label: 'Sega Saturn',              group: 'Sega' },
+  { value: 'SegaDreamcast',  label: 'Sega Dreamcast',           group: 'Sega' },
+
+  { value: 'Other',          label: 'Other' },
+];
+
+export function gamePlatformLabel(value: GamePlatform): string {
+  return GAME_PLATFORMS.find((p) => p.value === value)?.label ?? value;
+}
+
 export interface Game extends CollectionItemBase {
   id?: number;
   title: string;
-  platform?: string | null;
+  platform: GamePlatform;
+  /** Original free-text platform preserved at migration time when it
+   * couldn't map to the enum. Read-only; saving clears it. */
+  platformLegacy?: string | null;
   year?: number | null;
   publisher?: string | null;
   developer?: string | null;

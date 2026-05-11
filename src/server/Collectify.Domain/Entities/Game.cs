@@ -8,7 +8,15 @@ public class Game
     public string OwnerId { get; set; } = string.Empty;
 
     public string Title { get; set; } = string.Empty;
-    public string? Platform { get; set; }
+    public GamePlatform Platform { get; set; } = GamePlatform.Other;
+    /// <summary>
+    /// Original free-text platform string preserved at migration time when
+    /// it didn't map cleanly to a <see cref="GamePlatform"/>. Lets users
+    /// see what they originally typed and re-classify by hand. New rows
+    /// don't write to this; it's pre-existing-data-only and is slated for
+    /// removal in a follow-up once the legacy values have been resolved.
+    /// </summary>
+    public string? PlatformLegacy { get; set; }
     public int? Year { get; set; }
     public string? Publisher { get; set; }
     public string? Developer { get; set; }

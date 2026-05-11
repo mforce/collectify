@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Lookup.Upc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -202,9 +203,15 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
             Provider: ProviderName,
             ProviderKey: g.Id.ToString(),
             Title: g.Name ?? string.Empty,
-            // IGDB returns N platforms per release; the form has one text
-            // field, so surface the first. Users can correct it manually.
-            Platform: g.Platforms?.FirstOrDefault()?.Name,
+            // IGDB returns N platforms per release. Walk them in order
+            // and surface the first one that maps cleanly to our enum;
+            // if none does, leave it null so the form's dropdown stays
+            // unselected (better than auto-defaulting to Other). The
+            // mapping resolver is normalisation-tolerant -- "PlayStation
+            // 5", "playstation-5", " PS_5 " all hit the same value.
+            Platform: g.Platforms?
+                .Select(p => GamePlatformMapping.TryParse(p.Name))
+                .FirstOrDefault(v => v.HasValue),
             Year: ToYear(g.FirstReleaseDate),
             Publisher: pubs is { Count: > 0 } ? string.Join(", ", pubs) : null,
             Developer: devs is { Count: > 0 } ? string.Join(", ", devs) : null,

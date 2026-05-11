@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from './client';
-import type { MediaType } from './types';
+import type { GamePlatform, MediaType } from './types';
 
 export interface MovieLookupResult {
   provider: string;
@@ -31,7 +31,10 @@ export interface GameLookupResult {
   provider: string;
   providerKey: string;
   title: string;
-  platform: string | null;
+  // Provider canonicalises the first recognised platform name into the
+  // shared GamePlatform enum; null when nothing in the source list
+  // resolved (form leaves the dropdown unset rather than defaulting).
+  platform: GamePlatform | null;
   year: number | null;
   publisher: string | null;
   developer: string | null;

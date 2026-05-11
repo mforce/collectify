@@ -1,0 +1,61 @@
+namespace Collectify.Domain.Enums;
+
+/// <summary>
+/// Curated list of game platforms (one per entry). Free-text platform
+/// strings are migrated into this enum on a best-effort basis at the EF
+/// migration step; anything we can't recognise lands on <see cref="Other"/>
+/// and the original free-text is preserved in <c>Game.PlatformLegacy</c>
+/// so users can fix unmapped entries by hand.
+///
+/// Add new platforms at the end -- the integer values are persisted and
+/// reordering would silently mis-tag existing rows.
+/// </summary>
+public enum GamePlatform
+{
+    Other = 0,
+
+    Pc = 1,
+    Mac = 2,
+    Linux = 3,
+    Mobile = 4,
+
+    // Xbox
+    XboxOriginal = 10,
+    Xbox360 = 11,
+    XboxOne = 12,
+    XboxSeriesXS = 13,
+
+    // PlayStation
+    Ps1 = 20,
+    Ps2 = 21,
+    Ps3 = 22,
+    Ps4 = 23,
+    Ps5 = 24,
+    Psp = 25,
+    PsVita = 26,
+
+    // Nintendo home consoles
+    Nes = 30,
+    Snes = 31,
+    N64 = 32,
+    GameCube = 33,
+    Wii = 34,
+    WiiU = 35,
+    Switch = 36,
+    Switch2 = 37,
+
+    // Nintendo handhelds
+    GameBoy = 40,
+    GameBoyColor = 41,
+    GameBoyAdvance = 42,
+    NintendoDs = 43,
+    Nintendo3Ds = 44,
+
+    // Sega
+    SegaGenesis = 50,
+    SegaSaturn = 51,
+    SegaDreamcast = 52,
+
+    // PC handheld
+    SteamDeck = 60,
+}

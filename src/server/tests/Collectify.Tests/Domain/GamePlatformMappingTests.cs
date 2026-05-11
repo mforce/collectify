@@ -1,0 +1,45 @@
+using Collectify.Domain.Enums;
+
+// Flat-rooted namespace on purpose: nesting under Collectify.Tests.Domain
+// would shadow Collectify.Domain in any test file under that branch.
+namespace Collectify.Tests;
+
+public class GamePlatformMappingTests
+{
+    [Theory]
+    [InlineData("PC", GamePlatform.Pc)]
+    [InlineData("Microsoft Windows", GamePlatform.Pc)]
+    [InlineData("PlayStation 5", GamePlatform.Ps5)]
+    [InlineData("playstation-5", GamePlatform.Ps5)]
+    [InlineData(" PS_5 ", GamePlatform.Ps5)]
+    [InlineData("PS5", GamePlatform.Ps5)]
+    [InlineData("Xbox 360", GamePlatform.Xbox360)]
+    [InlineData("xbox360", GamePlatform.Xbox360)]
+    [InlineData("Xbox Series X", GamePlatform.XboxSeriesXS)]
+    [InlineData("Xbox Series S", GamePlatform.XboxSeriesXS)]
+    [InlineData("XSX", GamePlatform.XboxSeriesXS)]
+    [InlineData("Nintendo Switch", GamePlatform.Switch)]
+    [InlineData("Switch", GamePlatform.Switch)]
+    [InlineData("Nintendo Switch 2", GamePlatform.Switch2)]
+    [InlineData("Game Boy Advance", GamePlatform.GameBoyAdvance)]
+    [InlineData("GBA", GamePlatform.GameBoyAdvance)]
+    [InlineData("Mega Drive", GamePlatform.SegaGenesis)]
+    [InlineData("Sega Genesis", GamePlatform.SegaGenesis)]
+    [InlineData("Steam Deck", GamePlatform.SteamDeck)]
+    public void TryParse_MapsKnownAliases_CaseAndPunctuationInsensitive(string raw, GamePlatform expected)
+    {
+        Assert.Equal(expected, GamePlatformMapping.TryParse(raw));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("3DO")]
+    [InlineData("Atari Jaguar")]
+    [InlineData("Something Completely Made Up")]
+    public void TryParse_UnknownOrBlank_ReturnsNull(string? raw)
+    {
+        Assert.Null(GamePlatformMapping.TryParse(raw));
+    }
+}

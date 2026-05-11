@@ -10,7 +10,7 @@ namespace Collectify.Tests.Api;
 public class GamesEndpointsTests
 {
     private record GameResponse(
-        int Id, string Title, string? Platform, int? Year,
+        int Id, string Title, GamePlatform Platform, string? PlatformLegacy, int? Year,
         string? Publisher, string? Developer, bool IsDigital, DigitalStore? DigitalStore,
         string? Barcode, string? IgdbId, string? ImagePath, string? Description, string? Notes,
         int? PersonalRating, CollectionStatus Status, Condition? Condition,
@@ -21,7 +21,7 @@ public class GamesEndpointsTests
 
     private static object Sample(
         string title = "Hades",
-        string? platform = "PC",
+        GamePlatform platform = GamePlatform.Pc,
         bool isDigital = true,
         DigitalStore? store = DigitalStore.Steam,
         int? rating = null,
@@ -116,7 +116,7 @@ public class GamesEndpointsTests
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
         var game = await factory.SeedAsync(new Game
         {
-            OwnerId = alice.Id, Title = "Hades", Platform = "PC", IsDigital = true, DigitalStore = DigitalStore.Steam,
+            OwnerId = alice.Id, Title = "Hades", Platform = GamePlatform.Pc, IsDigital = true, DigitalStore = DigitalStore.Steam,
         });
 
         var body = await alice.Client.GetJsonAsync<GameResponse>($"/api/games/{game.Id}");
@@ -265,8 +265,8 @@ public class GamesEndpointsTests
     {
         await using var factory = new CollectifyApiFactory();
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
-        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Hades", Platform = "PC" });
-        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "BotW", Platform = "Switch" });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Hades", Platform = GamePlatform.Pc });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "BotW", Platform = GamePlatform.Switch });
 
         var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?platform=Switch");
 

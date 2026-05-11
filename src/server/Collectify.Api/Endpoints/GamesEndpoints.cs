@@ -14,7 +14,8 @@ public static class GamesEndpoints
     public record GameDto(
         int? Id,
         string Title,
-        string? Platform,
+        GamePlatform Platform,
+        string? PlatformLegacy,
         int? Year,
         string? Publisher,
         string? Developer,
@@ -45,7 +46,7 @@ public static class GamesEndpoints
 
         group.MapGet("/", async (
             [FromQuery] string? query,
-            [FromQuery] string? platform,
+            [FromQuery] GamePlatform? platform,
             [FromQuery] bool? digital,
             CollectifyDbContext db,
             UserManager<AppUser> users,
@@ -60,7 +61,7 @@ public static class GamesEndpoints
                               || (g.Publisher != null && EF.Functions.Like(g.Publisher, like))
                               || (g.Developer != null && EF.Functions.Like(g.Developer, like)));
             }
-            if (!string.IsNullOrWhiteSpace(platform)) q = q.Where(g => g.Platform == platform);
+            if (platform.HasValue) q = q.Where(g => g.Platform == platform.Value);
             if (digital.HasValue) q = q.Where(g => g.IsDigital == digital.Value);
 
             var items = await q.OrderByDescending(g => g.AddedAt).Take(500).ToListAsync();
@@ -128,7 +129,7 @@ public static class GamesEndpoints
     }
 
     private static GameDto ToDto(Game g) => new(
-        g.Id, g.Title, g.Platform, g.Year, g.Publisher, g.Developer, g.IsDigital, g.DigitalStore,
+        g.Id, g.Title, g.Platform, g.PlatformLegacy, g.Year, g.Publisher, g.Developer, g.IsDigital, g.DigitalStore,
         g.Barcode, g.IgdbId, g.ImagePath, g.Description, g.Notes,
         g.PersonalRating, g.Status, g.Condition,
         g.AcquiredOn, g.AcquisitionPrice, g.AcquisitionCurrency, g.AcquisitionSource,
@@ -140,6 +141,9 @@ public static class GamesEndpoints
     {
         g.Title = dto.Title?.Trim() ?? string.Empty;
         g.Platform = dto.Platform;
+        // Saving the form clears any legacy free-text once the user has
+        // picked a real enum value; we don't echo back what they typed.
+        g.PlatformLegacy = null;
         g.Year = dto.Year;
         g.Publisher = dto.Publisher;
         g.Developer = dto.Developer;

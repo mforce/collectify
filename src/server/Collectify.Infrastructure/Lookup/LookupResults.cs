@@ -1,3 +1,5 @@
+using Collectify.Domain.Enums;
+
 namespace Collectify.Infrastructure.Lookup;
 
 /// <summary>
@@ -32,7 +34,13 @@ public record GameLookupResult(
     string Provider,
     string ProviderKey,
     string Title,
-    string? Platform,
+    /// <summary>
+    /// Canonical platform if the provider's first-listed platform name
+    /// resolved to a <see cref="GamePlatform"/>; null when we can't tell.
+    /// Falling back to null instead of <c>Other</c> keeps the form's
+    /// dropdown unselected so the user notices and picks one.
+    /// </summary>
+    GamePlatform? Platform,
     int? Year,
     string? Publisher,
     string? Developer,
