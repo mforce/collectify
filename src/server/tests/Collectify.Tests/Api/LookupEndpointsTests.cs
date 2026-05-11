@@ -1,4 +1,5 @@
 using System.Net;
+using Collectify.Domain.Enums;
 using Collectify.Tests.Infrastructure;
 
 namespace Collectify.Tests.Api;
@@ -298,7 +299,7 @@ public class LookupEndpointsTests
     // ---------- /api/lookup/games/by-id/{providerKey} ----------
 
     private record GameLookupResult(
-        string Provider, string ProviderKey, string Title, string? Platform,
+        string Provider, string ProviderKey, string Title, GamePlatform? Platform,
         int? Year, string? Publisher, string? Developer, string? Description,
         string? ImageUrl, string? Genres);
 
@@ -338,7 +339,7 @@ public class LookupEndpointsTests
             Provider: "igdb",
             ProviderKey: "1942",
             Title: "The Witcher 3: Wild Hunt",
-            Platform: "PC",
+            Platform: GamePlatform.Pc,
             Year: 2015,
             Publisher: "Warner Bros",
             Developer: "CD Projekt Red",
@@ -464,7 +465,7 @@ public class LookupEndpointsTests
             Provider: "igdb",
             ProviderKey: "1942",
             Title: "The Witcher 3: Wild Hunt",
-            Platform: "PC",
+            Platform: GamePlatform.Pc,
             Year: 2015,
             Publisher: null,
             Developer: "CD Projekt Red",

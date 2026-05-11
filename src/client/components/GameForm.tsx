@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SearchableSelect, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
 import {
   COMPLETION_STATUSES,
   DIGITAL_STORES,
+  GAME_PLATFORMS,
+  gamePlatformLabel,
   type CompletionStatus,
   type DigitalStore,
   type Game,
+  type GamePlatform,
 } from '../services/types';
 import { lookupGameByIgdbId, type GameLookupResult, type LookupByIdOutcome } from '../services/lookup';
 
@@ -33,6 +36,7 @@ interface Props {
 
 const empty: Game = {
   title: '',
+  platform: 'Other',
   isDigital: false,
   status: 'Owned',
   completionStatus: 'NotStarted',
@@ -51,7 +55,11 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
     patch({
       title: r.title,
       year: r.year ?? null,
-      platform: r.platform ?? g.platform ?? null,
+      // IGDB returns a canonical GamePlatform value (or null when none
+      // of the listed platforms mapped). Keep what the user already had
+      // when the result is platformless, so we don't overwrite a good
+      // selection with Other.
+      platform: r.platform ?? g.platform,
       publisher: r.publisher ?? null,
       developer: r.developer ?? null,
       imagePath: r.imageUrl ?? null,
@@ -114,7 +122,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
-          secondary: [r.developer, r.platform].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          secondary: [r.developer, r.platform ? gamePlatformLabel(r.platform) : null].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
           image: r.imageUrl,
         })}
       />
@@ -126,7 +134,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         fallbackLabel="Save this barcode anyway"
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
-          secondary: [r.developer, r.platform].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          secondary: [r.developer, r.platform ? gamePlatformLabel(r.platform) : null].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
           image: r.imageUrl,
         })}
       />
@@ -137,7 +145,21 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
             <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />
           </Field>
           <Field label="Platform">
-            <Input value={g.platform ?? ''} onChange={(e) => set('platform', e.target.value || null)} placeholder="e.g. PS5, Switch, PC" />
+            <SearchableSelect
+              value={g.platform}
+              onChange={(v) => set('platform', v as GamePlatform)}
+              options={GAME_PLATFORMS}
+              placeholder="Type to search platforms…"
+            />
+            {g.platformLegacy && (
+              // Stickier than a generic placeholder -- surfaces the
+              // original free-text so the user can see what they had
+              // typed and pick the closest canonical value. Saving the
+              // form clears this field.
+              <p className="mt-1 text-xs text-amber-300">
+                Original: <span className="font-mono">{g.platformLegacy}</span> — pick a platform above to replace it.
+              </p>
+            )}
           </Field>
           <Field label="Year">
             <Input type="number" value={g.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Igdb;
@@ -124,7 +125,7 @@ public class IgdbGameProviderTests : IDisposable
         Assert.Equal("1942", hit.ProviderKey);
         Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
         Assert.Equal(2015, hit.Year);
-        Assert.Equal("PC", hit.Platform);
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
         Assert.Equal("CD Projekt Red", hit.Developer);
         Assert.Equal("Warner Bros", hit.Publisher);
         Assert.Equal("RPG, Adventure", hit.Genres);
@@ -143,6 +144,37 @@ public class IgdbGameProviderTests : IDisposable
         Assert.Null(hit.Year);
         Assert.Null(hit.Developer);
         Assert.Null(hit.Publisher);
+    }
+
+    [Fact]
+    public async Task SearchAsync_FirstPlatformUnmapped_FallsBackToNextRecognised()
+    {
+        // IGDB sometimes lists a region-specific or obscure platform
+        // first. Map should skip it and pick the first one we can
+        // canonicalise, not silently leave Platform null.
+        const string json = """
+            [ {
+                "id": 1, "name": "Spelunky",
+                "platforms": [
+                  { "name": "Some Obscure Platform" },
+                  { "name": "PC" }
+                ]
+            } ]
+            """;
+        var hit = (await NewProvider(new StubHandler(json)).SearchAsync("spelunky")).Single();
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
+    }
+
+    [Fact]
+    public async Task SearchAsync_AllPlatformsUnmapped_ReturnsNullPlatform()
+    {
+        const string json = """
+            [ { "id": 1, "name": "X", "platforms": [ { "name": "3DO" }, { "name": "Atari Jaguar" } ] } ]
+            """;
+        var hit = (await NewProvider(new StubHandler(json)).SearchAsync("x")).Single();
+        // Null (not Other) so the form's dropdown stays unset and the
+        // user notices they need to pick one.
+        Assert.Null(hit.Platform);
     }
 
     [Fact]

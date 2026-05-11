@@ -86,6 +86,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
     await db.Database.MigrateAsync();
+    // Resolve any free-text Game.Platform values that the
+    // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
+    // No-ops on a fresh DB or once everything's resolved.
+    await GamePlatformBackfill.RunAsync(db);
 }
 
 app.UseAuthentication();
