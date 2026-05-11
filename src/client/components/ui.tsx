@@ -1,4 +1,4 @@
-import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import {
   COLLECTION_STATUSES,
   CONDITIONS,
@@ -44,6 +44,194 @@ export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSe
       {...props}
       className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-400 ${className}`}
     />
+  );
+}
+
+// ---------- Searchable select ----------
+
+export interface SearchableOption {
+  value: string;
+  label: string;
+  /** Optional grouping header (rendered above the first option in each group). */
+  group?: string;
+}
+
+interface SearchableSelectProps {
+  value: string;
+  onChange: (next: string) => void;
+  options: SearchableOption[];
+  placeholder?: string;
+  /** Optional id so a parent <Label> can associate via htmlFor. */
+  id?: string;
+}
+
+/**
+ * Typeahead replacement for a long native <select>. Click (or focus) the
+ * input to open the popup; typing filters by case-insensitive substring
+ * match on the option label *and* its group header (so "nintendo" pulls
+ * up every Nintendo platform even though it's not in the labels). Arrow
+ * keys / Enter / Escape are wired the way you'd expect; click-outside
+ * closes; Tab confirms-and-moves-on without overwriting the value.
+ *
+ * Groups whose options are all filtered out drop their header so a
+ * narrow search isn't sprinkled with empty section labels.
+ */
+export function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder = 'Pick one…',
+  id,
+}: SearchableSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  // Index into the *filtered* list so arrow-key navigation stays in
+  // sync with what the user can currently see.
+  const [activeIndex, setActiveIndex] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selected = options.find((o) => o.value === value);
+
+  const filtered = (() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) =>
+      o.label.toLowerCase().includes(q) || (o.group ?? '').toLowerCase().includes(q),
+    );
+  })();
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: globalThis.MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  // Reset highlight to the first visible option whenever the filter changes.
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [query, open]);
+
+  const commit = (opt: SearchableOption) => {
+    onChange(opt.value);
+    setQuery('');
+    setOpen(false);
+  };
+
+  const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!open) setOpen(true);
+      else setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter') {
+      if (open && filtered[activeIndex]) {
+        e.preventDefault();
+        commit(filtered[activeIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      if (open) {
+        e.preventDefault();
+        setOpen(false);
+        setQuery('');
+      }
+    }
+  };
+
+  // Walk filtered options once, emitting an optgroup header the first
+  // time we see a new group label. Tracking activeIndex against the
+  // flat filtered array means arrow keys still skip past headers.
+  const rendered: { kind: 'header' | 'option'; text: string; flatIndex?: number; opt?: SearchableOption }[] = [];
+  let lastGroup: string | undefined = undefined;
+  filtered.forEach((opt, i) => {
+    if (opt.group && opt.group !== lastGroup) {
+      rendered.push({ kind: 'header', text: opt.group });
+      lastGroup = opt.group;
+    } else if (!opt.group && lastGroup !== undefined) {
+      // Reset so a later grouped option after a flat one still emits its header.
+      lastGroup = undefined;
+    }
+    rendered.push({ kind: 'option', text: opt.label, flatIndex: i, opt });
+  });
+
+  // The visible "input" is a thin wrapper: when the popup is closed it
+  // shows the selected label; when open it shows the filter query the
+  // user is typing. That way you don't have to clear the label by hand
+  // before searching.
+  const displayValue = open ? query : selected?.label ?? '';
+
+  return (
+    <div ref={rootRef} className="relative">
+      <input
+        id={id}
+        ref={inputRef}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={id ? `${id}-listbox` : undefined}
+        aria-autocomplete="list"
+        autoComplete="off"
+        value={displayValue}
+        placeholder={placeholder}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKey}
+        className="block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
+      />
+      {open && (
+        <div
+          id={id ? `${id}-listbox` : undefined}
+          role="listbox"
+          className="absolute z-20 mt-1 w-full rounded-md bg-slate-900 border border-slate-700 shadow-lg max-h-72 overflow-auto"
+        >
+          {filtered.length === 0 && (
+            <div className="px-3 py-2 text-sm text-slate-400">No matches.</div>
+          )}
+          {rendered.map((row, idx) => {
+            if (row.kind === 'header') {
+              return (
+                <div
+                  key={`h-${row.text}-${idx}`}
+                  className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-800"
+                >
+                  {row.text}
+                </div>
+              );
+            }
+            const isActive = row.flatIndex === activeIndex;
+            const isSelected = row.opt!.value === value;
+            return (
+              <button
+                key={row.opt!.value}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onMouseEnter={() => setActiveIndex(row.flatIndex!)}
+                onMouseDown={(e) => {
+                  // mousedown (not click) so the click fires before
+                  // the input's blur tears down state we just set.
+                  e.preventDefault();
+                  commit(row.opt!);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm border-b border-slate-800 last:border-b-0 flex items-center justify-between ${
+                  isActive ? 'bg-slate-800 text-white' : 'text-slate-200 hover:bg-slate-800'
+                }`}
+              >
+                <span>{row.text}</span>
+                {isSelected && <span aria-hidden className="text-indigo-300 text-xs">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

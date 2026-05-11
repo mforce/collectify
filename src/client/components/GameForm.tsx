@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { useEffect, useState } from 'react';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SearchableSelect, SectionHeading, Select, Textarea } from './ui';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
@@ -32,34 +32,6 @@ interface Props {
   submitLabel?: string;
   onSubmit: (g: Game) => void;
   onDelete?: () => void;
-}
-
-// Group the GAME_PLATFORMS array into <optgroup>s so the long list is
-// scannable in the form's dropdown. Walks the entries in declared order
-// so the array is the single source of truth for ordering.
-function renderPlatformOptions() {
-  const out: ReactNode[] = [];
-  let currentGroup: string | undefined = undefined;
-  let buffer: { value: string; label: string }[] = [];
-  const flush = () => {
-    if (buffer.length === 0) return;
-    if (currentGroup) {
-      out.push(
-        <optgroup key={`g-${currentGroup}`} label={currentGroup}>
-          {buffer.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-        </optgroup>,
-      );
-    } else {
-      for (const p of buffer) out.push(<option key={p.value} value={p.value}>{p.label}</option>);
-    }
-    buffer = [];
-  };
-  for (const p of GAME_PLATFORMS) {
-    if (p.group !== currentGroup) { flush(); currentGroup = p.group; }
-    buffer.push({ value: p.value, label: p.label });
-  }
-  flush();
-  return out;
 }
 
 const empty: Game = {
@@ -173,12 +145,12 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
             <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />
           </Field>
           <Field label="Platform">
-            <Select
+            <SearchableSelect
               value={g.platform}
-              onChange={(e) => set('platform', e.target.value as GamePlatform)}
-            >
-              {renderPlatformOptions()}
-            </Select>
+              onChange={(v) => set('platform', v as GamePlatform)}
+              options={GAME_PLATFORMS}
+              placeholder="Type to search platforms…"
+            />
             {g.platformLegacy && (
               // Stickier than a generic placeholder -- surfaces the
               // original free-text so the user can see what they had
