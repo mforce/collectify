@@ -14,6 +14,39 @@ export function useList<T extends MediaType>(type: T, query: string) {
   });
 }
 
+export interface DashboardCounts {
+  movies: number;
+  music: number;
+  games: number;
+}
+
+export interface DashboardRecent {
+  type: MediaType;
+  id: number;
+  title: string;
+  year: number | null;
+  imagePath: string | null;
+  addedAt: string;
+}
+
+export interface DashboardSummary {
+  counts: DashboardCounts;
+  recent: DashboardRecent[];
+}
+
+/**
+ * Single-shot dashboard payload (per-type counts + the most recent
+ * additions across all three types). Replaces the old "fetch every
+ * list" approach so the home page renders without dragging the entire
+ * collection over the wire.
+ */
+export function useDashboard() {
+  return useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => api<DashboardSummary>('/api/dashboard'),
+  });
+}
+
 export function useItem<T extends MediaType>(type: T, id: number | undefined) {
   return useQuery({
     queryKey: [type, 'item', id],
