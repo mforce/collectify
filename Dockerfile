@@ -17,8 +17,9 @@ RUN dotnet publish Collectify.Api/Collectify.Api.csproj -c Release -o /app/publi
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 # curl isn't in the base image; install it so HEALTHCHECK below can use
-# it. ~3 MiB overhead, in exchange for a self-contained image that
-# doesn't depend on the host orchestrator providing its own probe.
+# it. Pulls in ~14 transitive deps for ~6 MiB of overhead, in exchange
+# for a self-contained image that doesn't depend on the host
+# orchestrator providing its own probe.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
