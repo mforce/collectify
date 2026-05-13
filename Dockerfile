@@ -16,6 +16,12 @@ RUN dotnet publish Collectify.Api/Collectify.Api.csproj -c Release -o /app/publi
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+# curl isn't in the base image; install it so HEALTHCHECK below can use
+# it. ~3 MiB overhead, in exchange for a self-contained image that
+# doesn't depend on the host orchestrator providing its own probe.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
     Collectify__DataDir=/data
@@ -23,4 +29,9 @@ COPY --from=server-build /app/publish ./
 RUN mkdir -p /data && chown -R 1000:1000 /data
 USER 1000:1000
 EXPOSE 8080
+# Hits /api/health (anonymous, DB-free) so a migration-in-progress or
+# write-stall doesn't flap the container. Orchestrators / Watchtower /
+# Docker compose all key off this.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+    CMD curl -fsS http://localhost:8080/api/health || exit 1
 ENTRYPOINT ["dotnet", "Collectify.Api.dll"]
