@@ -4,8 +4,8 @@
     "hash": "98926837ba69930b8428d861944bcd0a"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Domain/obj/Debug/net10.0/Collectify.Domain.AssemblyInfo.cs": {
-    "mtime": 1778215632.382003,
-    "hash": "a89e989e5f55824723ed4c4bbe3376fc"
+    "mtime": 1778645563.2526853,
+    "hash": "2865cb54a65583a8a0850ba32f8320c5"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Domain/obj/Release/net10.0/Collectify.Domain.GlobalUsings.g.cs": {
     "mtime": 1778046563.9100056,
@@ -14,10 +14,6 @@
   "/home/cesar/dev/collectify/src/server/Collectify.Domain/obj/Release/net10.0/Collectify.Domain.AssemblyInfo.cs": {
     "mtime": 1778051039.5782993,
     "hash": "445c07408b23728a4e316f752c8b0a0f"
-  },
-  "/home/cesar/dev/collectify/src/server/Collectify.Domain/Entities/Game.cs": {
-    "mtime": 1778046274.8540695,
-    "hash": "6c5c6c0e7a35c0d6b517f5e427bc7412"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Domain/Entities/LookupCacheEntry.cs": {
     "mtime": 1778046274.854199,
@@ -38,6 +34,10 @@
   "/home/cesar/dev/collectify/src/server/Collectify.Domain/Entities/CoverImage.cs": {
     "mtime": 1778135227.6535819,
     "hash": "039ce6b2686a39f0d7b640cd18ddac83"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Domain/Entities/Game.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "a786900e8ea159b9e3b57b4abd9e5871"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Domain/Enums/CollectionStatus.cs": {
     "mtime": 1778046274.854199,
@@ -67,13 +67,21 @@
     "mtime": 1778046274.8542535,
     "hash": "92168c14b25a9123bb646dd0a8a717ce"
   },
+  "/home/cesar/dev/collectify/src/server/Collectify.Domain/Enums/GamePlatform.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "70c5c4ebf9ded0a5c2d6ea67f317f522"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Domain/Enums/GamePlatformMapping.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "d99f23e4c4e9b60663971f8556c03a99"
+  },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/obj/Debug/net10.0/Collectify.Infrastructure.GlobalUsings.g.cs": {
     "mtime": 1778039200.5949333,
     "hash": "98926837ba69930b8428d861944bcd0a"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/obj/Debug/net10.0/Collectify.Infrastructure.AssemblyInfo.cs": {
-    "mtime": 1778215629.7630036,
-    "hash": "597ac1092666b7add170cc094885a549"
+    "mtime": 1778645564.8686788,
+    "hash": "cce00078ed575bcdb8d0ca6734c4445f"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/obj/Release/net10.0/Collectify.Infrastructure.GlobalUsings.g.cs": {
     "mtime": 1778046563.9090056,
@@ -86,6 +94,10 @@
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Data/CollectifyDbContext.cs": {
     "mtime": 1778135227.6535819,
     "hash": "aae006d9c1c942344355bc0502a23b55"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Data/GamePlatformBackfill.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "3753f09377ef7ec3231e5cab87915030"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Data/Migrations/20260505174247_InitialCreate.Designer.cs": {
     "mtime": 1778046274.8543262,
@@ -111,57 +123,69 @@
     "mtime": 1778135227.6535819,
     "hash": "66ffde408133bccd445b1e35a3c208a1"
   },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Data/Migrations/20260511060124_ConvertGamePlatformToEnum.Designer.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "d7ae4961aa6f11d253d63a19691566b7"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Data/Migrations/20260511060124_ConvertGamePlatformToEnum.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "0d0673507ed8639061a24de91b6e6d6c"
+  },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Data/Migrations/CollectifyDbContextModelSnapshot.cs": {
-    "mtime": 1778135227.6535819,
-    "hash": "fe768b5a091cd4884927b7edb9a0c55a"
+    "mtime": 1778485315.6253052,
+    "hash": "1ccde38ed711005e52edc7c24b7e628c"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Identity/AppUser.cs": {
     "mtime": 1778046274.8543496,
     "hash": "c28246e0603b43fd6b30b0ff011ff127"
   },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Identity/AuthOptions.cs": {
+    "mtime": 1778488045.8352485,
+    "hash": "a1309bef9acd9bd7eb5921b7012c4d58"
+  },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/ILookupCache.cs": {
     "mtime": 1778131028.5477264,
     "hash": "4cfddddd048bdb58ec5d629c480ebafa"
   },
-  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/LookupResults.cs": {
-    "mtime": 1778131028.547879,
-    "hash": "530fefda599170ba8959df3ffd13cb66"
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/IMetadataProviders.cs": {
+    "mtime": 1778299067.713144,
+    "hash": "66c8fcb22d67aaf2b8626578cca9bb1e"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/MetadataLookupOptions.cs": {
-    "mtime": 1778131028.547879,
-    "hash": "993ce3df2aac44275b8de8f102bba199"
+    "mtime": 1778392189.4913251,
+    "hash": "1ed8d7fc90e79b8fc7f4ae8a337d2a80"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/MetadataLookupServiceCollectionExtensions.cs": {
-    "mtime": 1778131028.547879,
+    "mtime": 1778392189.4913251,
     "hash": "2474e1aa6d58280062e1c417472e962c"
   },
-  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/IMetadataProviders.cs": {
-    "mtime": 1778215629.1340036,
-    "hash": "7485de22dbf32308139f615fd772e7b6"
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/LookupResults.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "6fe2030b82f3c013aa8fbbba38086644"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Stub/StubMovieProvider.cs": {
-    "mtime": 1778215629.1353655,
-    "hash": "c62efcc10ba16257579d8230dc107c35"
+    "mtime": 1778392189.4913251,
+    "hash": "c653acc3b10aaf3f33d292088c96e8e1"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Tmdb/TmdbServiceCollectionExtensions.cs": {
     "mtime": 1778133946.9875114,
     "hash": "8ecc14188689b1dc042aafe37e309181"
   },
-  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Tmdb/TmdbMovieProvider.cs": {
-    "mtime": 1778142064.5596032,
-    "hash": "bb11726b652a38c543d3a448cc900665"
-  },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Tmdb/TmdbResponses.cs": {
     "mtime": 1778142064.5596032,
     "hash": "cbb0d0cf8f4ab6f0e1896e04f915f2f2"
   },
-  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Images/CoverImageStore.cs": {
-    "mtime": 1778135227.6537762,
-    "hash": "e7e052d63702402a69dfb2338dbc7cc2"
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Tmdb/TmdbMovieProvider.cs": {
+    "mtime": 1778299067.713144,
+    "hash": "41553b6573a21b01138dab5d4acd7446"
   },
-  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/MusicBrainz/MusicBrainzMusicProvider.cs": {
-    "mtime": 1778142643.3437018,
-    "hash": "f8ad4f925e7f19b4ba63d73d02aec825"
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Images/CoverImageGarbageCollector.cs": {
+    "mtime": 1778487763.6629267,
+    "hash": "ac27fff41127705e9d698fbd3045278f"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Images/CoverImageStore.cs": {
+    "mtime": 1778645560.2519145,
+    "hash": "04e714bd0aa854fa73fc60ae7ae93a39"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/MusicBrainz/MusicBrainzResponses.cs": {
     "mtime": 1778142643.3441741,
@@ -171,33 +195,53 @@
     "mtime": 1778142643.3441741,
     "hash": "24643703b77d338c4af71ab0651e3f30"
   },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/MusicBrainz/MusicBrainzMusicProvider.cs": {
+    "mtime": 1778299067.713144,
+    "hash": "8829c88e5d24435787f3020caca50eaf"
+  },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Igdb/IIgdbAuth.cs": {
-    "mtime": 1778215629.1340036,
+    "mtime": 1778215800.0673537,
     "hash": "e204eaba3747cc87033055e1999193cd"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbAuth.cs": {
-    "mtime": 1778215629.1351876,
+    "mtime": 1778215800.0674775,
     "hash": "8b0baaca96de32088a899c5c342df364"
   },
-  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbGameProvider.cs": {
-    "mtime": 1778215629.1351876,
-    "hash": "64bcf0eec1241b77bc38722fcf320ccb"
-  },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbResponses.cs": {
-    "mtime": 1778215629.1353655,
+    "mtime": 1778215800.067519,
     "hash": "894754fda17253b669f24fb1648450b8"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbServiceCollectionExtensions.cs": {
-    "mtime": 1778215629.1353655,
+    "mtime": 1778215800.067519,
     "hash": "5584f148f4d99114a558ef0bb86d21c7"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbGameProvider.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "50cb5842b32354973111fa5a879331aa"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Upc/IUpcLookupClient.cs": {
+    "mtime": 1778299067.713144,
+    "hash": "94e5875a642b194e5b937fbd856bcf4c"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Upc/UpcItemDbClient.cs": {
+    "mtime": 1778299067.7134025,
+    "hash": "bb12dcea44483337363a213e96363a00"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Upc/UpcItemDbResponses.cs": {
+    "mtime": 1778299067.7134025,
+    "hash": "bd8657dbe141d183414a6aadc4b3fbf2"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Infrastructure/Lookup/Upc/UpcServiceCollectionExtensions.cs": {
+    "mtime": 1778299067.7134287,
+    "hash": "81e62d2eb74474679fde0e29cb152bf4"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/obj/Debug/net10.0/Collectify.Tests.GlobalUsings.g.cs": {
     "mtime": 1778039200.5409334,
     "hash": "a37fabac23656a0fdda8f6bef30b54f4"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/obj/Debug/net10.0/Collectify.Tests.AssemblyInfo.cs": {
-    "mtime": 1778215630.2740035,
-    "hash": "50c94abf20231692653b5b924a18f5d5"
+    "mtime": 1778637214.7227552,
+    "hash": "30674e6cbe433920f94585c1ca878e79"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/obj/Release/net10.0/Collectify.Tests.GlobalUsings.g.cs": {
     "mtime": 1778046563.9080055,
@@ -207,37 +251,41 @@
     "mtime": 1778051040.6173046,
     "hash": "3e98f2fb4df6233a9e45a6ae8b5d9470"
   },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs": {
-    "mtime": 1778046274.8543496,
-    "hash": "3c070959afadfe22dcc67b1535f08058"
-  },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs": {
-    "mtime": 1778046274.854483,
-    "hash": "ffc1be8f0b37ce54f7bdff492ebb7190"
-  },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/HealthEndpointTests.cs": {
     "mtime": 1778046274.854483,
     "hash": "82371e8653d0f384f805c760488acf20"
-  },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs": {
-    "mtime": 1778046274.854493,
-    "hash": "c9e94b10d793a877dfa74b6fb2dec5e3"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/TagEndpointsTests.cs": {
     "mtime": 1778046274.854493,
     "hash": "09ede8a85db98d8d44803bd5920af284"
   },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/CoversEndpointsTests.cs": {
-    "mtime": 1778135227.6537762,
-    "hash": "425a6dc8e313f64c0640768626094e12"
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/LookupEndpointsTests.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "df7f3a9abda613ae8afe212f992682d1"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/DashboardEndpointsTests.cs": {
+    "mtime": 1778487763.6629267,
+    "hash": "fb6d6a615f22f5229fc89bd236980fd7"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs": {
+    "mtime": 1778488045.8352485,
+    "hash": "1ba37947983a37b50f091dd651fe6f89"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs": {
+    "mtime": 1778645552.054904,
+    "hash": "6db23d62ebbc8dbc430d040c808a252a"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs": {
-    "mtime": 1778135227.6537762,
-    "hash": "2d361db2459aac500e36613e0db6a4dc"
+    "mtime": 1778645552.054904,
+    "hash": "d1163fb56f3dc849f8d0e698ff119484"
   },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/LookupEndpointsTests.cs": {
-    "mtime": 1778215629.1356752,
-    "hash": "e2111dc33dd579463bcae68873e2457c"
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs": {
+    "mtime": 1778645552.054904,
+    "hash": "a056aabab796e740eabace9f47e0242d"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Api/CoversEndpointsTests.cs": {
+    "mtime": 1778645560.2521012,
+    "hash": "3277e4d3d515ac2b6d466d2db80bcaed"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs": {
     "mtime": 1778046274.8545957,
@@ -251,57 +299,57 @@
     "mtime": 1778135227.6537762,
     "hash": "70cab8d03ce10f1bbd597d4c1a0415dc"
   },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/ScriptedMovieProvider.cs": {
-    "mtime": 1778142064.5596032,
-    "hash": "d9f2537cbe8761f81e3cd8536db7255c"
-  },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/TmdbMovieProviderTests.cs": {
-    "mtime": 1778142064.5596032,
-    "hash": "af215c5a13aff0611cfc1ac630e64202"
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/FakeUpcClient.cs": {
+    "mtime": 1778299067.7134287,
+    "hash": "241cafea89743a11b41cbbc7225a4eae"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/MusicBrainzMusicProviderTests.cs": {
-    "mtime": 1778142643.3441741,
-    "hash": "28f05416c2e93d17d7445971a794d6bf"
-  },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/ScriptedMusicProvider.cs": {
-    "mtime": 1778142643.3441741,
-    "hash": "78a833eadb9793f69a422f7f13fda50c"
-  },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/CollectifyApiFactory.cs": {
-    "mtime": 1778215629.1358447,
-    "hash": "72f46d1c17fc3c7c78c9ed699a05d7e9"
-  },
-  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/IgdbGameProviderTests.cs": {
-    "mtime": 1778215629.1360323,
-    "hash": "c2b2753304d6fc4a10b1a00498d1438a"
+    "mtime": 1778299067.7134287,
+    "hash": "18590f6e4eb82571e90ed9f3808e8029"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/ScriptedGameProvider.cs": {
-    "mtime": 1778215629.1360323,
-    "hash": "969c7ef544d1b31a2fc78a98438d5d13"
+    "mtime": 1778299067.7134287,
+    "hash": "d9a04c830f1388100f5d5bc93748b7c9"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/ScriptedMovieProvider.cs": {
+    "mtime": 1778299067.7134287,
+    "hash": "dd38ab348880e7432d9e4315257b76c9"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/ScriptedMusicProvider.cs": {
+    "mtime": 1778299067.7134287,
+    "hash": "57cf2dbc0b11c71afe7bd765ea7b9fd9"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/TmdbMovieProviderTests.cs": {
+    "mtime": 1778299067.7134287,
+    "hash": "522131c759be83479acc7b818528243f"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/UpcItemDbClientTests.cs": {
+    "mtime": 1778299067.7134287,
+    "hash": "cf7681dbb9352ab16c1e06f2dceb5940"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/GamePlatformBackfillTests.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "e2944371f77c33b3d62be561c00e2fa2"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/IgdbGameProviderTests.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "ac5f542e1f8b409d5246dab02c1f3f85"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/CoverImageGarbageCollectorTests.cs": {
+    "mtime": 1778487763.6629267,
+    "hash": "e41e317f8c74d0f37b8b0345ee2ef8c6"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Infrastructure/CollectifyApiFactory.cs": {
+    "mtime": 1778645560.252203,
+    "hash": "b7408533b2e82272ab640dc35aa0688d"
+  },
+  "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/Domain/GamePlatformMappingTests.cs": {
+    "mtime": 1778485315.6253052,
+    "hash": "df2f63eb99763a6f7f5452fca884ec13"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Api/Program.cs": {
-    "mtime": 1778215629.1340036,
-    "hash": "9d51e3536e8ac1019d6129a45c112f87"
-  },
-  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/AuthEndpoints.cs": {
-    "mtime": 1778136242.0388224,
-    "hash": "afaa102fb4d966187917085e8b4e5479"
-  },
-  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/CoversEndpoints.cs": {
-    "mtime": 1778136242.0388477,
-    "hash": "e2cff7bb0adb52c4b800b152adb55b10"
-  },
-  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/GamesEndpoints.cs": {
-    "mtime": 1778136242.0388477,
-    "hash": "18f2cac5fb027d48a2c9e02449fb8cde"
-  },
-  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/MoviesEndpoints.cs": {
-    "mtime": 1778136242.0388477,
-    "hash": "0eaaeec37c56e36243a63876ae23ddc0"
-  },
-  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/MusicEndpoints.cs": {
-    "mtime": 1778136242.0388477,
-    "hash": "2381586edf11269bd6f6629041aff521"
+    "mtime": 1778488045.8352485,
+    "hash": "89d8b974fb3f06b574b8b9af13903fc6"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/TagEndpoints.cs": {
     "mtime": 1778136242.0388477,
@@ -312,20 +360,40 @@
     "hash": "b1c2177bedceab2af3b8f07e6646d5ce"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/LookupEndpoints.cs": {
-    "mtime": 1778215629.1340036,
-    "hash": "b4e4956d28219e81d694559de00d0a85"
+    "mtime": 1778299067.713144,
+    "hash": "8118a5981d41a4df7ea2007b6723bfc6"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/DashboardEndpoints.cs": {
+    "mtime": 1778487763.6629267,
+    "hash": "95f698787b5500a68fad36fa56553f2e"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/AuthEndpoints.cs": {
+    "mtime": 1778637492.3892868,
+    "hash": "8256f672df55f2fae3242cbb2c6f3fa4"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/GamesEndpoints.cs": {
+    "mtime": 1778645552.054904,
+    "hash": "93dee322a9deb0fbf2609ea98ee58ac6"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/MoviesEndpoints.cs": {
+    "mtime": 1778645552.054904,
+    "hash": "c00ec5766f18548203ce8b072859df0c"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/MusicEndpoints.cs": {
+    "mtime": 1778645552.054904,
+    "hash": "b62819ad25aa4113806e42b80ca71ba2"
+  },
+  "/home/cesar/dev/collectify/src/server/Collectify.Api/Endpoints/CoversEndpoints.cs": {
+    "mtime": 1778645560.2517793,
+    "hash": "ac1e1ce5a3fff6764800c7ab474ba73f"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Api/obj/Debug/net10.0/Collectify.Api.GlobalUsings.g.cs": {
     "mtime": 1778136243.4609065,
     "hash": "3ca3ba71f186b61cb901145d168ce1fd"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Api/obj/Debug/net10.0/Collectify.Api.AssemblyInfo.cs": {
-    "mtime": 1778215634.358003,
-    "hash": "7c32a66059e696c7a67660009c5ca2d3"
-  },
-  "/home/cesar/dev/collectify/src/client/main.tsx": {
-    "mtime": 1778046274.853744,
-    "hash": "b63fd4dc50f2d0394a3872ffad7d5874"
+    "mtime": 1778645565.4810233,
+    "hash": "008ae27e60c5f9f58673ea392c593d31"
   },
   "/home/cesar/dev/collectify/src/client/postcss.config.js": {
     "mtime": 1778046274.8539488,
@@ -335,13 +403,17 @@
     "mtime": 1778046274.8539488,
     "hash": "b3dccd1ac15c9b2a673f5646f06d9b2f"
   },
-  "/home/cesar/dev/collectify/src/client/App.tsx": {
-    "mtime": 1778115250.4686959,
-    "hash": "ca67c63762576df4d3099d16b56761a1"
+  "/home/cesar/dev/collectify/src/client/main.tsx": {
+    "mtime": 1778299067.712683,
+    "hash": "a167d1db3c1ab4a936095183d12d7000"
   },
   "/home/cesar/dev/collectify/src/client/vite.config.ts": {
-    "mtime": 1778138493.8923037,
-    "hash": "289256130bfea609c6180e28cc6e001f"
+    "mtime": 1778299067.713144,
+    "hash": "17288305ea633224c2879b5bdf0d1d6f"
+  },
+  "/home/cesar/dev/collectify/src/client/App.tsx": {
+    "mtime": 1778488045.8348377,
+    "hash": "e72cec1c6a5dcef699446588a0557cb7"
   },
   "/home/cesar/dev/collectify/src/client/components/RatingInput.test.tsx": {
     "mtime": 1778051357.111927,
@@ -350,10 +422,6 @@
   "/home/cesar/dev/collectify/src/client/components/TagInput.test.tsx": {
     "mtime": 1778051357.111927,
     "hash": "d9abe4d9359aec6c539812b6eacfe9c6"
-  },
-  "/home/cesar/dev/collectify/src/client/components/Layout.tsx": {
-    "mtime": 1778115250.4686959,
-    "hash": "f819d18270f955522f1e3e8b89b23ae9"
   },
   "/home/cesar/dev/collectify/src/client/components/PersonalAcquisitionSection.tsx": {
     "mtime": 1778115250.4696958,
@@ -367,10 +435,6 @@
     "mtime": 1778133946.9873872,
     "hash": "a641713930f57a0dd9c22ad1bbabafd5"
   },
-  "/home/cesar/dev/collectify/src/client/components/CollectionList.tsx": {
-    "mtime": 1778135227.6533325,
-    "hash": "5bfe0dae0832b5361e033c6ae90afefe"
-  },
   "/home/cesar/dev/collectify/src/client/components/MovieForm.test.tsx": {
     "mtime": 1778142064.5595624,
     "hash": "d0081b723bfff420a08085a1d2ea046a"
@@ -379,45 +443,65 @@
     "mtime": 1778142643.3427017,
     "hash": "a3a372de64eeb7221c5853486f8c655c"
   },
-  "/home/cesar/dev/collectify/src/client/components/AlbumForm.tsx": {
-    "mtime": 1778215609.2143342,
-    "hash": "4daada30187975a6c01aac5776b3765c"
+  "/home/cesar/dev/collectify/src/client/components/BarcodeScanner.tsx": {
+    "mtime": 1778299067.712683,
+    "hash": "0a86c57af6c3cef0e664535650bbdb9e"
   },
-  "/home/cesar/dev/collectify/src/client/components/MovieForm.tsx": {
-    "mtime": 1778215609.2143342,
-    "hash": "8956e232c5aebaa198bf40c24f87e8d8"
+  "/home/cesar/dev/collectify/src/client/components/BarcodeLookup.test.tsx": {
+    "mtime": 1778478955.4576454,
+    "hash": "0a1832be6b3c8acd968aa99a5381cf7c"
+  },
+  "/home/cesar/dev/collectify/src/client/components/BarcodeLookup.tsx": {
+    "mtime": 1778478955.4576454,
+    "hash": "d1aaadeedfe73f45ef35b7812f752ac7"
   },
   "/home/cesar/dev/collectify/src/client/components/ui.test.tsx": {
-    "mtime": 1778215609.2143342,
-    "hash": "a70eacc048aab228da9e6135cb03ddf4"
+    "mtime": 1778485315.6250684,
+    "hash": "66675d42fb794816731638e9c11b4fd9"
   },
   "/home/cesar/dev/collectify/src/client/components/ui.tsx": {
-    "mtime": 1778215609.2143342,
-    "hash": "f445adc2e37b4a1bb9199738d07dd381"
+    "mtime": 1778485315.6251147,
+    "hash": "96149c12fb8c825a597d7132f87dd03c"
+  },
+  "/home/cesar/dev/collectify/src/client/components/Layout.tsx": {
+    "mtime": 1778488045.8348377,
+    "hash": "4a723208fd733021d77aea4a62848e30"
+  },
+  "/home/cesar/dev/collectify/src/client/components/toaster.test.tsx": {
+    "mtime": 1778488045.8348377,
+    "hash": "5dba2d04e4a1a693d8c63a0f067056ac"
+  },
+  "/home/cesar/dev/collectify/src/client/components/toaster.tsx": {
+    "mtime": 1778488045.8349738,
+    "hash": "25d70ce6c222fc862b300a983cdf8758"
+  },
+  "/home/cesar/dev/collectify/src/client/components/CollectionList.tsx": {
+    "mtime": 1778645552.0548692,
+    "hash": "96c239193bb4d496f7733bc81c55bace"
+  },
+  "/home/cesar/dev/collectify/src/client/components/FiltersPanel.tsx": {
+    "mtime": 1778645552.054904,
+    "hash": "91a5d96acb8c2bfaa186f9f6780915b1"
+  },
+  "/home/cesar/dev/collectify/src/client/components/AlbumForm.tsx": {
+    "mtime": 1778645560.2506979,
+    "hash": "a9780f155f870b2f47d4c6ff8ada8178"
+  },
+  "/home/cesar/dev/collectify/src/client/components/CoverEditor.test.tsx": {
+    "mtime": 1778645560.25128,
+    "hash": "fc677515c0d311461bfda9678547b447"
+  },
+  "/home/cesar/dev/collectify/src/client/components/CoverEditor.tsx": {
+    "mtime": 1778645560.2513745,
+    "hash": "1596084feebebedf8b67f0b23f9fcbfd"
   },
   "/home/cesar/dev/collectify/src/client/components/GameForm.tsx": {
-    "mtime": 1778215629.1340036,
-    "hash": "7f7e349ec0621cbbc27c46927db3afbf"
+    "mtime": 1778645560.2515135,
+    "hash": "e9eaca5c6e48578184a736f9cc65d965"
   },
-  "/home/cesar/dev/collectify/src/client/pages/AddPage.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "562591e0fa747c2cc8a264ee7481548e"
-  },
-  "/home/cesar/dev/collectify/src/client/pages/Dashboard.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "ef7107d53a9b128fb9acbd143913ec9e"
-  },
-  "/home/cesar/dev/collectify/src/client/pages/EditPage.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "1c9d62cb166c44032ea1828833f184bc"
-  },
-  "/home/cesar/dev/collectify/src/client/pages/GamesList.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "a2d9495466f1cca3d080cb02a7c60ff2"
-  },
-  "/home/cesar/dev/collectify/src/client/pages/Login.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "2eb21016aec8104cac7c9aa48532ae35"
+  "/home/cesar/dev/collectify/src/client/components/MovieForm.tsx": {
+    "mtime": 1778645560.2516227,
+    "hash": "61d0c1a80e7989d2d13b1be3a82431cb"
   },
   "/home/cesar/dev/collectify/src/client/pages/MoviesList.tsx": {
     "mtime": 1778115250.4696958,
@@ -427,53 +511,81 @@
     "mtime": 1778115250.4696958,
     "hash": "c7699ad1b3032b960fb118dbff8ad8b6"
   },
+  "/home/cesar/dev/collectify/src/client/pages/GamesList.tsx": {
+    "mtime": 1778485315.6251147,
+    "hash": "55c742529bc4ab6d9b866b337dee27a2"
+  },
+  "/home/cesar/dev/collectify/src/client/pages/Dashboard.tsx": {
+    "mtime": 1778487763.6629267,
+    "hash": "4871f7bc4a73ab5fbfd39715ebeb0103"
+  },
+  "/home/cesar/dev/collectify/src/client/pages/AddPage.tsx": {
+    "mtime": 1778488045.8350701,
+    "hash": "65e18d9305b4000ba2f27df5756a9cdc"
+  },
+  "/home/cesar/dev/collectify/src/client/pages/EditPage.tsx": {
+    "mtime": 1778488045.8351216,
+    "hash": "c1954a6064a42bd351956f0d2a5dce9d"
+  },
+  "/home/cesar/dev/collectify/src/client/pages/Login.tsx": {
+    "mtime": 1778488045.8351526,
+    "hash": "8a50312fe1d9012c1c449a8ad6f6c633"
+  },
+  "/home/cesar/dev/collectify/src/client/pages/Register.tsx": {
+    "mtime": 1778488045.8351743,
+    "hash": "6cfeeba8c93c45b58481d01d6fd9d692"
+  },
   "/home/cesar/dev/collectify/src/client/pages/Setup.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "3ca3672a1f3c02b55cbd1366145bb6d9"
+    "mtime": 1778488045.8351743,
+    "hash": "b5564fc10dedcd1ac4bae25686a6252c"
   },
   "/home/cesar/dev/collectify/src/client/pages/Tags.test.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "cd109bae9433b571f8676f7e56036f7d"
+    "mtime": 1778488045.8352156,
+    "hash": "ef1a8f45a6ed7dea6291affad7a3da3f"
   },
   "/home/cesar/dev/collectify/src/client/pages/Tags.tsx": {
-    "mtime": 1778115250.4696958,
-    "hash": "37cb4ba09d7216c8d6ed00cb165e325f"
+    "mtime": 1778488045.8352485,
+    "hash": "9ee909135615e13a6bc38c1cf1632223"
   },
   "/home/cesar/dev/collectify/src/client/test/setup.ts": {
     "mtime": 1778048162.057763,
     "hash": "28f28b341b7e818f5be726a38dea37a8"
   },
-  "/home/cesar/dev/collectify/src/client/services/auth.ts": {
-    "mtime": 1778115250.4703288,
-    "hash": "ac811b4276bd024feac0a18bf5eb86fd"
-  },
   "/home/cesar/dev/collectify/src/client/services/client.ts": {
     "mtime": 1778115250.4703763,
     "hash": "8d4855f34aa920bc46d8ca60177e8c87"
-  },
-  "/home/cesar/dev/collectify/src/client/services/collection.ts": {
-    "mtime": 1778115250.4703763,
-    "hash": "4531cbd3e41f5ba718fb1ef53dc717e1"
   },
   "/home/cesar/dev/collectify/src/client/services/tags.ts": {
     "mtime": 1778115250.4703763,
     "hash": "fa6ae3408038a074155fa18e96b3e6ad"
   },
-  "/home/cesar/dev/collectify/src/client/services/types.ts": {
-    "mtime": 1778115250.4703763,
-    "hash": "e9f69b1779b8939236ce77b6f3af4745"
-  },
   "/home/cesar/dev/collectify/src/client/services/lookup.ts": {
-    "mtime": 1778215629.1340036,
-    "hash": "62f55d32d67a576bc8a7bc9f9448cfd9"
+    "mtime": 1778485315.6251147,
+    "hash": "5a7d31844f7a0256f0901b0c6f9b4f91"
+  },
+  "/home/cesar/dev/collectify/src/client/services/types.ts": {
+    "mtime": 1778485315.6251147,
+    "hash": "3ac4a9b2d5297bab6350fa7f1160d587"
+  },
+  "/home/cesar/dev/collectify/src/client/services/auth.ts": {
+    "mtime": 1778488045.8352485,
+    "hash": "36d548596b852516003c38c74839cd55"
+  },
+  "/home/cesar/dev/collectify/src/client/services/collection.ts": {
+    "mtime": 1778645552.054904,
+    "hash": "60395f168b2d8c9bc12185f280ee2215"
+  },
+  "/home/cesar/dev/collectify/src/client/services/filters.test.ts": {
+    "mtime": 1778645552.054904,
+    "hash": "968a5c4450813ab192c940a6125bf413"
+  },
+  "/home/cesar/dev/collectify/src/client/services/filters.ts": {
+    "mtime": 1778645552.054904,
+    "hash": "a2783a8af2b1ae47f8d867ab36223a13"
   },
   "/home/cesar/dev/collectify/CLAUDE.md": {
     "mtime": 1778046274.851198,
     "hash": "022d9edeb7cd9e06d00ac9b1cfa03109"
-  },
-  "/home/cesar/dev/collectify/README.md": {
-    "mtime": 1778046274.8512475,
-    "hash": "f1f9074c1bb867d35ee918521b9d962a"
   },
   "/home/cesar/dev/collectify/docker-compose.yml": {
     "mtime": 1778046274.8512475,
@@ -482,6 +594,10 @@
   "/home/cesar/dev/collectify/AGENTS.md": {
     "mtime": 1778115250.4686959,
     "hash": "7281edceb2a0e368d202dc082ab1c252"
+  },
+  "/home/cesar/dev/collectify/README.md": {
+    "mtime": 1778299067.7126448,
+    "hash": "ed5657320bcc186345721eefd7fe3156"
   },
   "/home/cesar/dev/collectify/src/server/Collectify.Domain/obj/Debug/net10.0/Collectify.Domain.csproj.FileListAbsolute.txt": {
     "mtime": 1778116239.4633634,
@@ -500,8 +616,8 @@
     "hash": "2c49e0536e82bb38408eb37f93952e44"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/obj/Debug/net10.0/Collectify.Tests.csproj.FileListAbsolute.txt": {
-    "mtime": 1778044160.5427635,
-    "hash": "80a2f7327eaad4d6cbe9377df2b4eebc"
+    "mtime": 1778217966.9824789,
+    "hash": "0abf4229710d76cd1387ec535b92659c"
   },
   "/home/cesar/dev/collectify/src/server/tests/Collectify.Tests/obj/Release/net10.0/Collectify.Tests.csproj.FileListAbsolute.txt": {
     "mtime": 1778046567.0850222,
