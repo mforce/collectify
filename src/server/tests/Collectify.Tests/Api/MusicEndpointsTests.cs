@@ -319,6 +319,35 @@ public class MusicEndpointsTests
         Assert.Equal(new DateOnly(2024, 8, 1), body.LastPlayedOn);
     }
 
+    [Fact]
+    public async Task List_FiltersByYearRange_ArtistLabelGenreStatusRating()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "OK Computer", ArtistName = "Radiohead",   Year = 1997, Label = "Parlophone", Genres = "rock", PersonalRating = 9, Status = CollectionStatus.Owned });
+        await factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "Funeral",     ArtistName = "Arcade Fire", Year = 2004, Label = "Merge",      Genres = "indie", PersonalRating = 7, Status = CollectionStatus.Owned });
+        await factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "Pet Sounds",  ArtistName = "Beach Boys",  Year = 1966, Label = "Capitol",    Genres = "pop", PersonalRating = 10, Status = CollectionStatus.Wishlist });
+
+        var byYear = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?yearFrom=1990&yearTo=2000");
+        var only = Assert.Single(byYear!);
+        Assert.Equal("OK Computer", only.Title);
+
+        var byArtist = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?artist=Radiohead");
+        Assert.Single(byArtist!);
+
+        var byLabel = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?label=Merge");
+        Assert.Single(byLabel!);
+
+        var byGenre = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?genre=indie");
+        Assert.Single(byGenre!);
+
+        var byStatus = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?status=Wishlist");
+        Assert.Single(byStatus!);
+
+        var byRating = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?ratingMin=9");
+        Assert.Equal(2, byRating!.Length);
+    }
+
     // -------- Tags --------
 
     [Fact]

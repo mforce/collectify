@@ -1,15 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
+import { filtersToParams, type Filters } from './filters';
 import type { Album, Game, MediaType, Movie } from './types';
 
 type ItemMap = { movies: Movie; music: Album; games: Game };
 
-export function useList<T extends MediaType>(type: T, query: string) {
+/**
+ * List with an optional filter object. `query` stays the free-text
+ * search; the filter object gets serialised to the per-endpoint query
+ * params via {@link filtersToParams}. The query key includes both so
+ * TanStack Query caches by the full (query + filters) pair and a
+ * filter change refetches deterministically.
+ */
+export function useList<T extends MediaType>(type: T, query: string, filters?: Filters<T>) {
   return useQuery({
-    queryKey: [type, 'list', query],
+    queryKey: [type, 'list', query, filters ?? {}],
     queryFn: () => {
-      const qs = query ? `?query=${encodeURIComponent(query)}` : '';
-      return api<ItemMap[T][]>(`/api/${type}${qs}`);
+      const params = filters ? filtersToParams(filters as Record<string, unknown>) : new URLSearchParams();
+      if (query) params.set('query', query);
+      const qs = params.toString();
+      return api<ItemMap[T][]>(`/api/${type}${qs ? `?${qs}` : ''}`);
     },
   });
 }

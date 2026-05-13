@@ -46,6 +46,14 @@ public static class MusicEndpoints
             [FromQuery] string? query,
             [FromQuery] MusicFormat? format,
             [FromQuery] int? year,
+            [FromQuery] int? yearFrom,
+            [FromQuery] int? yearTo,
+            [FromQuery] string? artist,
+            [FromQuery] string? label,
+            [FromQuery] string? genre,
+            [FromQuery] CollectionStatus? status,
+            [FromQuery] int? ratingMin,
+            [FromQuery(Name = "tag")] string[]? tag,
             CollectifyDbContext db,
             UserManager<AppUser> users,
             HttpContext ctx) =>
@@ -61,6 +69,31 @@ public static class MusicEndpoints
             }
             if (format.HasValue) q = q.Where(a => a.Format == format.Value);
             if (year.HasValue) q = q.Where(a => a.Year == year);
+            if (yearFrom.HasValue) q = q.Where(a => a.Year != null && a.Year >= yearFrom);
+            if (yearTo.HasValue) q = q.Where(a => a.Year != null && a.Year <= yearTo);
+            if (!string.IsNullOrWhiteSpace(artist))
+            {
+                var like = $"%{artist}%";
+                q = q.Where(a => EF.Functions.Like(a.ArtistName, like));
+            }
+            if (!string.IsNullOrWhiteSpace(label))
+            {
+                var like = $"%{label}%";
+                q = q.Where(a => a.Label != null && EF.Functions.Like(a.Label, like));
+            }
+            if (!string.IsNullOrWhiteSpace(genre))
+            {
+                var like = $"%{genre}%";
+                q = q.Where(a => a.Genres != null && EF.Functions.Like(a.Genres, like));
+            }
+            if (status.HasValue) q = q.Where(a => a.Status == status.Value);
+            if (ratingMin is { } rm) q = q.Where(a => a.PersonalRating != null && a.PersonalRating >= rm);
+            if (tag is { Length: > 0 })
+            {
+                var normalised = tag.Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToArray();
+                if (normalised.Length > 0)
+                    q = q.Where(a => a.Tags.Any(t => normalised.Contains(t.Name)));
+            }
 
             var items = await q.OrderByDescending(a => a.AddedAt).Take(500).ToListAsync();
             return Results.Ok(items.Select(ToDto));

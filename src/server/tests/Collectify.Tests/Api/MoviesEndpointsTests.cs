@@ -400,6 +400,109 @@ public class MoviesEndpointsTests
         Assert.All(hits, m => Assert.Equal(2010, m.Year));
     }
 
+    [Fact]
+    public async Task List_FiltersByYearRange_InclusiveBothEnds()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Old", Year = 1999 });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Mid", Year = 2010 });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Top", Year = 2020 });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Future", Year = 2025 });
+
+        var hits = await alice.Client.GetJsonAsync<MovieResponse[]>(
+            "/api/movies/?yearFrom=2000&yearTo=2020");
+
+        Assert.Equal(2, hits!.Length);
+        Assert.All(hits, m => Assert.InRange(m.Year ?? 0, 2000, 2020));
+    }
+
+    [Fact]
+    public async Task List_FiltersByDirector_StudioGenre_MatchSubstring()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Inception", Director = "Christopher Nolan", Studio = "Warner Bros", Genres = "sci-fi, action" });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Tenet",    Director = "Christopher Nolan", Studio = "Warner Bros", Genres = "sci-fi" });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Goodfellas", Director = "Martin Scorsese", Studio = "Warner Bros", Genres = "crime" });
+
+        var byDirector = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?director=Nolan");
+        Assert.Equal(2, byDirector!.Length);
+
+        var byStudio = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?studio=Warner");
+        Assert.Equal(3, byStudio!.Length);
+
+        // Substring against the comma-joined Genres column.
+        var byGenre = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?genre=sci-fi");
+        Assert.Equal(2, byGenre!.Length);
+    }
+
+    [Fact]
+    public async Task List_FiltersByStatusAndWatchStatusAndRatingMin()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Owned-Watched-9", Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, PersonalRating = 9 });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Owned-Unwatched", Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Unwatched, PersonalRating = 5 });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Wishlist",        Status = CollectionStatus.Wishlist });
+
+        var byStatus = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?status=Wishlist");
+        var hit = Assert.Single(byStatus!);
+        Assert.Equal("Wishlist", hit.Title);
+
+        var byWatch = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?watchStatus=Watched");
+        Assert.Single(byWatch!);
+
+        var byRating = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?ratingMin=7");
+        Assert.Single(byRating!);
+        Assert.Equal("Owned-Watched-9", byRating![0].Title);
+    }
+
+    [Fact]
+    public async Task List_FiltersByTag_OrSemanticsAcrossMultipleValues()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        await factory.SeedAsync(new Tag { OwnerId = alice.Id, Name = "scifi" });
+        await factory.SeedAsync(new Tag { OwnerId = alice.Id, Name = "noir" });
+        await factory.SeedAsync(new Tag { OwnerId = alice.Id, Name = "comedy" });
+
+        await alice.Client.PostAsJsonAsync("/api/movies/",
+            new { Title = "Blade Runner", Year = 1982, Formats = MovieFormat.BluRay, Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "scifi", "noir" } });
+        await alice.Client.PostAsJsonAsync("/api/movies/",
+            new { Title = "Airplane",     Year = 1980, Formats = MovieFormat.Dvd,    Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "comedy" } });
+        await alice.Client.PostAsJsonAsync("/api/movies/",
+            new { Title = "Casablanca",   Year = 1942, Formats = MovieFormat.Dvd,    Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "noir" } });
+
+        // Single tag.
+        var byScifi = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?tag=scifi");
+        Assert.Single(byScifi!);
+        Assert.Equal("Blade Runner", byScifi![0].Title);
+
+        // Multi-value OR: scifi or noir matches Blade Runner *and* Casablanca.
+        var byEither = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?tag=scifi&tag=noir");
+        Assert.Equal(2, byEither!.Length);
+        Assert.Contains(byEither, m => m.Title == "Blade Runner");
+        Assert.Contains(byEither, m => m.Title == "Casablanca");
+    }
+
+    [Fact]
+    public async Task List_CombinesFiltersWithAndSemantics()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Inception", Year = 2010, Director = "Nolan",     Status = CollectionStatus.Owned });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Tenet",     Year = 2020, Director = "Nolan",     Status = CollectionStatus.Owned });
+        await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Goodfellas",Year = 1990, Director = "Scorsese",  Status = CollectionStatus.Owned });
+
+        var hits = await alice.Client.GetJsonAsync<MovieResponse[]>(
+            "/api/movies/?director=Nolan&yearFrom=2015");
+
+        Assert.Single(hits!);
+        Assert.Equal("Tenet", hits![0].Title);
+    }
+
     // -------- Personal / acquisition / watch fields round-trip --------
 
     [Fact]

@@ -288,6 +288,47 @@ public class GamesEndpointsTests
         Assert.Equal("Digital", hits![0].Title);
     }
 
+    [Fact]
+    public async Task List_FiltersByYearRangePublisherDeveloperCompletionAndRating()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Hades",       Platform = GamePlatform.Pc,     Year = 2020, Publisher = "Supergiant", Developer = "Supergiant", CompletionStatus = CompletionStatus.Beaten, PersonalRating = 9 });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Witcher 3",   Platform = GamePlatform.Pc,     Year = 2015, Publisher = "CD Projekt", Developer = "CD Projekt", CompletionStatus = CompletionStatus.Playing, PersonalRating = 8 });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Tetris",      Platform = GamePlatform.GameBoy, Year = 1989, Publisher = "Nintendo",   Developer = "Bullet-Proof Software", CompletionStatus = CompletionStatus.NotStarted });
+
+        var byYear = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?yearFrom=2010");
+        Assert.Equal(2, byYear!.Length);
+
+        var byPublisher = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?publisher=Supergiant");
+        Assert.Single(byPublisher!);
+
+        var byDeveloper = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?developer=Projekt");
+        Assert.Single(byDeveloper!);
+
+        var byCompletion = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?completionStatus=Beaten");
+        Assert.Single(byCompletion!);
+        Assert.Equal("Hades", byCompletion![0].Title);
+
+        var byRating = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?ratingMin=9");
+        Assert.Single(byRating!);
+    }
+
+    [Fact]
+    public async Task List_FiltersByPlatform_OrSemanticsAreAvailableViaCombiningWithOtherFilters()
+    {
+        // Single-value enum filter today (one platform per request).
+        // Documented as a future enhancement if multi-platform OR
+        // becomes a real need.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Ps5 game",  Platform = GamePlatform.Ps5 });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Switch game", Platform = GamePlatform.Switch });
+
+        var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?platform=Ps5");
+        Assert.Single(hits!);
+    }
+
     // -------- Personal / acquisition / completion fields round-trip --------
 
     [Fact]
