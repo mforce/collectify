@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth, useLogout } from '../services/auth';
 import { useToast } from './toaster';
@@ -18,12 +18,29 @@ export default function Layout({ children }: { children: ReactNode }) {
   const logout = useLogout();
   const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   const closeMenu = () => setMenuOpen(false);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    const onClick = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
+    };
+  }, [menuOpen]);
+
   return (
     <div className="min-h-full flex flex-col">
-      <nav className="bg-slate-900 border-b border-slate-800">
+      <nav ref={navRef} className="bg-slate-900 border-b border-slate-800">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
           <Link to="/" className="text-lg font-semibold text-white">Collectify</Link>
           <div className="hidden md:flex items-center gap-1">

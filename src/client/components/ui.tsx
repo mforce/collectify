@@ -535,7 +535,7 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
           <img
             src={src}
             alt={alt}
-            className="max-h-[90vh] max-w-full object-contain rounded-md shadow-2xl"
+            className="max-h-[90dvh] max-w-full object-contain rounded-md shadow-2xl"
           />
         </div>
       )}
