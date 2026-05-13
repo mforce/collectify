@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SearchableSelect, SectionHeading, Select, Textarea } from './ui';
+import CoverEditor from './CoverEditor';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
@@ -174,11 +175,10 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
             <Input value={g.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
           </Field>
         </div>
-        <CoverPreview
-          src={g.imagePath}
-          alt={g.title ? `${g.title} cover` : ''}
-          className="w-28 sm:w-36 shrink-0"
-        />
+        <div className="w-28 sm:w-36 shrink-0 space-y-2">
+          <CoverPreview src={g.imagePath} alt={g.title ? `${g.title} cover` : ''} />
+          <CoverEditor value={g.imagePath} onChange={(v) => set('imagePath', v)} />
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 items-end">

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Collectify.Domain.Entities;
 using Collectify.Tests.Infrastructure;
 
@@ -162,5 +163,140 @@ public class CoversEndpointsTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("\"abc1234567890def\"", response.Headers.ETag?.ToString());
+    }
+
+    // ---------- POST /api/covers (upload) ----------
+
+    private record UploadResponse(string ImagePath);
+
+    // Minimum-valid JPEG: magic bytes + JFIF / SOI marker. ZXing-y tiny
+    // dummies are fine because the endpoint only sniffs the leading
+    // signature, not the rest of the structure.
+    private static readonly byte[] TinyJpeg = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00 };
+    private static readonly byte[] TinyPng = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D };
+    private static readonly byte[] TinyWebp = new byte[] { 0x52, 0x49, 0x46, 0x46, 0x10, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
+
+    private static MultipartFormDataContent FilePart(byte[] bytes, string contentType, string filename = "cover.bin")
+    {
+        var form = new MultipartFormDataContent();
+        var content = new ByteArrayContent(bytes);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        form.Add(content, "file", filename);
+        return form;
+    }
+
+    [Fact]
+    public async Task Upload_Unauthenticated_Returns401()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.PostAsync("/api/covers", FilePart(TinyJpeg, "image/jpeg"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_HappyPath_StoresBytesAndReturnsCoversPath()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var post = await alice.Client.PostAsync("/api/covers", FilePart(TinyJpeg, "image/jpeg"));
+        Assert.Equal(HttpStatusCode.OK, post.StatusCode);
+        var body = await post.Content.ReadFromJsonAsync<UploadResponse>();
+        Assert.NotNull(body);
+        Assert.StartsWith("/covers/", body!.ImagePath);
+
+        // The same hash is retrievable via the GET endpoint without
+        // auth (img tags don't carry cookies in some browsers).
+        var get = await factory.CreateClient().GetAsync(body.ImagePath);
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+        Assert.Equal("image/jpeg", get.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(TinyJpeg, await get.Content.ReadAsByteArrayAsync());
+    }
+
+    [Fact]
+    public async Task Upload_AcceptsPngAndWebp_RoundTrippingContentType()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var png = await alice.Client.PostAsync("/api/covers", FilePart(TinyPng, "image/png"));
+        var pngBody = await png.Content.ReadFromJsonAsync<UploadResponse>();
+        var pngGet = await factory.CreateClient().GetAsync(pngBody!.ImagePath);
+        Assert.Equal("image/png", pngGet.Content.Headers.ContentType?.MediaType);
+
+        var webp = await alice.Client.PostAsync("/api/covers", FilePart(TinyWebp, "image/webp"));
+        var webpBody = await webp.Content.ReadFromJsonAsync<UploadResponse>();
+        var webpGet = await factory.CreateClient().GetAsync(webpBody!.ImagePath);
+        Assert.Equal("image/webp", webpGet.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task Upload_SameBytesTwice_DedupesToOneRow()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var first = (await (await alice.Client.PostAsync("/api/covers", FilePart(TinyJpeg, "image/jpeg")))
+            .Content.ReadFromJsonAsync<UploadResponse>())!;
+        var second = (await (await alice.Client.PostAsync("/api/covers", FilePart(TinyJpeg, "image/jpeg")))
+            .Content.ReadFromJsonAsync<UploadResponse>())!;
+
+        // Same bytes → same hash → same /covers/{hash} path.
+        Assert.Equal(first.ImagePath, second.ImagePath);
+    }
+
+    [Fact]
+    public async Task Upload_EmptyFile_Returns400()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var response = await alice.Client.PostAsync("/api/covers", FilePart(Array.Empty<byte>(), "image/jpeg"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_UnsupportedMimeType_Returns415()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var response = await alice.Client.PostAsync("/api/covers",
+            FilePart(System.Text.Encoding.UTF8.GetBytes("hi"), "text/plain"));
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_DeclaredImageButGarbageBytes_Returns415()
+    {
+        // Lying about content-type: declared image/png but the payload
+        // is text. The magic-byte sniff must reject this.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var response = await alice.Client.PostAsync("/api/covers",
+            FilePart(System.Text.Encoding.UTF8.GetBytes("<html>not a png</html>"), "image/png"));
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_OversizeFile_Returns413()
+    {
+        // 5 MiB cap; 6 MiB JPEG (well, 6 MiB starting with the JPEG magic
+        // bytes) blows past it.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var oversized = new byte[6 * 1024 * 1024];
+        oversized[0] = 0xFF; oversized[1] = 0xD8; oversized[2] = 0xFF;
+
+        var response = await alice.Client.PostAsync("/api/covers", FilePart(oversized, "image/jpeg"));
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
     }
 }

@@ -22,6 +22,16 @@ namespace Collectify.Infrastructure.Lookup.Images;
 public interface ICoverImageStore
 {
     Task<string?> EnsureLocalAsync(string? imagePath, CancellationToken ct = default);
+
+    /// <summary>
+    /// Persists raw image bytes (e.g. from a multipart upload) and returns
+    /// the public <c>/covers/{hash}</c> URL the SPA can embed. The hash
+    /// is derived from the bytes themselves, so two uploads of the same
+    /// image dedupe to one row regardless of original filename. Callers
+    /// are expected to have validated <paramref name="contentType"/> +
+    /// size + magic bytes before calling.
+    /// </summary>
+    Task<string> StoreBytesAsync(byte[] bytes, string contentType, CancellationToken ct = default);
 }
 
 public sealed class CoverImageStore : ICoverImageStore
@@ -82,12 +92,49 @@ public sealed class CoverImageStore : ICoverImageStore
         }
     }
 
+    public async Task<string> StoreBytesAsync(byte[] bytes, string contentType, CancellationToken ct = default)
+    {
+        var hash = HashBytes(bytes);
+        var publicUrl = $"/covers/{hash}";
+
+        // Content-addressable: a row with the same hash means the same
+        // bytes are already there. Skip the second insert; the hash is
+        // what /covers/{hash} keys off, so the public URL is identical.
+        if (await _db.CoverImages.AsNoTracking().AnyAsync(c => c.Hash == hash, ct))
+            return publicUrl;
+
+        try
+        {
+            _db.CoverImages.Add(new CoverImage
+            {
+                Hash = hash,
+                ContentType = contentType,
+                Bytes = bytes,
+                AddedAt = DateTime.UtcNow,
+            });
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Two concurrent uploads of the same bytes race; the loser's
+            // payload is identical, so we can swallow and return the same
+            // URL (the winner's row is already in the table).
+        }
+        return publicUrl;
+    }
+
     private static bool IsRemoteUrl(string s) =>
         s.StartsWith("http://", StringComparison.Ordinal) || s.StartsWith("https://", StringComparison.Ordinal);
 
     private static string HashUrl(string url)
     {
         var sha = SHA256.HashData(Encoding.UTF8.GetBytes(url));
+        return Convert.ToHexString(sha)[..16].ToLowerInvariant();
+    }
+
+    private static string HashBytes(byte[] bytes)
+    {
+        var sha = SHA256.HashData(bytes);
         return Convert.ToHexString(sha)[..16].ToLowerInvariant();
     }
 

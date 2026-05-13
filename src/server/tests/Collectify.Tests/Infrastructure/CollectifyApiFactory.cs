@@ -110,6 +110,10 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
 
 internal sealed class FakeCoverImageStore : ICoverImageStore
 {
+    private readonly CollectifyDbContext _db;
+
+    public FakeCoverImageStore(CollectifyDbContext db) => _db = db;
+
     public Task<string?> EnsureLocalAsync(string? imagePath, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(imagePath)) return Task.FromResult<string?>(null);
@@ -120,5 +124,29 @@ internal sealed class FakeCoverImageStore : ICoverImageStore
         // Deterministic so tests can assert exact values from a remote URL.
         var hash = Math.Abs(imagePath.GetHashCode()).ToString("x").PadLeft(12, '0');
         return Task.FromResult<string?>($"/covers/{hash}");
+    }
+
+    public async Task<string> StoreBytesAsync(byte[] bytes, string contentType, CancellationToken ct = default)
+    {
+        // Deterministic byte-hash so two uploads of the same payload
+        // dedupe in tests, mirroring production behaviour.
+        var sha = System.Security.Cryptography.SHA256.HashData(bytes);
+        var hash = Convert.ToHexString(sha)[..16].ToLowerInvariant();
+
+        // Persist for real (tests want to GET /covers/{hash} and read
+        // the bytes back). Dedupe on hash collisions like the real
+        // implementation.
+        if (!await _db.CoverImages.AsNoTracking().AnyAsync(c => c.Hash == hash, ct))
+        {
+            _db.CoverImages.Add(new Collectify.Domain.Entities.CoverImage
+            {
+                Hash = hash,
+                ContentType = contentType,
+                Bytes = bytes,
+                AddedAt = DateTime.UtcNow,
+            });
+            await _db.SaveChangesAsync(ct);
+        }
+        return $"/covers/{hash}";
     }
 }
