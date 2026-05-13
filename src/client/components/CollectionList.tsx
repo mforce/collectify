@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useList } from '../services/collection';
 import { useFiltersState } from '../services/filters';
 import { Button, Card, Input, StatusPill, TagChip } from './ui';
@@ -28,7 +27,18 @@ interface Props<T extends MediaType> {
 }
 
 export default function CollectionList<T extends MediaType>({ type, title, newPath, renderItem }: Props<T>) {
-  const [query, setQuery] = useState('');
+  // Search-input state lives in the URL as `?q=` so it deep-links and
+  // survives back/forward, same contract as the filters. useFiltersState
+  // already preserves every param it doesn't own, so Clear-all leaves
+  // `q` alone -- the two states are independent.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') ?? '';
+  const setQuery = (next: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (next) params.set('q', next);
+    else params.delete('q');
+    setSearchParams(params, { replace: true });
+  };
   const { filters, setFilters, clear } = useFiltersState(type);
   const list = useList(type, query, filters);
   const items = list.data ?? [];
@@ -84,7 +94,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
       {list.isLoading && <p className="text-slate-400">Loading…</p>}
       {list.error && <p className="text-rose-400">Failed to load.</p>}
       {!list.isLoading && items.length === 0 && (
-        <Card className="text-center text-slate-400">No items yet — click "+ Add" to start.</Card>
+        <Card className="text-center text-slate-400">No items yet — click \"+ Add\" to start.</Card>
       )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
