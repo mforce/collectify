@@ -217,7 +217,7 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
                 type="button"
                 key={f.key}
                 onClick={() => toggleFormat(f.value)}
-                className={`px-3 py-1.5 rounded-md text-sm border ${checked ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-300'}`}
+                className={`inline-flex items-center px-3 min-h-[44px] rounded-md text-sm border ${checked ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-300'}`}
               >
                 {f.label}
               </button>

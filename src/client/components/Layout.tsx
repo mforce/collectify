@@ -4,7 +4,7 @@ import { useAuth, useLogout } from '../services/auth';
 import { useToast } from './toaster';
 
 const navItem = ({ isActive }: { isActive: boolean }) =>
-  `px-3 py-2 rounded-md text-sm font-medium ${
+  `inline-flex items-center px-3 min-h-[44px] rounded-md text-sm font-medium ${
     isActive ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
   }`;
 
@@ -55,7 +55,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               onClick={() =>
                 logout.mutate(undefined, { onSuccess: () => toast.success('Signed out.') })
               }
-              className="text-slate-300 hover:text-white"
+              className="inline-flex items-center px-3 min-h-[44px] rounded-md text-slate-300 hover:text-white hover:bg-slate-800"
             >
               Sign out
             </button>

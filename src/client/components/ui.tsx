@@ -24,7 +24,7 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
   return (
     <input
       {...props}
-      className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 ${className}`}
+      className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-[44px] text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 ${className}`}
     />
   );
 }
@@ -42,7 +42,7 @@ export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSe
   return (
     <select
       {...props}
-      className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-400 ${className}`}
+      className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-[44px] text-sm text-slate-100 focus:outline-none focus:border-indigo-400 ${className}`}
     />
   );
 }
@@ -183,7 +183,7 @@ export function SearchableSelect({
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKey}
-        className="block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
+        className="block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-[44px] text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
       />
       {open && (
         <div
@@ -307,7 +307,7 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="ml-1 px-2 text-xs text-slate-400 hover:text-slate-200"
+          className="ml-1 px-3 min-h-[44px] inline-flex items-center text-xs text-slate-400 hover:text-slate-200"
           aria-label="Clear rating"
         >
           clear
@@ -348,14 +348,14 @@ export function ConditionPill({ condition }: { condition: Condition }) {
 
 export function TagChip({ name, onRemove }: { name: string; onRemove?: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-indigo-500/15 text-indigo-200 border border-indigo-500/30">
+    <span className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs bg-indigo-500/15 text-indigo-200 border border-indigo-500/30">
       {name}
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
           aria-label={`Remove tag ${name}`}
-          className="-mr-0.5 hover:text-white"
+          className="inline-flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full hover:text-white hover:bg-indigo-500/30"
         >
           ×
         </button>
