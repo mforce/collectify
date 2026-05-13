@@ -15,7 +15,7 @@ export function Button({ className = '', variant = 'primary', ...props }: Button
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-md px-3 py-2 min-h-[44px] text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${className}`}
     />
   );
 }
@@ -280,7 +280,7 @@ interface RatingInputProps {
  */
 export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: RatingInputProps) {
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1">
+    <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
       {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
         const selected = value === n;
         return (
@@ -291,7 +291,7 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
             aria-checked={selected}
             aria-label={`${n} of 10`}
             onClick={() => onChange(selected ? null : n)}
-            className={`w-8 h-8 rounded-md text-sm font-medium border transition-colors ${
+            className={`w-11 h-11 rounded-md text-sm font-medium border transition-colors ${
               selected
                 ? 'bg-amber-500 border-amber-400 text-slate-900'
                 : value != null && n <= value
@@ -535,7 +535,7 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
           <img
             src={src}
             alt={alt}
-            className="max-h-full max-w-full object-contain rounded-md shadow-2xl"
+            className="max-h-[90vh] max-w-full object-contain rounded-md shadow-2xl"
           />
         </div>
       )}
