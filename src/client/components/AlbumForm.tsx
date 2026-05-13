@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import CoverEditor from './CoverEditor';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
@@ -190,11 +191,10 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
             <Input value={a.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
           </Field>
         </div>
-        <CoverPreview
-          src={a.imagePath}
-          alt={a.title ? `${a.title} cover` : ''}
-          className="w-28 sm:w-36 shrink-0"
-        />
+        <div className="w-28 sm:w-36 shrink-0 space-y-2">
+          <CoverPreview src={a.imagePath} alt={a.title ? `${a.title} cover` : ''} />
+          <CoverEditor value={a.imagePath} onChange={(v) => set('imagePath', v)} />
+        </div>
       </div>
 
       <PersonalAcquisitionSection value={a} onChange={patch} />

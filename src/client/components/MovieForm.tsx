@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import CoverEditor from './CoverEditor';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
@@ -197,11 +198,13 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
             <Input value={m.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
           </Field>
         </div>
-        <CoverPreview
-          src={m.imagePath}
-          alt={m.title ? `${m.title} poster` : ''}
-          className="w-28 sm:w-36 shrink-0"
-        />
+        <div className="w-28 sm:w-36 shrink-0 space-y-2">
+          <CoverPreview
+            src={m.imagePath}
+            alt={m.title ? `${m.title} poster` : ''}
+          />
+          <CoverEditor value={m.imagePath} onChange={(v) => set('imagePath', v)} />
+        </div>
       </div>
 
       <div>
