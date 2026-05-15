@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-alpine AS client-build
+FROM node:24-alpine AS client-build
 WORKDIR /client
 COPY src/client/package.json src/client/package-lock.json* ./
 RUN npm install --no-audit --no-fund
