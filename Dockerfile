@@ -12,10 +12,17 @@ RUN npm run build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS server-build
 WORKDIR /server
+# Stamped into the published assembly so /api/health reports the
+# release version. Defaults to 0.0.0 for local builds; the release
+# workflow passes --build-arg VERSION=<git tag without leading v>.
+ARG VERSION=0.0.0
 COPY src/server/ ./
 RUN dotnet restore Collectify.slnx
 COPY --from=client-build /client/dist ./Collectify.Api/wwwroot
-RUN dotnet publish Collectify.Api/Collectify.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish Collectify.Api/Collectify.Api.csproj -c Release -o /app/publish \
+    /p:UseAppHost=false \
+    /p:Version=${VERSION} \
+    /p:InformationalVersion=${VERSION}
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

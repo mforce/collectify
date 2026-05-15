@@ -1,0 +1,167 @@
+name: Release
+
+# Triggered by pushing a semver tag (e.g. `git tag v1.2.3 && git push --tags`).
+# Builds a multi-arch image and publishes it to a configurable OCI registry.
+#
+# REGISTRY CONFIGURATION
+# Set these in repository "Settings → Secrets and variables → Actions":
+#
+#   Variables (public, can be overridden per-fork):
+#     REGISTRY          host of the target registry. Default: ghcr.io.
+#                       Examples: "git.example.com", "registry.example.com:5000".
+#     IMAGE_NAME        path within the registry. Default: <owner>/<repo>
+#                       (e.g. "mforce/collectify"). Override if your registry
+#                       expects a different namespace (e.g. "library/collectify").
+#
+#   Secrets (private):
+#     REGISTRY_USER     username for `docker login`. Default: github.actor.
+#                       For Gitea / Harbor / a private registry, this is the
+#                       account whose token is in REGISTRY_TOKEN.
+#     REGISTRY_TOKEN    password or personal access token. Required.
+#
+# The defaults publish to GHCR using the bot identity that triggered the run,
+# which works out-of-the-box for public GitHub repos. To target Gitea instead,
+# set REGISTRY + IMAGE_NAME as vars and REGISTRY_USER + REGISTRY_TOKEN as
+# secrets. No workflow code change needed.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing git tag to (re-)publish, e.g. v1.2.3'
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || github.repository }}
+
+jobs:
+  test-server:
+    name: Server tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/server
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Collectify.slnx
+
+      - name: Build
+        run: dotnet build Collectify.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --logger "console;verbosity=normal"
+
+  test-client:
+    name: Client tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/client
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: src/client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  publish:
+    name: Build and push multi-arch image
+    needs: [test-server, test-client]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Needed when REGISTRY defaults to ghcr.io and the workflow logs in
+      # with the workflow's GITHUB_TOKEN. Harmless for other registries.
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          REF="${{ inputs.tag || github.ref_name }}"
+          # Strip optional leading "refs/tags/" if present.
+          REF="${REF#refs/tags/}"
+          echo "name=${REF}" >> "$GITHUB_OUTPUT"
+          # Assembly Version wants pure semver without the "v" prefix.
+          echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER || github.actor }}
+          # Falls back to the workflow's GITHUB_TOKEN so the out-of-the-box
+          # default (publishing to ghcr.io with the run's identity) works
+          # without any repo secrets configured.
+          password: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Derive image tags and OCI labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # metadata-action also adds :latest automatically for non-prerelease
+          # semver tags via flavor=latest=auto (the default), so v1.2.3-rc1
+          # won't clobber :latest but v1.2.3 will.
+          tags: |
+            type=semver,pattern={{version}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern={{major}},value=${{ steps.tag.outputs.name }}
+          labels: |
+            org.opencontainers.image.title=Collectify
+            org.opencontainers.image.description=Self-hosted media collection tracker
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.tag.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push (linux/amd64, linux/arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.tag.outputs.version }}
+          # GitHub Actions cache. First release is a cold build; subsequent
+          # ones reuse layers (apt-get curl install, npm install, dotnet
+          # restore) and finish in a fraction of the time.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
