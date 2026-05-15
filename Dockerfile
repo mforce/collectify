@@ -2,6 +2,9 @@
 
 FROM node:24-alpine AS client-build
 WORKDIR /client
+# Silence npm's update-notifier "new version available" notice in
+# build logs. Real warnings (deprecations, audit findings) still surface.
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 COPY src/client/package.json src/client/package-lock.json* ./
 RUN npm install --no-audit --no-fund
 COPY src/client/ ./
