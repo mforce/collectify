@@ -111,8 +111,7 @@ app.MapTagEndpoints();
 app.MapLookupEndpoints();
 app.MapCoversEndpoints();
 app.MapDashboardEndpoints();
-
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.MapHealthEndpoints();
 
 var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
 if (Directory.Exists(webRoot))

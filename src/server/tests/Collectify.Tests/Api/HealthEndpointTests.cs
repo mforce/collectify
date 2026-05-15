@@ -11,7 +11,7 @@ public class HealthEndpointTests : IClassFixture<CollectifyApiFactory>
     public HealthEndpointTests(CollectifyApiFactory factory) => _factory = factory;
 
     [Fact]
-    public async Task GetHealth_Unauthenticated_ReturnsOk()
+    public async Task GetHealth_Unauthenticated_ReturnsOkWithVersion()
     {
         var client = _factory.CreateClient();
 
@@ -20,7 +20,8 @@ public class HealthEndpointTests : IClassFixture<CollectifyApiFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<HealthResponse>();
         Assert.Equal("ok", body?.Status);
+        Assert.False(string.IsNullOrWhiteSpace(body?.Version));
     }
 
-    private record HealthResponse(string Status);
+    private record HealthResponse(string Status, string Version);
 }
