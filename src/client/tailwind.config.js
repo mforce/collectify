@@ -14,7 +14,7 @@ export default {
           hover: '#2F54C6',     // darker on hover
         },
         surface: {
-          DEFAULT: '#F8F9FA',   // soft off-white page background
+          DEFAULT: '#F3F4F6',   // soft off-white page background
           card: '#FFFFFF',      // pure white for cards/panels on top of page bg
           subtle: '#F1F3F5',    // very light gray for alternating rows
         },
