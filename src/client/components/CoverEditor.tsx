@@ -121,14 +121,14 @@ export default function CoverEditor({ value, onChange }: Props) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="text-indigo-300 hover:text-indigo-200 underline"
+          className="text-brand hover:text-brand-hover underline"
         >
           Change cover
         </button>
         <button
           type="button"
           onClick={remove}
-          className="text-rose-300 hover:text-rose-200 underline"
+          className="text-error hover:text-error-hover underline"
         >
           Remove cover
         </button>
@@ -137,10 +137,10 @@ export default function CoverEditor({ value, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-2 rounded-md border border-slate-800 bg-slate-900/60 p-3">
+    <div className="space-y-2 rounded-md border border-border bg-white/60 p-3">
       <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
         <div className="flex-1">
-          <label className="block text-xs font-medium text-slate-400 mb-1">Image URL</label>
+          <label className="block text-xs font-medium text-text-secondary mb-1">Image URL</label>
           <Input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
@@ -159,7 +159,7 @@ export default function CoverEditor({ value, onChange }: Props) {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        <label htmlFor="cover-editor-file" className="block text-xs font-medium text-slate-400">
+        <label htmlFor="cover-editor-file" className="block text-xs font-medium text-text-secondary">
           Or upload a file
         </label>
         <input
@@ -169,13 +169,13 @@ export default function CoverEditor({ value, onChange }: Props) {
           accept={ALLOWED_MIME.join(',')}
           onChange={onFileChange}
           disabled={uploading}
-          className="text-sm text-slate-300 file:mr-2 file:rounded-md file:border-0 file:bg-slate-700 file:px-3 file:py-1.5 file:text-sm file:text-slate-100 hover:file:bg-slate-600"
+          className="text-sm text-text-primary file:mr-2 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-text-primary hover:file:bg-gray-300"
         />
-        {uploading && <span className="text-xs text-slate-400">Uploading…</span>}
+        {uploading && <span className="text-xs text-text-secondary">Uploading…</span>}
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-rose-300">
+        <p role="alert" className="text-sm text-error">
           {error}
         </p>
       )}
@@ -185,7 +185,7 @@ export default function CoverEditor({ value, onChange }: Props) {
           <button
             type="button"
             onClick={remove}
-            className="text-xs text-rose-300 hover:text-rose-200 underline"
+            className="text-xs text-error hover:text-error-hover underline"
           >
             Remove current cover
           </button>
@@ -196,7 +196,7 @@ export default function CoverEditor({ value, onChange }: Props) {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="text-xs text-slate-400 hover:text-slate-200 underline"
+            className="text-xs text-text-secondary hover:text-text-primary underline"
           >
             Cancel
           </button>

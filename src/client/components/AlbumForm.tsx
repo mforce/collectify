@@ -249,7 +249,7 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
         />
       </div>
       {fetchState.message && (
-        <div className="text-xs text-slate-400">{fetchState.message}</div>
+        <div className="text-xs text-text-secondary">{fetchState.message}</div>
       )}
 
       <Field label="Notes">

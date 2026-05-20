@@ -182,7 +182,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 items-end">
-        <label className="flex items-center gap-2 text-sm text-slate-300">
+        <label className="flex items-center gap-2 text-sm text-text-primary">
           <input
             type="checkbox"
             checked={g.isDigital}
@@ -260,7 +260,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         </div>
       </div>
       {fetchState.message && (
-        <div className="text-xs text-slate-400">{fetchState.message}</div>
+        <div className="text-xs text-text-secondary">{fetchState.message}</div>
       )}
 
       <Field label="Notes">

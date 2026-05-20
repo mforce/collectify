@@ -136,26 +136,26 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
         // commonly stream 16:9 even when held portrait). Without
         // object-cover the stream was stretched / mis-cropped, leaving
         // the slate-900 fallback bg visible alongside the live frame.
-        className="h-[60dvh] w-full max-w-md rounded-md bg-slate-900 object-cover"
+        className="h-[60dvh] w-full max-w-md rounded-md bg-gray-100 object-cover"
         muted
         playsInline
       />
-      {status === 'requesting' && <p className="text-slate-300 text-sm">Requesting camera…</p>}
+      {status === 'requesting' && <p className="text-text-primary text-sm">Requesting camera…</p>}
       {status === 'streaming' && (
-        <p className="text-slate-300 text-sm">Point the camera at a UPC / EAN barcode.</p>
+        <p className="text-text-primary text-sm">Point the camera at a UPC / EAN barcode.</p>
       )}
       {status === 'denied' && (
-        <p className="text-rose-300 text-sm max-w-md text-center">
+        <p className="text-error text-sm max-w-md text-center">
           Camera permission denied. Allow camera access in your browser settings to scan.
         </p>
       )}
       {status === 'no-camera' && (
-        <p className="text-rose-300 text-sm max-w-md text-center">
+        <p className="text-error text-sm max-w-md text-center">
           No camera available on this device.
         </p>
       )}
       {status === 'no-https' && (
-        <p className="text-rose-300 text-sm max-w-md text-center">
+        <p className="text-error text-sm max-w-md text-center">
           Camera access requires a secure context (HTTPS or localhost).
         </p>
       )}
@@ -168,12 +168,12 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
           autoComplete="off"
           placeholder="Or type a barcode"
           aria-label="Barcode"
-          className="flex-1 rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
+          className="flex-1 rounded-md bg-gray-100 border border-border px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand"
         />
         <button
           type="submit"
           disabled={!manualCode.trim()}
-          className="px-3 py-2 rounded-md bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium"
+          className="px-3 py-2 rounded-md bg-brand hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-text-primary text-sm font-medium"
         >
           Look up
         </button>
@@ -182,7 +182,7 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
       <button
         type="button"
         onClick={onClose}
-        className="px-4 py-2 rounded-md bg-slate-700 hover:bg-slate-600 text-white"
+        className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-100 text-text-primary"
       >
         Cancel
       </button>

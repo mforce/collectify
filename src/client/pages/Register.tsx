@@ -11,15 +11,12 @@ export default function Register() {
   const register = useRegister();
   const toast = useToast();
 
-  // The mismatch check is purely client-side guard rails; the server
-  // doesn't see `confirm`. The button stays disabled while the two
-  // fields disagree so the network round-trip never fires.
   const mismatched = confirm.length > 0 && password !== confirm;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-white mb-6">Create an account</h1>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+      <Card className="w-full max-w-md !p-6">
+        <h1 className="text-xl font-medium text-text-primary tracking-tight mb-6">Create an account</h1>
         <form
           className="space-y-4"
           onSubmit={(e) => {
@@ -49,17 +46,17 @@ export default function Register() {
               aria-invalid={mismatched || undefined}
             />
           </Field>
-          {mismatched && <p className="text-sm text-rose-400">Passwords don't match.</p>}
+          {mismatched && <p className="text-sm text-error">Passwords don't match.</p>}
           {register.error && (
-            <p className="text-sm text-rose-400">{(register.error as Error).message ?? 'Registration failed.'}</p>
+            <p className="text-sm text-error">{(register.error as Error).message ?? 'Registration failed.'}</p>
           )}
           <Button type="submit" disabled={register.isPending || mismatched} className="w-full">
             {register.isPending ? 'Creating account…' : 'Create account'}
           </Button>
         </form>
-        <p className="mt-4 text-sm text-slate-400 text-center">
+        <p className="mt-4 text-sm text-text-secondary text-center">
           Already have an account?{' '}
-          <Link to="/login" className="text-indigo-300 hover:text-indigo-200 underline">
+          <Link to="/login" className="text-brand hover:text-brand-hover underline transition-colors">
             Sign in
           </Link>
         </p>

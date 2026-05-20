@@ -94,17 +94,17 @@ export default function BarcodeLookup<T extends MediaType>({
       )}
 
       {phase.kind === 'searching' && (
-        <p className="text-xs text-slate-400">Looking up {phase.code}…</p>
+        <p className="text-xs text-text-secondary">Looking up {phase.code}…</p>
       )}
-      {phase.kind === 'error' && <p className="text-xs text-rose-300">{phase.message}</p>}
+      {phase.kind === 'error' && <p className="text-xs text-error">{phase.message}</p>}
       {phase.kind === 'results' && !phase.configured && (
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-text-secondary">
           Online lookup not configured. Set the provider key to enable barcode matches.
         </p>
       )}
       {phase.kind === 'results' && phase.configured && phase.results.length === 0 && (
         <div className="space-y-1">
-          <p className="text-xs text-slate-400">No match for {phase.code}.</p>
+          <p className="text-xs text-text-secondary">No match for {phase.code}.</p>
           {onBarcodeFallback && (
             <Button
               type="button"
@@ -120,7 +120,7 @@ export default function BarcodeLookup<T extends MediaType>({
         </div>
       )}
       {phase.kind === 'results' && phase.results.length > 0 && (
-        <div className="rounded-md bg-slate-900 border border-slate-700 max-h-80 overflow-auto">
+        <div className="rounded-md bg-white border border-border max-h-80 overflow-auto">
           {(phase.results as ResultMap[T][]).map((item, i) => {
             const view = renderItem?.(item) ?? defaultView(type, item);
             return (
@@ -131,15 +131,15 @@ export default function BarcodeLookup<T extends MediaType>({
                   onPick(item);
                   setPhase({ kind: 'idle' });
                 }}
-                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-slate-800 border-b border-slate-800 last:border-b-0"
+                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-white border-b border-border last:border-b-0"
               >
                 {view.image && (
                   <img src={view.image} alt="" className="w-10 h-14 object-cover rounded flex-none" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm text-slate-100 truncate">{view.primary}</div>
+                  <div className="text-sm text-text-primary truncate">{view.primary}</div>
                   {view.secondary && (
-                    <div className="text-xs text-slate-400 truncate">{view.secondary}</div>
+                    <div className="text-xs text-text-secondary truncate">{view.secondary}</div>
                   )}
                 </div>
               </button>

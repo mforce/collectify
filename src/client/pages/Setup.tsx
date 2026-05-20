@@ -12,10 +12,10 @@ export default function Setup() {
   const mismatch = password.length > 0 && confirm.length > 0 && password !== confirm;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-white mb-1">Welcome to Collectify</h1>
-        <p className="text-slate-400 mb-6">Create your single-user account to get started.</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+      <Card className="w-full max-w-md !p-6">
+        <h1 className="text-xl font-medium text-text-primary tracking-tight mb-1">Welcome to Collectify</h1>
+        <p className="text-text-secondary mb-6">Create your single-user account to get started.</p>
         <form
           className="space-y-4"
           onSubmit={(e) => {
@@ -36,8 +36,8 @@ export default function Setup() {
           <Field label="Confirm password">
             <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
           </Field>
-          {mismatch && <p className="text-sm text-rose-400">Passwords do not match.</p>}
-          {setup.error && <p className="text-sm text-rose-400">{(setup.error as Error).message}</p>}
+          {mismatch && <p className="text-sm text-error">Passwords do not match.</p>}
+          {setup.error && <p className="text-sm text-error">{(setup.error as Error).message}</p>}
           <Button type="submit" disabled={setup.isPending || mismatch} className="w-full">
             {setup.isPending ? 'Creating account…' : 'Create account'}
           </Button>

@@ -6,53 +6,50 @@ import {
   type Condition,
 } from '../services/types';
 
+// ─── Button ──────────────────────────────────────────────────────
+
+const btnBase =
+  'inline-flex items-center justify-center rounded transition-colors text-sm font-medium disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1';
+
 export function Button({ className = '', variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
-  const variants = {
-    primary: 'bg-indigo-500 hover:bg-indigo-400 text-white',
-    secondary: 'bg-slate-700 hover:bg-slate-600 text-slate-100',
-    danger: 'bg-rose-600 hover:bg-rose-500 text-white',
-  } as const;
+  const variants: Record<string, string> = {
+    primary: 'bg-brand hover:bg-brand-hover text-white min-h-[40px] px-4 py-2',
+    secondary: 'bg-white hover:bg-gray-50 text-text-primary border border-border min-h-[40px] px-4 py-2',
+    danger: 'bg-error hover:bg-red-600 text-white min-h-[40px] px-4 py-2',
+  };
   return (
-    <button
-      {...props}
-      className={`inline-flex items-center justify-center rounded-md px-3 py-2 min-h-[44px] text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${className}`}
-    />
+    <button {...props} className={`${btnBase} ${variants[variant]} ${className}`} />
   );
 }
 
+// ─── Input / Select / Textarea ──────────────────────────────────
+
+const inputBase =
+  'block w-full rounded border px-3 py-2 text-sm bg-white transition-colors placeholder:text-text-tertiary focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:bg-gray-50';
+
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input
-      {...props}
-      className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-[44px] text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 ${className}`}
-    />
+    <input {...props} className={`${inputBase} border-border ${className}`} />
   );
 }
 
 export function Textarea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
-    <textarea
-      {...props}
-      className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 ${className}`}
-    />
+    <textarea {...props} className={`${inputBase} border-border resize-y ${className}`} />
   );
 }
 
 export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select
-      {...props}
-      className={`block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-[44px] text-sm text-slate-100 focus:outline-none focus:border-indigo-400 ${className}`}
-    />
+    <select {...props} className={`${inputBase} border-border ${className}`} />
   );
 }
 
-// ---------- Searchable select ----------
+// ─── Searchable select ──────────────────────────────────────────
 
 export interface SearchableOption {
   value: string;
   label: string;
-  /** Optional grouping header (rendered above the first option in each group). */
   group?: string;
 }
 
@@ -61,21 +58,9 @@ interface SearchableSelectProps {
   onChange: (next: string) => void;
   options: SearchableOption[];
   placeholder?: string;
-  /** Optional id so a parent <Label> can associate via htmlFor. */
   id?: string;
 }
 
-/**
- * Typeahead replacement for a long native <select>. Click (or focus) the
- * input to open the popup; typing filters by case-insensitive substring
- * match on the option label *and* its group header (so "nintendo" pulls
- * up every Nintendo platform even though it's not in the labels). Arrow
- * keys / Enter / Escape are wired the way you'd expect; click-outside
- * closes; Tab confirms-and-moves-on without overwriting the value.
- *
- * Groups whose options are all filtered out drop their header so a
- * narrow search isn't sprinkled with empty section labels.
- */
 export function SearchableSelect({
   value,
   onChange,
@@ -85,8 +70,6 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  // Index into the *filtered* list so arrow-key navigation stays in
-  // sync with what the user can currently see.
   const [activeIndex, setActiveIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -110,7 +93,6 @@ export function SearchableSelect({
     return () => document.removeEventListener('mousedown', onClick);
   }, [open]);
 
-  // Reset highlight to the first visible option whenever the filter changes.
   useEffect(() => {
     setActiveIndex(0);
   }, [query, open]);
@@ -143,9 +125,6 @@ export function SearchableSelect({
     }
   };
 
-  // Walk filtered options once, emitting an optgroup header the first
-  // time we see a new group label. Tracking activeIndex against the
-  // flat filtered array means arrow keys still skip past headers.
   const rendered: { kind: 'header' | 'option'; text: string; flatIndex?: number; opt?: SearchableOption }[] = [];
   let lastGroup: string | undefined = undefined;
   filtered.forEach((opt, i) => {
@@ -153,16 +132,11 @@ export function SearchableSelect({
       rendered.push({ kind: 'header', text: opt.group });
       lastGroup = opt.group;
     } else if (!opt.group && lastGroup !== undefined) {
-      // Reset so a later grouped option after a flat one still emits its header.
       lastGroup = undefined;
     }
     rendered.push({ kind: 'option', text: opt.label, flatIndex: i, opt });
   });
 
-  // The visible "input" is a thin wrapper: when the popup is closed it
-  // shows the selected label; when open it shows the filter query the
-  // user is typing. That way you don't have to clear the label by hand
-  // before searching.
   const displayValue = open ? query : selected?.label ?? '';
 
   return (
@@ -183,23 +157,23 @@ export function SearchableSelect({
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKey}
-        className="block w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-[44px] text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-400"
+        className={`${inputBase} border-border`}
       />
       {open && (
         <div
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-20 mt-1 w-full rounded-md bg-slate-900 border border-slate-700 shadow-lg max-h-72 overflow-auto"
+          className="absolute z-20 mt-1 w-full rounded border bg-white border-border max-h-72 overflow-auto"
         >
           {filtered.length === 0 && (
-            <div className="px-3 py-2 text-sm text-slate-400">No matches.</div>
+            <div className="px-3 py-2 text-sm text-text-secondary">No matches.</div>
           )}
           {rendered.map((row, idx) => {
             if (row.kind === 'header') {
               return (
                 <div
                   key={`h-${row.text}-${idx}`}
-                  className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-800"
+                  className="px-3 py-1 text-xs font-medium uppercase tracking-wide text-text-tertiary border-b border-border"
                 >
                   {row.text}
                 </div>
@@ -215,17 +189,15 @@ export function SearchableSelect({
                 aria-selected={isSelected}
                 onMouseEnter={() => setActiveIndex(row.flatIndex!)}
                 onMouseDown={(e) => {
-                  // mousedown (not click) so the click fires before
-                  // the input's blur tears down state we just set.
                   e.preventDefault();
                   commit(row.opt!);
                 }}
-                className={`w-full text-left px-3 py-2 text-sm border-b border-slate-800 last:border-b-0 flex items-center justify-between ${
-                  isActive ? 'bg-slate-800 text-white' : 'text-slate-200 hover:bg-slate-800'
+                className={`w-full text-left px-3 py-2 text-sm border-b border-border last:border-b-0 flex items-center justify-between transition-colors ${
+                  isActive ? 'bg-gray-50 text-text-primary' : 'text-text-secondary hover:bg-gray-50'
                 }`}
               >
                 <span>{row.text}</span>
-                {isSelected && <span aria-hidden className="text-indigo-300 text-xs">✓</span>}
+                {isSelected && <span aria-hidden className="text-brand text-xs">✓</span>}
               </button>
             );
           })}
@@ -235,9 +207,11 @@ export function SearchableSelect({
   );
 }
 
+// ─── Label / Field ──────────────────────────────────────────────
+
 export function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
-    <label htmlFor={htmlFor} className="block text-xs font-medium text-slate-400 mb-1">
+    <label htmlFor={htmlFor} className="block text-xs font-medium text-text-secondary mb-1">
       {children}
     </label>
   );
@@ -252,21 +226,25 @@ export function Field({ label, children }: { label: string; children: React.Reac
   );
 }
 
+// ─── Card ────────────────────────────────────────────────────────
+
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-lg bg-slate-900 border border-slate-800 p-4 ${className}`}>{children}</div>
+    <div className={`rounded border border-border bg-white p-4 ${className}`}>{children}</div>
   );
 }
 
+// ─── Section heading ─────────────────────────────────────────────
+
 export function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-6 mb-2 pb-1 border-b border-slate-800">
+    <h2 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mt-6 mb-2 pb-1 border-b border-border">
       {children}
     </h2>
   );
 }
 
-// ---------- Rating ----------
+// ─── Rating ──────────────────────────────────────────────────────
 
 interface RatingInputProps {
   value: number | null | undefined;
@@ -274,10 +252,6 @@ interface RatingInputProps {
   ariaLabel?: string;
 }
 
-/**
- * 1–10 rating selector. Renders 10 numbered buttons; clicking one already
- * selected clears the rating. Server validates 1..10 inclusive.
- */
 export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: RatingInputProps) {
   return (
     <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
@@ -291,12 +265,12 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
             aria-checked={selected}
             aria-label={`${n} of 10`}
             onClick={() => onChange(selected ? null : n)}
-            className={`w-11 h-11 rounded-md text-sm font-medium border transition-colors ${
+            className={`w-9 h-9 rounded text-sm font-medium border transition-colors ${
               selected
-                ? 'bg-amber-500 border-amber-400 text-slate-900'
+                ? 'bg-brand border-brand text-white'
                 : value != null && n <= value
-                  ? 'bg-amber-500/30 border-amber-500/40 text-amber-200'
-                  : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500'
+                  ? 'bg-brand/20 border-brand/30 text-brand'
+                  : 'bg-white border-border text-text-secondary hover:border-gray-400'
             }`}
           >
             {n}
@@ -307,7 +281,7 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="ml-1 px-3 min-h-[44px] inline-flex items-center text-xs text-slate-400 hover:text-slate-200"
+          className="ml-1 px-2 py-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
           aria-label="Clear rating"
         >
           clear
@@ -317,13 +291,13 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
   );
 }
 
-// ---------- Pills ----------
+// ─── Pills ───────────────────────────────────────────────────────
 
 const STATUS_STYLE: Record<CollectionStatus, string> = {
-  Owned: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  Wishlist: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  OnOrder: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  Sold: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  Owned: 'bg-brand/5 text-brand border-brand/20',
+  Wishlist: 'bg-gray-100 text-text-secondary border-border',
+  OnOrder: 'bg-brand/10 text-brand border-brand/30',
+  Sold: 'bg-gray-50 text-text-tertiary border-border',
 };
 
 export function StatusPill({ status }: { status: CollectionStatus }) {
@@ -338,24 +312,24 @@ export function StatusPill({ status }: { status: CollectionStatus }) {
 export function ConditionPill({ condition }: { condition: Condition }) {
   const label = CONDITIONS.find((c) => c.value === condition)?.label ?? condition;
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-slate-700/40 text-slate-200 border-slate-600">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-50 text-text-secondary border-border">
       {label}
     </span>
   );
 }
 
-// ---------- Tag chips & input ----------
+// ─── Tag chips & input ──────────────────────────────────────────
 
 export function TagChip({ name, onRemove }: { name: string; onRemove?: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs bg-indigo-500/15 text-indigo-200 border border-indigo-500/30">
+    <span className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs bg-brand/10 text-brand border border-brand/20">
       {name}
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
           aria-label={`Remove tag ${name}`}
-          className="inline-flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full hover:text-white hover:bg-indigo-500/30"
+          className="inline-flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full hover:bg-brand/20 transition-colors"
         >
           ×
         </button>
@@ -371,12 +345,6 @@ interface TagInputProps {
   placeholder?: string;
 }
 
-/**
- * Free-form tag editor. Press Enter or comma to commit; Backspace on an
- * empty input removes the last tag. Names are lowercased and de-duped on
- * commit. Suggestions, when provided, render as quick-add pills below the
- * input (already-selected ones are filtered out).
- */
 export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add tag…' }: TagInputProps) {
   const [draft, setDraft] = useState('');
 
@@ -406,7 +374,7 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
 
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5 items-center rounded-md bg-slate-900 border border-slate-700 p-1.5 focus-within:border-indigo-400">
+      <div className="flex flex-wrap gap-1.5 items-center rounded border border-border bg-white p-1.5 focus-within:border-brand transition-colors">
         {value.map((t) => (
           <TagChip key={t} name={t} onRemove={() => remove(t)} />
         ))}
@@ -417,18 +385,18 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
           onBlur={() => commit(draft)}
           placeholder={value.length === 0 ? placeholder : ''}
           aria-label="Add tag"
-          className="flex-1 min-w-[8ch] bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none px-1"
+          className="flex-1 min-w-[8ch] bg-transparent text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none px-1"
         />
       </div>
       {remaining.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
-          <span className="text-xs text-slate-500 mr-1">Existing:</span>
+          <span className="text-xs text-text-tertiary mr-1">Existing:</span>
           {remaining.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => commit(s)}
-              className="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700"
+              className="px-2 py-0.5 rounded-full text-xs bg-gray-50 text-text-secondary hover:bg-gray-100 border border-border transition-colors"
             >
               + {s}
             </button>
@@ -439,23 +407,16 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
   );
 }
 
-// ---------- External ID field ----------
+// ─── External ID field ──────────────────────────────────────────
 
 interface ExternalIdFieldProps {
   label: string;
   value: string | null | undefined;
   onChange: (next: string | null) => void;
-  /** When set and a value is present, renders a "View ↗" link to `${urlPrefix}${value}`. */
   urlPrefix?: string;
   placeholder?: string;
 }
 
-/**
- * Editable input for a third-party identifier (TMDB, IMDB, MusicBrainz,
- * IGDB, …). Surfaces the stored value so users can verify what a lookup
- * populated, manually paste an ID to seed metadata, and jump to the
- * provider's page in a new tab.
- */
 export function ExternalIdField({ label, value, onChange, urlPrefix, placeholder }: ExternalIdFieldProps) {
   return (
     <Field label={label}>
@@ -470,7 +431,7 @@ export function ExternalIdField({ label, value, onChange, urlPrefix, placeholder
             href={`${urlPrefix}${value}`}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-indigo-300 hover:text-indigo-200 underline whitespace-nowrap"
+            className="text-xs text-brand hover:text-brand-hover underline whitespace-nowrap transition-colors"
             aria-label={`Open ${label} on the provider's site`}
           >
             View ↗
@@ -481,7 +442,7 @@ export function ExternalIdField({ label, value, onChange, urlPrefix, placeholder
   );
 }
 
-// ---------- Cover preview ----------
+// ─── Cover preview ──────────────────────────────────────────────
 
 interface CoverPreviewProps {
   src?: string | null;
@@ -489,12 +450,6 @@ interface CoverPreviewProps {
   className?: string;
 }
 
-/**
- * Renders the items poster / album art / game art as a small thumbnail
- * intended to sit alongside the form fields (no extra row). Clicking the
- * thumbnail opens a fullscreen lightbox; Escape or backdrop-click closes
- * it. Renders nothing when src is null/empty.
- */
 export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProps) {
   const [open, setOpen] = useState(false);
 
@@ -521,7 +476,7 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
           src={src}
           alt={alt}
           loading="lazy"
-          className="w-full object-contain rounded-md shadow-lg bg-slate-800 cursor-zoom-in hover:opacity-90"
+          className="w-full object-contain rounded border border-border bg-gray-50 cursor-zoom-in hover:opacity-90 transition-opacity"
         />
       </button>
       {open && (
@@ -535,7 +490,7 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
           <img
             src={src}
             alt={alt}
-            className="max-h-[90dvh] max-w-full object-contain rounded-md shadow-2xl"
+            className="max-h-[90dvh] max-w-full object-contain rounded"
           />
         </div>
       )}

@@ -2,10 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tesla-inspired design system: white surfaces, minimal chrome */
+
 html, body, #root {
   height: 100%;
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background-color: #FFFFFF;
+  color: #171A20;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Override any bold weights to medium (500) — Tesla aesthetic */
+h1, h2, h3 {
+  font-weight: 500;
+}
+
+/* Remove default focus outlines and use a clean ring instead */
+:focus-visible {
+  outline: 2px solid #3E6AE1;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar styling — subtle, matching the minimal aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F8FA;
+}
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
 }
