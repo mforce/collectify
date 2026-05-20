@@ -37,9 +37,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-surface">
       {/* Header */}
-      <nav ref={navRef} className="sticky top-0 z-50 bg-white border-b border-border">
+      <nav ref={navRef} className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
           {/* Brand */}
           <Link to="/" className="text-base font-medium text-text-primary tracking-tight hover:text-brand transition-colors">

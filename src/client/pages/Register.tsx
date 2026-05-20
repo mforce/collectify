@@ -14,7 +14,7 @@ export default function Register() {
   const mismatched = confirm.length > 0 && password !== confirm;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-surface">
       <Card className="w-full max-w-md !p-6">
         <h1 className="text-xl font-medium text-text-primary tracking-tight mb-6">Create an account</h1>
         <form

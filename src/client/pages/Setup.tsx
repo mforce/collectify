@@ -12,7 +12,7 @@ export default function Setup() {
   const mismatch = password.length > 0 && confirm.length > 0 && password !== confirm;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-surface">
       <Card className="w-full max-w-md !p-6">
         <h1 className="text-xl font-medium text-text-primary tracking-tight mb-1">Welcome to Collectify</h1>
         <p className="text-text-secondary mb-6">Create your single-user account to get started.</p>
