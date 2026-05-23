@@ -27,10 +27,6 @@ interface Props<T extends MediaType> {
 }
 
 export default function CollectionList<T extends MediaType>({ type, title, newPath, renderItem }: Props<T>) {
-  // Search-input state lives in the URL as `?q=` so it deep-links and
-  // survives back/forward, same contract as the filters. useFiltersState
-  // already preserves every param it doesn't own, so Clear-all leaves
-  // `q` alone -- the two states are independent.
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') ?? '';
   const setQuery = (next: string) => {
@@ -44,20 +40,10 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
   const items = list.data ?? [];
   const navigate = useNavigate();
 
-  // Picking a barcode candidate from the list-page scanner skips the
-  // intermediate landing -- we go straight to /{type}/new and seed the
-  // form via React Router state. AddPage reads this and hands it to the
-  // form as prefillLookup so the same enrichment chain runs as if the
-  // user had scanned from inside the form.
   const onBarcodePick = (item: ResultMap[T]) => {
     navigate(newPath, { state: { prefill: item } });
   };
 
-  // Soft fallback: when the scan resolves but no provider candidates
-  // come back (common for movies / games -- UPCitemdb coverage gaps),
-  // still salvage the scan by sending the user to /add with just the
-  // barcode pre-filled. They can finish via the reliable title search
-  // without having to retype the UPC.
   const onBarcodeFallback = (code: string) => {
     navigate(newPath, { state: { barcodeOnly: code } });
   };
@@ -65,7 +51,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-white">{title}</h1>
+        <h1 className="text-xl font-medium text-text-primary tracking-tight">{title}</h1>
         <div className="flex items-center gap-2">
           <BarcodeLookup
             type={type}
@@ -91,10 +77,10 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
         onClear={clear}
       />
 
-      {list.isLoading && <p className="text-slate-400">Loading…</p>}
-      {list.error && <p className="text-rose-400">Failed to load.</p>}
+      {list.isLoading && <p className="text-text-secondary">Loading…</p>}
+      {list.error && <p className="text-error">Failed to load.</p>}
       {!list.isLoading && items.length === 0 && (
-        <Card className="text-center text-slate-400">No items yet — click \"+ Add\" to start.</Card>
+        <Card className="text-center text-text-secondary py-8">No items yet — click "+ Add" to start.</Card>
       )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -104,18 +90,18 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
           const tags = base.tags ?? [];
           return (
             <Link key={base.id} to={`${newPath.replace(/\/new$/, '')}/${base.id}`} className="block">
-              <Card className="hover:border-indigo-500 transition-colors h-full !p-3 flex gap-3">
+              <Card className="hover:border-brand/40 transition-colors h-full !p-3 flex gap-3">
                 {base.imagePath ? (
                   <img
                     src={base.imagePath}
                     alt=""
                     loading="lazy"
-                    className="w-16 h-24 object-cover rounded flex-none bg-slate-800"
+                    className="w-16 h-24 object-cover rounded border border-border flex-none bg-imgPlaceholder"
                   />
                 ) : (
                   <div
                     aria-hidden
-                    className="w-16 h-24 rounded flex-none bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-600 text-xs"
+                    className="w-16 h-24 rounded flex-none bg-imgPlaceholder border border-border flex items-center justify-center text-text-tertiary text-xs"
                   >
                     no cover
                   </div>
@@ -123,13 +109,13 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
 
                 <div className="min-w-0 flex-1 flex flex-col gap-1">
                   <div className="flex items-start gap-2">
-                    <div className="font-medium text-white truncate flex-1">{r.primary}</div>
+                    <div className="font-medium text-text-primary truncate flex-1">{r.primary}</div>
                     <StatusPill status={base.status} />
                   </div>
-                  {r.secondary && <div className="text-sm text-slate-400 truncate">{r.secondary}</div>}
-                  {r.tertiary && <div className="text-xs text-slate-500 truncate">{r.tertiary}</div>}
+                  {r.secondary && <div className="text-sm text-text-secondary truncate">{r.secondary}</div>}
+                  {r.tertiary && <div className="text-xs text-text-tertiary truncate">{r.tertiary}</div>}
                   {base.personalRating != null && (
-                    <div className="text-xs text-amber-300">★ {base.personalRating}/10</div>
+                    <div className="text-xs text-brand">★ {base.personalRating}/10</div>
                   )}
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-auto">
@@ -137,7 +123,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
                         <TagChip key={t} name={t} />
                       ))}
                       {tags.length > 4 && (
-                        <span className="text-xs text-slate-500">+{tags.length - 4}</span>
+                        <span className="text-xs text-text-tertiary">+{tags.length - 4}</span>
                       )}
                     </div>
                   )}

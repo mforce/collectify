@@ -28,8 +28,8 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
   const nav = useNavigate();
   const toast = useToast();
 
-  if (item.isLoading) return <p className="text-slate-400">Loading…</p>;
-  if (item.error || !item.data) return <p className="text-rose-400">Not found.</p>;
+  if (item.isLoading) return <p className="text-text-secondary">Loading…</p>;
+  if (item.error || !item.data) return <p className="text-error">Not found.</p>;
 
   const onDelete = () => {
     if (!idNum) return;
@@ -49,7 +49,7 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-white">{titleByType[type]}</h1>
+      <h1 className="text-xl font-medium text-text-primary tracking-tight">{titleByType[type]}</h1>
 
       <Card>
         {type === 'movies' && (

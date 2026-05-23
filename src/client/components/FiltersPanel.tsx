@@ -45,7 +45,7 @@ export default function FiltersPanel<T extends MediaType>({ type, value, onChang
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="text-sm text-slate-300 hover:text-white inline-flex items-center gap-2"
+          className="text-sm text-text-primary hover:text-text-primary inline-flex items-center gap-2"
         >
           <span>{open ? '▾' : '▸'} Filters{active > 0 && ` (${active})`}</span>
         </button>
@@ -53,7 +53,7 @@ export default function FiltersPanel<T extends MediaType>({ type, value, onChang
           <button
             type="button"
             onClick={onClear}
-            className="text-xs text-slate-400 hover:text-rose-300"
+            className="text-xs text-text-secondary hover:text-error"
           >
             Clear all
           </button>
@@ -227,7 +227,7 @@ function YearRange({
           value={from ?? ''}
           onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined, to)}
         />
-        <span className="text-slate-500 text-xs">–</span>
+        <span className="text-text-tertiary text-xs">–</span>
         <Input
           type="number"
           inputMode="numeric"
@@ -269,14 +269,14 @@ function ActiveChips<T extends MediaType>({ type, value, onChange }: ChipProps<T
       {entries.map((e) => (
         <span
           key={e.key}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-800 text-slate-200 border border-slate-700"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-card text-text-primary border border-border"
         >
-          <span className="text-slate-400 mr-1">{e.label}:</span> {e.display}
+          <span className="text-text-secondary mr-1">{e.label}:</span> {e.display}
           <button
             type="button"
             onClick={() => onChange({ ...value, [e.key]: undefined } as Filters<T>)}
             aria-label={`Remove ${e.label} filter`}
-            className="ml-0.5 text-slate-400 hover:text-rose-300"
+            className="ml-0.5 text-text-secondary hover:text-error"
           >
             ×
           </button>

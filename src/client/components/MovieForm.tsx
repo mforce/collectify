@@ -208,7 +208,7 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
       </div>
 
       <div>
-        <div className="text-xs font-medium text-slate-400 mb-2">Formats owned</div>
+        <div className="text-xs font-medium text-text-secondary mb-2">Formats owned</div>
         <div className="flex flex-wrap gap-2">
           {MOVIE_FORMAT_FLAGS.map((f) => {
             const checked = ((m.formats ?? 0) & f.value) !== 0;
@@ -217,7 +217,7 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
                 type="button"
                 key={f.key}
                 onClick={() => toggleFormat(f.value)}
-                className={`inline-flex items-center px-3 min-h-[44px] rounded-md text-sm border ${checked ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-300'}`}
+                className={`inline-flex items-center px-3 min-h-[44px] rounded-md text-sm border ${checked ? 'bg-brand border-brand text-text-primary' : 'bg-input-bg border-border text-text-primary'}`}
               >
                 {f.label}
               </button>
@@ -301,7 +301,7 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
         </div>
       </div>
       {fetchState.message && (
-        <div className="text-xs text-slate-400">{fetchState.message}</div>
+        <div className="text-xs text-text-secondary">{fetchState.message}</div>
       )}
 
       <Field label="Notes">

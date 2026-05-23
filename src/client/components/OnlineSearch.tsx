@@ -64,18 +64,18 @@ export default function OnlineSearch<T extends MediaType>({
       </Field>
 
       {showDropdown && (
-        <div className="absolute z-10 mt-1 w-full rounded-md bg-slate-900 border border-slate-700 shadow-lg max-h-80 overflow-auto">
-          {lookup.isLoading && <div className="px-3 py-2 text-sm text-slate-400">Searching…</div>}
-          {lookup.error && <div className="px-3 py-2 text-sm text-rose-400">Lookup failed.</div>}
+        <div className="absolute z-10 mt-1 w-full rounded-md bg-input-bg border border-border shadow-lg max-h-80 overflow-auto">
+          {lookup.isLoading && <div className="px-3 py-2 text-sm text-text-secondary">Searching…</div>}
+          {lookup.error && <div className="px-3 py-2 text-sm text-error">Lookup failed.</div>}
 
           {data && !data.configured && (
-            <div className="px-3 py-2 text-xs text-slate-400 border-b border-slate-800">
+            <div className="px-3 py-2 text-xs text-text-secondary border-b border-border">
               Online lookup is not configured. Set the provider env var to enable.
             </div>
           )}
 
           {data && data.configured && results.length === 0 && !lookup.isLoading && (
-            <div className="px-3 py-2 text-sm text-slate-400">No matches.</div>
+            <div className="px-3 py-2 text-sm text-text-secondary">No matches.</div>
           )}
 
           {results.map((item, i) => {
@@ -90,14 +90,14 @@ export default function OnlineSearch<T extends MediaType>({
                   setQuery('');
                   setDebounced('');
                 }}
-                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-slate-800 border-b border-slate-800 last:border-b-0"
+                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-white dark:hover:bg-[#353840] border-b border-border last:border-b-0"
               >
                 {r.image && (
                   <img src={r.image} alt="" className="w-10 h-14 object-cover rounded flex-none" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm text-slate-100 truncate">{r.primary}</div>
-                  {r.secondary && <div className="text-xs text-slate-400 truncate">{r.secondary}</div>}
+                  <div className="text-sm text-text-primary truncate">{r.primary}</div>
+                  {r.secondary && <div className="text-xs text-text-secondary truncate">{r.secondary}</div>}
                 </div>
               </button>
             );
@@ -107,7 +107,7 @@ export default function OnlineSearch<T extends MediaType>({
 
       {data && !data.configured && !showDropdown && (
         <Label>
-          <span className="text-slate-500 italic">
+          <span className="text-text-tertiary italic">
             Online lookup not configured.
           </span>
         </Label>

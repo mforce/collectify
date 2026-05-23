@@ -157,7 +157,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
               // original free-text so the user can see what they had
               // typed and pick the closest canonical value. Saving the
               // form clears this field.
-              <p className="mt-1 text-xs text-amber-300">
+              <p className="mt-1 text-xs text-amber-400">
                 Original: <span className="font-mono">{g.platformLegacy}</span> — pick a platform above to replace it.
               </p>
             )}
@@ -182,7 +182,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 items-end">
-        <label className="flex items-center gap-2 text-sm text-slate-300">
+        <label className="flex items-center gap-2 text-sm text-text-primary">
           <input
             type="checkbox"
             checked={g.isDigital}
@@ -260,7 +260,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         </div>
       </div>
       {fetchState.message && (
-        <div className="text-xs text-slate-400">{fetchState.message}</div>
+        <div className="text-xs text-text-secondary">{fetchState.message}</div>
       )}
 
       <Field label="Notes">

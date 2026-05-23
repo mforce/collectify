@@ -2,10 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Coinbase-inspired design system: clean, trustworthy, blue accent */
+
 html, body, #root {
   height: 100%;
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Light mode — Coinbase white + cool gray ─────────────── */
+:root {
+  /* Surfaces — clean white, cool gray secondary */
+  --color-surface: #ffffff;
+  --color-card: #ffffff;
+  --card-border: rgba(91, 97, 110, 0.2);
+
+  /* Text — near-black primary, muted blue-gray secondary */
+  --color-text-primary: #0a0b0d;
+  --color-text-secondary: #5b616e;
+  --color-text-tertiary: #8a8f9a;
+
+  /* Inputs / interactive backgrounds */
+  --color-input-bg: #ffffff;
+  --color-input-border: rgba(91, 97, 110, 0.2);
+  --color-input-hover: #eef0f3;
+  --color-dropdown-bg: #ffffff;
+  --color-placeholder: #8a8f9a;
+
+  /* Pills / badges */
+  --color-pill-bg: #eef0f3;
+  --color-pill-border: rgba(91, 97, 110, 0.2);
+
+  /* Misc */
+  --color-divider: rgba(91, 97, 110, 0.2);
+  --color-image-placeholder: #eef0f3;
+}
+
+/* ── Dark mode — near-black surfaces ─────────────────────── */
+html.dark {
+  /* Surfaces — near-black + dark card */
+  --color-surface: #0a0b0d;
+  --color-card: #282b31;
+  --card-border: rgba(91, 97, 110, 0.3);
+
+  /* Text — white primary, muted secondary */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0a5ae;
+  --color-text-tertiary: #6b7080;
+
+  /* Inputs / interactive backgrounds */
+  --color-input-bg: #282b31;
+  --color-input-border: rgba(91, 97, 110, 0.3);
+  --color-input-hover: #353840;
+  --color-dropdown-bg: #282b31;
+  --color-placeholder: #6b7080;
+
+  /* Pills / badges */
+  --color-pill-bg: #282b31;
+  --color-pill-border: rgba(91, 97, 110, 0.3);
+
+  /* Misc */
+  --color-divider: rgba(91, 97, 110, 0.3);
+  --color-image-placeholder: #282b31;
+}
+
+/* Coinbase typography — tight line-height on headings */
+h1 {
+  font-weight: 400;
+  line-height: 1.05;
+}
+h2 {
+  font-weight: 400;
+  line-height: 1.1;
+}
+h3 {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* Remove default focus outlines and use a clean ring instead */
+:focus-visible {
+  outline: 2px solid #0052ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar styling — subtle, matching the minimal aesthetic */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(91, 97, 110, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
 }

@@ -54,7 +54,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-white">{titleByType[type]}</h1>
+      <h1 className="text-xl font-medium text-text-primary tracking-tight">{titleByType[type]}</h1>
 
       <Card>
         {type === 'movies' && (

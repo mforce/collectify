@@ -12,9 +12,9 @@ export default function Login() {
   const toast = useToast();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-white mb-6">Sign in to Collectify</h1>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-surface">
+      <Card className="w-full max-w-md !p-6">
+        <h1 className="text-xl font-medium text-text-primary tracking-tight mb-6">Sign in to Collectify</h1>
         <form
           className="space-y-4"
           onSubmit={(e) => {
@@ -33,15 +33,15 @@ export default function Login() {
           <Field label="Password">
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </Field>
-          {login.error && <p className="text-sm text-rose-400">Invalid credentials.</p>}
+          {login.error && <p className="text-sm text-error">Invalid credentials.</p>}
           <Button type="submit" disabled={login.isPending} className="w-full">
             {login.isPending ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
         {auth?.allowRegistration && (
-          <p className="mt-4 text-sm text-slate-400 text-center">
+          <p className="mt-4 text-sm text-text-secondary text-center">
             Don't have an account?{' '}
-            <Link to="/register" className="text-indigo-300 hover:text-indigo-200 underline">
+            <Link to="/register" className="text-brand hover:text-brand-hover underline transition-colors">
               Create one
             </Link>
           </p>
