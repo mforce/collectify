@@ -35,7 +35,7 @@ export default function TagsPage() {
 
       {(tags.data ?? []).length > 0 && (
         <Card className="!p-0 overflow-hidden">
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-divider">
             {tags.data!.map((t) => (
               <li key={t.id} className="flex items-center justify-between px-4 py-2.5">
                 <span className="text-sm text-text-primary">{t.name}</span>

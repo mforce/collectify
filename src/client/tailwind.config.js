@@ -5,29 +5,38 @@ export default {
     './*.tsx',
     './{api,components,pages}/**/*.{ts,tsx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Tesla-inspired palette from DESIGN.md
+        // Coinbase-inspired palette
         brand: {
-          DEFAULT: '#3E6AE1',   // Electric Blue — primary CTA / links
-          hover: '#2F54C6',     // darker on hover
+          DEFAULT: '#0052ff',   // Coinbase Blue — primary CTA / links
+          hover: '#578bfa',     // lighter blue on hover
         },
-        surface: {
-          DEFAULT: '#F3F4F6',   // soft off-white page background
-          card: '#FFFFFF',      // pure white for cards/panels on top of page bg
-          subtle: '#F1F3F5',    // very light gray for alternating rows
-        },
+        surface: 'var(--color-surface)',       // page background (adapts)
+        card: 'var(--color-card)',             // cards/panels (adapts)
         text: {
-          primary: '#171A20',   // near-black headings / body
-          secondary: '#5C5E62', // medium gray captions / labels
-          tertiary: '#949699',  // muted placeholders
+          primary: 'var(--color-text-primary)',     // headings / body (adapts)
+          secondary: 'var(--color-text-secondary)',  // captions / labels (adapts)
+          tertiary: 'var(--color-text-tertiary)',    // placeholders (adapts)
         },
         border: {
-          DEFAULT: '#E8E9EA',   // subtle dividers
+          DEFAULT: 'var(--card-border)',   // subtle dividers (adapts)
         },
+        input: {
+          bg: 'var(--color-input-bg)',       // input/select background (adapts)
+          border: 'var(--color-input-border)', // input border (adapts)
+          placeholder: 'var(--color-placeholder)', // placeholder text (adapts)
+        },
+        pill: {
+          bg: 'var(--color-pill-bg)',       // pill/badge background (adapts)
+          border: 'var(--color-pill-border)', // pill border (adapts)
+        },
+        divider: 'var(--color-divider)',    // list dividers (adapts)
+        imgPlaceholder: 'var(--color-image-placeholder)', // image placeholder bg (adapts)
         error: {
-          DEFAULT: '#CF4939',   // Tesla red for errors / destructive
+          DEFAULT: '#CF4939',   // red for errors / destructive
           bg: '#FFF1F0',        // light error background
         },
         success: {
@@ -36,19 +45,22 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['DM Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
       },
       fontWeight: {
-        // Tesla design uses only 400 and 500 — no bold
         normal: '400',
         medium: '500',
+        semibold: '600',
+        bold: '700',
       },
       borderRadius: {
-        DEFAULT: '4px',   // interactive elements
-        lg: '4px',        // override default lg to keep consistent
-        xl: '4px',
-        '2xl': '4px',
-        full: '4px',      // even pills get 4px — Tesla aesthetic
+        DEFAULT: '8px',    // Coinbase standard card radius
+        sm: '4px',         // small elements
+        lg: '12px',        // cards, menus
+        xl: '16px',        // larger containers
+        '2xl': '24px',     // feature sections
+        pill: '56px',      // Coinbase CTA buttons
+        full: '9999px',    // maximum pill shape
       },
     },
   },

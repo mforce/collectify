@@ -182,7 +182,7 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
       <button
         type="button"
         onClick={onClose}
-        className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-100 text-text-primary"
+        className="px-4 py-2 rounded-pill bg-pill-bg hover:bg-gray-200 dark:hover:bg-[#353840] text-text-primary font-semibold"
       >
         Cancel
       </button>

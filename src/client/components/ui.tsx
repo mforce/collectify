@@ -9,13 +9,13 @@ import {
 // ─── Button ──────────────────────────────────────────────────────
 
 const btnBase =
-  'inline-flex items-center justify-center rounded transition-colors text-sm font-medium disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1';
+  'inline-flex items-center justify-center rounded-pill transition-colors text-sm font-semibold disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1';
 
 export function Button({ className = '', variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
   const variants: Record<string, string> = {
-    primary: 'bg-brand hover:bg-brand-hover text-white min-h-[40px] px-4 py-2',
-    secondary: 'bg-white hover:bg-gray-50 text-text-primary border border-border min-h-[40px] px-4 py-2',
-    danger: 'bg-error hover:bg-red-600 text-white min-h-[40px] px-4 py-2',
+    primary: 'bg-brand hover:bg-brand-hover text-white min-h-[40px] px-5 py-2',
+    secondary: 'bg-pill-bg hover:bg-gray-100 dark:hover:bg-[#353840] text-text-primary border border-border min-h-[40px] px-5 py-2',
+    danger: 'bg-error hover:bg-red-600 text-white min-h-[40px] px-5 py-2',
   };
   return (
     <button {...props} className={`${btnBase} ${variants[variant]} ${className}`} />
@@ -25,7 +25,7 @@ export function Button({ className = '', variant = 'primary', ...props }: Button
 // ─── Input / Select / Textarea ──────────────────────────────────
 
 const inputBase =
-  'block w-full rounded border px-3 py-2 text-sm bg-white transition-colors placeholder:text-text-tertiary focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:bg-gray-50';
+  'block w-full rounded border px-3 py-2 text-sm bg-input-bg transition-colors placeholder:text-input-placeholder focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:bg-gray-50 dark:disabled:bg-[#353840] text-text-primary';
 
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -163,7 +163,7 @@ export function SearchableSelect({
         <div
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-20 mt-1 w-full rounded border bg-white border-border max-h-72 overflow-auto"
+          className="absolute z-20 mt-1 w-full rounded border border-border bg-input-bg max-h-72 overflow-auto"
         >
           {filtered.length === 0 && (
             <div className="px-3 py-2 text-sm text-text-secondary">No matches.</div>
@@ -192,8 +192,8 @@ export function SearchableSelect({
                   e.preventDefault();
                   commit(row.opt!);
                 }}
-                className={`w-full text-left px-3 py-2 text-sm border-b border-border last:border-b-0 flex items-center justify-between transition-colors ${
-                  isActive ? 'bg-gray-50 text-text-primary' : 'text-text-secondary hover:bg-gray-50'
+                className={`w-full text-left px-3 py-2 text-sm border-b last:border-b-0 flex items-center justify-between transition-colors ${
+                  isActive ? 'bg-gray-50 dark:bg-[#353840] text-text-primary' : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-[#353840]'
                 }`}
               >
                 <span>{row.text}</span>
@@ -230,7 +230,7 @@ export function Field({ label, children }: { label: string; children: React.Reac
 
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded border border-border bg-white p-4 ${className}`}>{children}</div>
+    <div className={`rounded border border-border bg-card p-4 ${className}`}>{children}</div>
   );
 }
 
@@ -270,7 +270,7 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
                 ? 'bg-brand border-brand text-white'
                 : value != null && n <= value
                   ? 'bg-brand/20 border-brand/30 text-brand'
-                  : 'bg-white border-border text-text-secondary hover:border-gray-400'
+                  : 'bg-input-bg border-border text-text-secondary hover:border-gray-400'
             }`}
           >
             {n}
@@ -294,16 +294,16 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
 // ─── Pills ───────────────────────────────────────────────────────
 
 const STATUS_STYLE: Record<CollectionStatus, string> = {
-  Owned: 'bg-brand/5 text-brand border-brand/20',
-  Wishlist: 'bg-gray-100 text-text-secondary border-border',
-  OnOrder: 'bg-brand/10 text-brand border-brand/30',
-  Sold: 'bg-gray-50 text-text-tertiary border-border',
+  Owned: 'bg-brand/10 text-brand border-brand/20',
+  Wishlist: 'bg-pill-bg text-text-secondary border-border',
+  OnOrder: 'bg-brand/15 text-brand border-brand/30',
+  Sold: 'bg-pill-bg text-text-tertiary border-border',
 };
 
 export function StatusPill({ status }: { status: CollectionStatus }) {
   const label = COLLECTION_STATUSES.find((s) => s.value === status)?.label ?? status;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLE[status]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLE[status]}`}>
       {label}
     </span>
   );
@@ -312,7 +312,7 @@ export function StatusPill({ status }: { status: CollectionStatus }) {
 export function ConditionPill({ condition }: { condition: Condition }) {
   const label = CONDITIONS.find((c) => c.value === condition)?.label ?? condition;
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-50 text-text-secondary border-border">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-pill-bg text-text-secondary border-border">
       {label}
     </span>
   );
@@ -374,7 +374,7 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
 
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5 items-center rounded border border-border bg-white p-1.5 focus-within:border-brand transition-colors">
+      <div className="flex flex-wrap gap-1.5 items-center rounded border border-border bg-card p-1.5 focus-within:border-brand transition-colors">
         {value.map((t) => (
           <TagChip key={t} name={t} onRemove={() => remove(t)} />
         ))}
@@ -396,7 +396,7 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
               key={s}
               type="button"
               onClick={() => commit(s)}
-              className="px-2 py-0.5 rounded-full text-xs bg-gray-50 text-text-secondary hover:bg-gray-100 border border-border transition-colors"
+              className="px-2 py-0.5 rounded-full text-xs bg-pill-bg text-text-secondary hover:bg-gray-100 dark:hover:bg-[#353840] border border-border transition-colors"
             >
               + {s}
             </button>
@@ -476,7 +476,7 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
           src={src}
           alt={alt}
           loading="lazy"
-          className="w-full object-contain rounded border border-border bg-gray-50 cursor-zoom-in hover:opacity-90 transition-opacity"
+          className="w-full object-contain rounded border border-border bg-imgPlaceholder cursor-zoom-in hover:opacity-90 transition-opacity"
         />
       </button>
       {open && (

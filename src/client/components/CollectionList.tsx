@@ -96,12 +96,12 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
                     src={base.imagePath}
                     alt=""
                     loading="lazy"
-                    className="w-16 h-24 object-cover rounded border border-border flex-none bg-gray-50"
+                    className="w-16 h-24 object-cover rounded border border-border flex-none bg-imgPlaceholder"
                   />
                 ) : (
                   <div
                     aria-hidden
-                    className="w-16 h-24 rounded flex-none bg-gray-50 border border-border flex items-center justify-center text-text-tertiary text-xs"
+                    className="w-16 h-24 rounded flex-none bg-imgPlaceholder border border-border flex items-center justify-center text-text-tertiary text-xs"
                   >
                     no cover
                   </div>

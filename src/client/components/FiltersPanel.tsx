@@ -269,7 +269,7 @@ function ActiveChips<T extends MediaType>({ type, value, onChange }: ChipProps<T
       {entries.map((e) => (
         <span
           key={e.key}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-white text-text-primary border border-border"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-card text-text-primary border border-border"
         >
           <span className="text-text-secondary mr-1">{e.label}:</span> {e.display}
           <button

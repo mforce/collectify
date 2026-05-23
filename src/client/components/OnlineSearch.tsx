@@ -64,7 +64,7 @@ export default function OnlineSearch<T extends MediaType>({
       </Field>
 
       {showDropdown && (
-        <div className="absolute z-10 mt-1 w-full rounded-md bg-white border border-border shadow-lg max-h-80 overflow-auto">
+        <div className="absolute z-10 mt-1 w-full rounded-md bg-input-bg border border-border shadow-lg max-h-80 overflow-auto">
           {lookup.isLoading && <div className="px-3 py-2 text-sm text-text-secondary">Searching…</div>}
           {lookup.error && <div className="px-3 py-2 text-sm text-error">Lookup failed.</div>}
 
@@ -90,7 +90,7 @@ export default function OnlineSearch<T extends MediaType>({
                   setQuery('');
                   setDebounced('');
                 }}
-                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-white border-b border-border last:border-b-0"
+                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-white dark:hover:bg-[#353840] border-b border-border last:border-b-0"
               >
                 {r.image && (
                   <img src={r.image} alt="" className="w-10 h-14 object-cover rounded flex-none" />

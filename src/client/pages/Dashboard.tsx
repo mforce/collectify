@@ -72,12 +72,12 @@ function RecentSection({
                     src={r.imagePath}
                     alt=""
                     loading="lazy"
-                    className="w-12 h-16 object-cover rounded border border-border flex-none bg-gray-50"
+                    className="w-12 h-16 object-cover rounded border border-border flex-none bg-imgPlaceholder"
                   />
                 ) : (
                   <div
                     aria-hidden
-                    className="w-12 h-16 rounded flex-none bg-gray-50 border border-border flex items-center justify-center text-text-tertiary text-[10px]"
+                    className="w-12 h-16 rounded flex-none bg-imgPlaceholder border border-border flex items-center justify-center text-text-tertiary text-[10px]"
                   >
                     no cover
                   </div>

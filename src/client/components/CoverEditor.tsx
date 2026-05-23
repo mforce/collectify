@@ -137,7 +137,7 @@ export default function CoverEditor({ value, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-2 rounded-md border border-border bg-white/60 p-3">
+    <div className="space-y-2 rounded-md border border-border bg-card/80 p-3">
       <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
         <div className="flex-1">
           <label className="block text-xs font-medium text-text-secondary mb-1">Image URL</label>
@@ -169,7 +169,7 @@ export default function CoverEditor({ value, onChange }: Props) {
           accept={ALLOWED_MIME.join(',')}
           onChange={onFileChange}
           disabled={uploading}
-          className="text-sm text-text-primary file:mr-2 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-text-primary hover:file:bg-gray-300"
+          className="text-sm text-text-primary file:mr-2 file:rounded-md file:border-0 file:bg-input-bg file:px-3 file:py-1.5 file:text-sm file:text-text-primary hover:file:bg-gray-300"
         />
         {uploading && <span className="text-xs text-text-secondary">Uploading…</span>}
       </div>

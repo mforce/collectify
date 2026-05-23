@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth, useLogout } from '../services/auth';
 import { useToast } from './toaster';
+import DarkModeToggle from './DarkModeToggle';
 
 const navItems = [
   { to: '/movies', label: 'Movies' },
@@ -39,7 +40,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       {/* Header */}
-      <nav ref={navRef} className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-border">
+      <nav ref={navRef} className="sticky top-0 z-50 bg-card/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
           {/* Brand */}
           <Link to="/" className="text-base font-medium text-text-primary tracking-tight hover:text-brand transition-colors">
@@ -67,6 +68,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           {/* Desktop user area */}
           <div className="hidden md:flex items-center gap-3">
+            <DarkModeToggle />
             <span className="text-sm text-text-secondary">{auth?.userName}</span>
             <button
               onClick={handleLogout}
@@ -82,7 +84,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded text-text-primary hover:bg-gray-50"
+            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840]"
           >
             <svg aria-hidden viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               {menuOpen ? (
@@ -111,8 +113,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `block px-3 py-2 rounded text-sm transition-colors ${
                     isActive
-                      ? 'text-brand font-medium bg-gray-50'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-gray-50'
+                      ? 'text-brand font-medium'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840]'
                   }`
                 }
               >
@@ -120,7 +122,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               </NavLink>
             ))}
             <div className="pt-3 mt-2 border-t border-border flex items-center justify-between">
-              <span className="text-sm text-text-secondary">{auth?.userName}</span>
+              <div className="flex items-center gap-2">
+                <DarkModeToggle />
+                <span className="text-sm text-text-secondary">{auth?.userName}</span>
+              </div>
               <button
                 onClick={handleLogout}
                 className="px-3 py-1.5 rounded text-sm text-text-secondary hover:text-error transition-colors"

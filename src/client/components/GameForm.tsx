@@ -157,7 +157,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
               // original free-text so the user can see what they had
               // typed and pick the closest canonical value. Saving the
               // form clears this field.
-              <p className="mt-1 text-xs text-amber-300">
+              <p className="mt-1 text-xs text-amber-400">
                 Original: <span className="font-mono">{g.platformLegacy}</span> — pick a platform above to replace it.
               </p>
             )}

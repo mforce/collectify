@@ -111,7 +111,7 @@ export function Toaster() {
           key={t.id}
           role={t.kind === 'error' ? 'alert' : 'status'}
           aria-live={t.kind === 'error' ? 'assertive' : 'polite'}
-          className={`flex items-start gap-2 rounded border px-3 py-2 text-sm min-w-[16rem] max-w-md ${styleFor(t.kind)}`}
+          className={`flex items-start gap-2 rounded-lg border px-4 py-3 text-sm font-medium min-w-[16rem] max-w-md shadow-sm ${styleFor(t.kind)}`}
         >
           <span className="flex-1 break-words">{t.message}</span>
           <button
@@ -131,10 +131,10 @@ export function Toaster() {
 function styleFor(kind: ToastKind): string {
   switch (kind) {
     case 'success':
-      return 'border-brand bg-brand/5 text-text-primary';
+      return 'border-brand bg-brand/5 dark:bg-brand/10 text-text-primary';
     case 'error':
-      return 'border-error bg-error/5 text-error';
+      return 'border-error bg-error/5 dark:bg-red-900/30 text-error';
     case 'info':
-      return 'border-border bg-gray-50 text-text-secondary';
+      return 'border-border bg-pill-bg text-text-secondary';
   }
 }

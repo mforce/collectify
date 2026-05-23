@@ -120,7 +120,7 @@ export default function BarcodeLookup<T extends MediaType>({
         </div>
       )}
       {phase.kind === 'results' && phase.results.length > 0 && (
-        <div className="rounded-md bg-white border border-border max-h-80 overflow-auto">
+        <div className="rounded-md bg-input-bg border border-border max-h-80 overflow-auto">
           {(phase.results as ResultMap[T][]).map((item, i) => {
             const view = renderItem?.(item) ?? defaultView(type, item);
             return (
@@ -131,7 +131,7 @@ export default function BarcodeLookup<T extends MediaType>({
                   onPick(item);
                   setPhase({ kind: 'idle' });
                 }}
-                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-white border-b border-border last:border-b-0"
+                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#353840] border-b border-border last:border-b-0"
               >
                 {view.image && (
                   <img src={view.image} alt="" className="w-10 h-14 object-cover rounded flex-none" />
