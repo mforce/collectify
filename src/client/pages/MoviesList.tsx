@@ -7,6 +7,7 @@ export default function MoviesList() {
       type="movies"
       title="Movies"
       newPath="/movies/new"
+      category="movies"
       renderItem={(m: Movie) => {
         const fmts = MOVIE_FORMAT_FLAGS.filter((f) => ((m.formats ?? 0) & f.value) !== 0).map((f) => f.label).join(', ');
         return {

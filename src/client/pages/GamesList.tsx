@@ -7,6 +7,7 @@ export default function GamesList() {
       type="games"
       title="Games"
       newPath="/games/new"
+      category="games"
       renderItem={(g: Game) => {
         // Prefer the canonical label; fall back to the legacy free-text
         // when the row is still pending re-classification so the card

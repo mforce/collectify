@@ -4,12 +4,19 @@ import { useAuth, useLogout } from '../services/auth';
 import { useToast } from './toaster';
 import DarkModeToggle from './DarkModeToggle';
 
-const navItems = [
-  { to: '/movies', label: 'Movies' },
-  { to: '/music', label: 'Music' },
-  { to: '/games', label: 'Games' },
-  { to: '/tags', label: 'Tags' },
+type NavCategory = 'movies' | 'music' | 'games';
+
+const navItems: { to: string; label: string; category: NavCategory | null }[] = [
+  { to: '/movies', label: 'Movies', category: 'movies' },
+  { to: '/music', label: 'Music', category: 'music' },
+  { to: '/games', label: 'Games', category: 'games' },
+  { to: '/tags', label: 'Tags', category: null },
 ];
+
+const catColor = (cat: string | null) =>
+  cat === 'movies' ? 'text-movies' : cat === 'music' ? 'text-music' : cat === 'games' ? 'text-games' : 'text-brand';
+const catBorder = (cat: string | null) =>
+  cat === 'movies' ? 'border-movies/30' : cat === 'music' ? 'border-music/30' : cat === 'games' ? 'border-games/30' : 'border-brand/20';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { data: auth } = useAuth();
@@ -56,7 +63,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `inline-flex items-center px-3 py-1.5 rounded text-sm transition-colors ${
                     isActive
-                      ? 'text-brand font-medium'
+                      ? `${catColor(item.category)} font-medium border-b-2 ${catBorder(item.category)}`
                       : 'text-text-secondary hover:text-text-primary'
                   }`
                 }
@@ -113,7 +120,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `block px-3 py-2 rounded text-sm transition-colors ${
                     isActive
-                      ? 'text-brand font-medium'
+                      ? `${catColor(item.category)} font-medium`
                       : 'text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840]'
                   }`
                 }

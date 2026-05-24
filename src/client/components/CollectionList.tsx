@@ -24,9 +24,10 @@ interface Props<T extends MediaType> {
   title: string;
   newPath: string;
   renderItem: (item: any) => RenderedItem;
+  category?: 'movies' | 'music' | 'games';
 }
 
-export default function CollectionList<T extends MediaType>({ type, title, newPath, renderItem }: Props<T>) {
+export default function CollectionList<T extends MediaType>({ type, title, newPath, renderItem, category }: Props<T>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') ?? '';
   const setQuery = (next: string) => {
@@ -48,10 +49,13 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
     navigate(newPath, { state: { barcodeOnly: code } });
   };
 
+  // Card hover border class — category accent or brand fallback
+  const cardHoverBorder = category ? `group-hover:border-${category}/30` : 'group-hover:border-brand/30';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-medium text-text-primary tracking-tight">{title}</h1>
+        <h1 className={`text-xl font-medium tracking-tight ${category ? `text-${category}` : 'text-text-primary'}`}>{title}</h1>
         <div className="flex items-center gap-2">
           <BarcodeLookup
             type={type}
@@ -59,7 +63,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
             onBarcodeFallback={onBarcodeFallback}
           />
           <Link to={newPath}>
-            <Button>+ Add</Button>
+            <Button variant={category ? 'secondary' : 'primary'} className={category ? `border-${category}/30 text-${category}` : ''}>+ Add</Button>
           </Link>
         </div>
       </div>
@@ -90,7 +94,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
           const tags = base.tags ?? [];
           return (
             <Link key={base.id} to={`${newPath.replace(/\/new$/, '')}/${base.id}`} className="group block">
-              <Card className="h-full !p-0 overflow-hidden transition-shadow hover:shadow-md group-hover:border-brand/30 dark:hover:bg-card/80">
+              <Card className={`h-full !p-0 overflow-hidden transition-shadow hover:shadow-md ${cardHoverBorder} dark:hover:bg-card/80`}>
                 <div className="flex flex-col md:flex-row">
                   {/* Cover art — scales with breakpoint, horizontal at md+ */}
                   <div className="relative w-full shrink-0 bg-imgPlaceholder overflow-hidden sm:w-24 md:w-36 lg:w-48">
@@ -115,7 +119,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
                   <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-medium text-text-primary leading-snug line-clamp-2">{r.primary}</h3>
-                      <StatusPill status={base.status} />
+                      <StatusPill status={base.status} category={category} />
                     </div>
 
                     {r.secondary && (
@@ -126,13 +130,13 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
                     )}
 
                     {base.personalRating != null && (
-                      <div className="text-sm text-brand font-medium">★ {base.personalRating}/10</div>
+                      <div className={`text-sm font-medium ${category ? `text-${category}` : 'text-brand'}`}>★ {base.personalRating}/10</div>
                     )}
 
                     {tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-auto pt-1">
                         {tags.slice(0, 4).map((t) => (
-                          <TagChip key={t} name={t} />
+                          <TagChip key={t} name={t} category={category} />
                         ))}
                         {tags.length > 4 && (
                           <span className="text-xs text-text-tertiary">+{tags.length - 4}</span>
