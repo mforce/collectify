@@ -120,6 +120,16 @@ jobs:
           # not necessarily the checked-out tag — so we resolve it explicitly.
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Install Docker CLI when runner image does not include it
+        run: |
+          if command -v docker >/dev/null 2>&1; then
+            docker --version
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y --no-install-recommends docker.io
+          docker --version
+
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
