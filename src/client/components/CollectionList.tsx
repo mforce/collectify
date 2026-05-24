@@ -91,27 +91,27 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
           return (
             <Link key={base.id} to={`${newPath.replace(/\/new$/, '')}/${base.id}`} className="group block">
               <Card className="h-full !p-0 overflow-hidden transition-shadow hover:shadow-md group-hover:border-brand/30 dark:hover:bg-card/80">
-                <div className="flex flex-col sm:flex-row">
-                  {/* Cover art — dominant visual element */}
-                  <div className="relative w-full sm:w-48 shrink-0 bg-imgPlaceholder overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Cover art — scales with breakpoint, horizontal at md+ */}
+                  <div className="relative w-full shrink-0 bg-imgPlaceholder overflow-hidden sm:w-24 md:w-36 lg:w-48">
                     {base.imagePath ? (
                       <img
                         src={base.imagePath}
                         alt=""
                         loading="lazy"
-                        className="w-full h-48 sm:h-auto sm:aspect-[2/3] object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="w-full h-40 sm:h-auto md:h-auto sm:aspect-[2/3] md:aspect-[2/3] object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     ) : (
                       <div
                         aria-hidden
-                        className="w-full h-48 sm:h-auto sm:aspect-[2/3] flex items-center justify-center text-text-tertiary text-sm font-medium"
+                        className="w-full h-40 sm:h-auto md:h-auto flex items-center justify-center text-text-tertiary text-sm font-medium sm:aspect-[2/3] md:aspect-[2/3]"
                       >
                         no cover
                       </div>
                     )}
                   </div>
 
-                  {/* Metadata — right side on desktop, below cover on mobile */}
+                  {/* Metadata — below cover on mobile/sm, right side at md+ */}
                   <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-medium text-text-primary leading-snug line-clamp-2">{r.primary}</h3>
