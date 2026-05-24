@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
 import CoverEditor from './CoverEditor';
+import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
@@ -37,6 +38,7 @@ const empty: Album = {
 
 export default function AlbumForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [a, setA] = useState<Album>(initial ?? empty);
+  const [coverEditorExpanded, setCoverEditorExpanded] = useState(!a.imagePath);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setA(initial); }, [initial]);
 
@@ -163,39 +165,40 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
         })}
       />
 
-      <div className="flex flex-col-reverse sm:flex-row gap-4 items-start">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 w-full">
-          <Field label="Title">
-            <Input value={a.title} onChange={(e) => set('title', e.target.value)} required />
-          </Field>
-          <Field label="Artist">
-            <Input value={a.artistName} onChange={(e) => set('artistName', e.target.value)} required />
-          </Field>
-          <Field label="Year">
-            <Input type="number" value={a.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
-          </Field>
-          <Field label="Format">
-            <Select value={a.format} onChange={(e) => set('format', e.target.value as Album['format'])}>
-              {MUSIC_FORMATS.map((f) => (
-                <option key={f.value} value={f.value}>{f.label}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Label">
-            <Input value={a.label ?? ''} onChange={(e) => set('label', e.target.value || null)} />
-          </Field>
-          <Field label="Genres">
-            <Input value={a.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
-          </Field>
-          <Field label="Barcode">
-            <Input value={a.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
-          </Field>
-        </div>
-        <div className="w-28 sm:w-36 shrink-0 space-y-2">
-          <CoverPreview src={a.imagePath} alt={a.title ? `${a.title} cover` : ''} />
-          <CoverEditor value={a.imagePath} onChange={(v) => set('imagePath', v)} />
-        </div>
-      </div>
+      <CoverFormLayout
+        fields={(
+          <>
+            <Field label="Title">
+              <Input value={a.title} onChange={(e) => set('title', e.target.value)} required />
+            </Field>
+            <Field label="Artist">
+              <Input value={a.artistName} onChange={(e) => set('artistName', e.target.value)} required />
+            </Field>
+            <Field label="Year">
+              <Input type="number" value={a.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
+            </Field>
+            <Field label="Format">
+              <Select value={a.format} onChange={(e) => set('format', e.target.value as Album['format'])}>
+                {MUSIC_FORMATS.map((f) => (
+                  <option key={f.value} value={f.value}>{f.label}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Label">
+              <Input value={a.label ?? ''} onChange={(e) => set('label', e.target.value || null)} />
+            </Field>
+            <Field label="Genres">
+              <Input value={a.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
+            </Field>
+            <Field label="Barcode">
+              <Input value={a.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
+            </Field>
+          </>
+        )}
+        preview={<CoverPreview src={a.imagePath} alt={a.title ? `${a.title} cover` : ''} />}
+        editor={<CoverEditor value={a.imagePath} onChange={(v) => set('imagePath', v)} expanded={coverEditorExpanded} onExpandedChange={setCoverEditorExpanded} />}
+        editorExpanded={coverEditorExpanded}
+      />
 
       <PersonalAcquisitionSection value={a} onChange={patch} />
 

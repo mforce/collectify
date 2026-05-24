@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, CoverPreview, ExternalIdField, Field, Input, SearchableSelect, SectionHeading, Select, Textarea } from './ui';
 import CoverEditor from './CoverEditor';
+import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
@@ -46,6 +47,7 @@ const empty: Game = {
 
 export default function GameForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [g, setG] = useState<Game>(initial ?? empty);
+  const [coverEditorExpanded, setCoverEditorExpanded] = useState(!g.imagePath);
   const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setG(initial); }, [initial]);
 
@@ -140,46 +142,47 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         })}
       />
 
-      <div className="flex flex-col-reverse sm:flex-row gap-4 items-start">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 w-full">
-          <Field label="Title">
-            <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />
-          </Field>
-          <Field label="Platform">
-            <SearchableSelect
-              value={g.platform}
-              onChange={(v) => set('platform', v as GamePlatform)}
-              options={GAME_PLATFORMS}
-              placeholder="Type to search platforms…"
-            />
-            {g.platformLegacy && (
-              // Stickier than a generic placeholder -- surfaces the
-              // original free-text so the user can see what they had
-              // typed and pick the closest canonical value. Saving the
-              // form clears this field.
-              <p className="mt-1 text-xs text-amber-400">
-                Original: <span className="font-mono">{g.platformLegacy}</span> — pick a platform above to replace it.
-              </p>
-            )}
-          </Field>
-          <Field label="Year">
-            <Input type="number" value={g.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
-          </Field>
-          <Field label="Publisher">
-            <Input value={g.publisher ?? ''} onChange={(e) => set('publisher', e.target.value || null)} />
-          </Field>
-          <Field label="Developer">
-            <Input value={g.developer ?? ''} onChange={(e) => set('developer', e.target.value || null)} />
-          </Field>
-          <Field label="Barcode">
-            <Input value={g.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
-          </Field>
-        </div>
-        <div className="w-28 sm:w-36 shrink-0 space-y-2">
-          <CoverPreview src={g.imagePath} alt={g.title ? `${g.title} cover` : ''} />
-          <CoverEditor value={g.imagePath} onChange={(v) => set('imagePath', v)} />
-        </div>
-      </div>
+      <CoverFormLayout
+        fields={(
+          <>
+            <Field label="Title">
+              <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />
+            </Field>
+            <Field label="Platform">
+              <SearchableSelect
+                value={g.platform}
+                onChange={(v) => set('platform', v as GamePlatform)}
+                options={GAME_PLATFORMS}
+                placeholder="Type to search platforms…"
+              />
+              {g.platformLegacy && (
+                // Stickier than a generic placeholder -- surfaces the
+                // original free-text so the user can see what they had
+                // typed and pick the closest canonical value. Saving the
+                // form clears this field.
+                <p className="mt-1 text-xs text-amber-400">
+                  Original: <span className="font-mono">{g.platformLegacy}</span> — pick a platform above to replace it.
+                </p>
+              )}
+            </Field>
+            <Field label="Year">
+              <Input type="number" value={g.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
+            </Field>
+            <Field label="Publisher">
+              <Input value={g.publisher ?? ''} onChange={(e) => set('publisher', e.target.value || null)} />
+            </Field>
+            <Field label="Developer">
+              <Input value={g.developer ?? ''} onChange={(e) => set('developer', e.target.value || null)} />
+            </Field>
+            <Field label="Barcode">
+              <Input value={g.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />
+            </Field>
+          </>
+        )}
+        preview={<CoverPreview src={g.imagePath} alt={g.title ? `${g.title} cover` : ''} />}
+        editor={<CoverEditor value={g.imagePath} onChange={(v) => set('imagePath', v)} expanded={coverEditorExpanded} onExpandedChange={setCoverEditorExpanded} />}
+        editorExpanded={coverEditorExpanded}
+      />
 
       <div className="grid sm:grid-cols-2 gap-4 items-end">
         <label className="flex items-center gap-2 text-sm text-text-primary">

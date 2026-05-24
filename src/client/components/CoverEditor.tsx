@@ -5,6 +5,8 @@ import { Button, Input } from './ui';
 interface Props {
   value: string | null | undefined;
   onChange: (next: string | null) => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
@@ -30,13 +32,19 @@ const MAX_BYTES = 5 * 1024 * 1024;
  * doesn't have to wait on a round-trip to see "too big" / "not an
  * image".
  */
-export default function CoverEditor({ value, onChange }: Props) {
-  const [open, setOpen] = useState(!value);
+export default function CoverEditor({ value, onChange, expanded, onExpandedChange }: Props) {
+  const [openState, setOpenState] = useState(!value);
+  const open = expanded ?? openState;
   const [url, setUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    onExpandedChange?.(next);
+  };
 
   const applyUrl = () => {
     const trimmed = url.trim();
@@ -117,18 +125,18 @@ export default function CoverEditor({ value, onChange }: Props) {
   // happy path. Click "Change cover" to expand.
   if (!open) {
     return (
-      <div className="text-xs flex items-center gap-3">
+      <div data-testid="cover-collapsed-actions" className="flex flex-col gap-2 text-xs">
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="text-brand hover:text-brand-hover underline"
+          className="inline-flex min-h-[36px] items-center justify-center rounded-md border border-border bg-pill-bg px-3 py-1.5 font-semibold text-text-primary hover:bg-gray-100 dark:hover:bg-[#353840]"
         >
           Change cover
         </button>
         <button
           type="button"
           onClick={remove}
-          className="text-error hover:text-error-hover underline"
+          className="inline-flex min-h-[36px] items-center justify-center rounded-md border border-error/50 bg-transparent px-3 py-1.5 font-semibold text-error hover:bg-error/10"
         >
           Remove cover
         </button>
@@ -137,11 +145,12 @@ export default function CoverEditor({ value, onChange }: Props) {
   }
 
   return (
-    <div className="space-y-2 rounded-md border border-border bg-card/80 p-3">
-      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-        <div className="flex-1">
+    <div data-testid="cover-editor-card" className="w-full min-w-0 space-y-2 rounded-md border border-border bg-card/80 p-3">
+      <div data-testid="cover-url-row" className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end">
+        <div data-testid="cover-url-field" className="w-full min-w-0 flex-1 sm:basis-64">
           <label className="block text-xs font-medium text-text-secondary mb-1">Image URL</label>
           <Input
+            className="min-w-0"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://…/cover.jpg"
@@ -153,13 +162,13 @@ export default function CoverEditor({ value, onChange }: Props) {
             }}
           />
         </div>
-        <Button type="button" variant="secondary" onClick={applyUrl} disabled={!url.trim()}>
+        <Button type="button" variant="secondary" onClick={applyUrl} disabled={!url.trim()} className="shrink-0 whitespace-nowrap">
           Apply URL
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        <label htmlFor="cover-editor-file" className="block text-xs font-medium text-text-secondary">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <label htmlFor="cover-editor-file" className="block text-xs font-medium text-text-secondary shrink-0">
           Or upload a file
         </label>
         <input
@@ -169,7 +178,7 @@ export default function CoverEditor({ value, onChange }: Props) {
           accept={ALLOWED_MIME.join(',')}
           onChange={onFileChange}
           disabled={uploading}
-          className="text-sm text-text-primary file:mr-2 file:rounded-md file:border-0 file:bg-input-bg file:px-3 file:py-1.5 file:text-sm file:text-text-primary hover:file:bg-gray-300"
+          className="max-w-full min-w-0 text-sm text-text-primary file:mr-2 file:rounded-md file:border-0 file:bg-input-bg file:px-3 file:py-1.5 file:text-sm file:text-text-primary hover:file:bg-gray-300"
         />
         {uploading && <span className="text-xs text-text-secondary">Uploading…</span>}
       </div>
@@ -180,7 +189,7 @@ export default function CoverEditor({ value, onChange }: Props) {
         </p>
       )}
 
-      <div className="flex items-center justify-between">
+      <div data-testid="cover-editor-actions" className="flex flex-wrap items-center justify-between gap-2">
         {value ? (
           <button
             type="button"

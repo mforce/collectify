@@ -22,11 +22,11 @@ vi.mock('../services/tags', () => ({
   useTags: () => ({ data: [], isLoading: false, error: null }),
 }));
 
-function renderForm(onSubmit = vi.fn()) {
+function renderForm(onSubmit = vi.fn(), props: Partial<Parameters<typeof MovieForm>[0]> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <MovieForm onSubmit={onSubmit} />
+      <MovieForm onSubmit={onSubmit} {...props} />
     </QueryClientProvider>,
   );
   return { onSubmit };
@@ -155,6 +155,25 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
     await user.click(screen.getByRole('button', { name: /fetch metadata by imdb id/i }));
 
     expect(await screen.findByText(/no movie with imdb id tt9999999/i)).toBeInTheDocument();
+  });
+
+  it('opens the cover editor with one click when an existing cover is collapsed', async () => {
+    renderForm(vi.fn(), {
+      initial: {
+        title: 'Inception',
+        formats: 0,
+        status: 'Owned',
+        watchStatus: 'Unwatched',
+        watchCount: 0,
+        imagePath: '/covers/abc1234567890def',
+        tags: [],
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /change cover/i }));
+
+    expect(screen.getByPlaceholderText(/cover.jpg/i)).toBeInTheDocument();
+    expect(screen.getByTestId('cover-editor-row')).toContainElement(screen.getByPlaceholderText(/cover.jpg/i));
   });
 
   it('picking a TMDB search result enriches director and runtime via a follow-up by-id call', async () => {
