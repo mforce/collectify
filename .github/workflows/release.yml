@@ -172,3 +172,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ steps.tag.outputs.version }}
+          # GitHub Actions cache. Keep disabled for Gitea act_runner because
+          # its cache endpoint has timed out during release builds. Re-enable
+          # these lines if this workflow moves back to GitHub Actions.
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
