@@ -46,7 +46,13 @@ function MovieDetail({ item }: { item: Movie }) {
       {/* Hero section */}
       <div className="flex flex-col md:flex-row gap-6 items-start">
         <div className="w-48 shrink-0 mx-auto md:mx-0">
-          <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
+          {item.imagePath ? (
+            <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
+          ) : (
+            <div aria-hidden className="aspect-[2/3] flex items-center justify-center text-text-tertiary text-sm font-medium bg-imgPlaceholder rounded border border-border">
+              no cover
+            </div>
+          )}
         </div>
         <div className="flex-1 space-y-3 min-w-0">
           <div>
@@ -162,7 +168,13 @@ function MusicDetail({ item }: { item: Album }) {
       {/* Hero section */}
       <div className="flex flex-col md:flex-row gap-6 items-start">
         <div className="w-48 shrink-0 mx-auto md:mx-0">
-          <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
+          {item.imagePath ? (
+            <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
+          ) : (
+            <div aria-hidden className="aspect-[2/3] flex items-center justify-center text-text-tertiary text-sm font-medium bg-imgPlaceholder rounded border border-border">
+              no cover
+            </div>
+          )}
         </div>
         <div className="flex-1 space-y-3 min-w-0">
           <div>
@@ -265,7 +277,13 @@ function GameDetail({ item }: { item: Game }) {
       {/* Hero section */}
       <div className="flex flex-col md:flex-row gap-6 items-start">
         <div className="w-48 shrink-0 mx-auto md:mx-0">
-          <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
+          {item.imagePath ? (
+            <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
+          ) : (
+            <div aria-hidden className="aspect-[2/3] flex items-center justify-center text-text-tertiary text-sm font-medium bg-imgPlaceholder rounded border border-border">
+              no cover
+            </div>
+          )}
         </div>
         <div className="flex-1 space-y-3 min-w-0">
           <div>
