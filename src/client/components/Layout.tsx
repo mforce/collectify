@@ -13,10 +13,17 @@ const navItems: { to: string; label: string; category: NavCategory | null }[] = 
   { to: '/tags', label: 'Tags', category: null },
 ];
 
-const catColor = (cat: string | null) =>
-  cat === 'movies' ? 'text-movies' : cat === 'music' ? 'text-music' : cat === 'games' ? 'text-games' : 'text-brand';
-const catBorder = (cat: string | null) =>
-  cat === 'movies' ? 'border-movies/30' : cat === 'music' ? 'border-music/30' : cat === 'games' ? 'border-games/30' : 'border-brand/20';
+const NAV_ACTIVE_DESKTOP: Record<string, string> = {
+  movies: 'text-movies font-medium border-b-2 border-movies',
+  music: 'text-music font-medium border-b-2 border-music',
+  games: 'text-games font-medium border-b-2 border-games',
+};
+
+const NAV_ACTIVE_MOBILE: Record<string, string> = {
+  movies: 'text-movies font-medium',
+  music: 'text-music font-medium',
+  games: 'text-games font-medium',
+};
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { data: auth } = useAuth();
@@ -63,7 +70,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `inline-flex items-center px-3 py-1.5 rounded text-sm transition-colors ${
                     isActive
-                      ? `${catColor(item.category)} font-medium border-b-2 ${catBorder(item.category)}`
+                      ? NAV_ACTIVE_DESKTOP[item.category ?? ''] ?? ''
                       : 'text-text-secondary hover:text-text-primary'
                   }`
                 }
@@ -120,7 +127,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `block px-3 py-2 rounded text-sm transition-colors ${
                     isActive
-                      ? `${catColor(item.category)} font-medium`
+                      ? NAV_ACTIVE_MOBILE[item.category ?? ''] ?? ''
                       : 'text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840]'
                   }`
                 }

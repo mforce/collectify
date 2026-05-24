@@ -264,6 +264,12 @@ const CAT_RATING_FILLED: Record<string, string> = {
   games: 'bg-games/20 border-games/30 text-games',
 };
 
+const CAT_RATING_CLEAR: Record<string, string> = {
+  movies: 'border-movies/40 text-movies hover:border-movies',
+  music: 'border-music/40 text-music hover:border-music',
+  games: 'border-games/40 text-games hover:border-games',
+};
+
 export function RatingInput({ value, onChange, ariaLabel = 'Personal rating', category }: RatingInputProps & { category?: string }) {
   return (
     <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
@@ -271,6 +277,7 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating', ca
         const selected = value === n;
         const activeClass = category && CAT_RATING_ACTIVE[category] ? CAT_RATING_ACTIVE[category] : 'bg-brand border-brand text-white';
         const filledClass = category && CAT_RATING_FILLED[category] ? CAT_RATING_FILLED[category] : 'bg-brand/20 border-brand/30 text-brand';
+        const clearClass = category && CAT_RATING_CLEAR[category] ? CAT_RATING_CLEAR[category] : 'border-border text-text-secondary hover:border-gray-400';
         return (
           <button
             key={n}
@@ -284,7 +291,7 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating', ca
                 ? activeClass
                 : value != null && n <= value
                   ? filledClass
-                  : 'bg-input-bg border-border text-text-secondary hover:border-gray-400'
+                  : clearClass
             }`}
           >
             {n}
@@ -316,21 +323,21 @@ const STATUS_STYLE: Record<CollectionStatus, string> = {
 
 const CAT_STATUS_STYLE: Record<string, Record<CollectionStatus, string>> = {
   movies: {
-    Owned: 'bg-movies/light text-movies border-movies/border',
-    Wishlist: 'bg-movies/light/60 text-movies/70 border-movies/border',
-    OnOrder: 'bg-movies/light text-movies border-movies/border',
+    Owned: 'bg-movies-light text-movies border-movies-border',
+    Wishlist: 'bg-movies-light/60 text-movies/70 border-movies-border',
+    OnOrder: 'bg-movies-light text-movies border-movies-border',
     Sold: 'bg-pill-bg text-text-tertiary border-border',
   },
   music: {
-    Owned: 'bg-music/light text-music border-music/border',
-    Wishlist: 'bg-music/light/60 text-music/70 border-music/border',
-    OnOrder: 'bg-music/light text-music border-music/border',
+    Owned: 'bg-music-light text-music border-music-border',
+    Wishlist: 'bg-music-light/60 text-music/70 border-music-border',
+    OnOrder: 'bg-music-light text-music border-music-border',
     Sold: 'bg-pill-bg text-text-tertiary border-border',
   },
   games: {
-    Owned: 'bg-games/light text-games border-games/border',
-    Wishlist: 'bg-games/light/60 text-games/70 border-games/border',
-    OnOrder: 'bg-games/light text-games border-games/border',
+    Owned: 'bg-games-light text-games border-games-border',
+    Wishlist: 'bg-games-light/60 text-games/70 border-games-border',
+    OnOrder: 'bg-games-light text-games border-games-border',
     Sold: 'bg-pill-bg text-text-tertiary border-border',
   },
 };
@@ -357,9 +364,9 @@ export function ConditionPill({ condition }: { condition: Condition }) {
 // ─── Tag chips & input ──────────────────────────────────────────
 
 const CAT_TAG_STYLE: Record<string, string> = {
-  movies: 'bg-movies/light text-movies border-movies/border hover:bg-movies/20',
-  music: 'bg-music/light text-music border-music/border hover:bg-music/20',
-  games: 'bg-games/light text-games border-games/border hover:bg-games/20',
+  movies: 'bg-movies-light text-movies border-movies-border hover:bg-movies/20',
+  music: 'bg-music-light text-music border-music-border hover:bg-music/20',
+  games: 'bg-games-light text-games border-games-border hover:bg-games/20',
 };
 
 export function TagChip({ name, category, onRemove }: { name: string; category?: string; onRemove?: () => void }) {

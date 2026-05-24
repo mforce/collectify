@@ -14,22 +14,16 @@ export default {
           DEFAULT: '#0052ff',   // Coinbase Blue — primary CTA / links (neutral fallback)
           hover: '#578bfa',     // lighter blue on hover
         },
-        // Per-category accent colors
-        movies: {
-          DEFAULT: '#f59e0b',   // amber-500 — cinema feel
-          light: 'rgba(245,158,11,0.1)',
-          border: 'rgba(245,158,11,0.2)',
-        },
-        music: {
-          DEFAULT: '#8b5cf6',   // violet-500 — vinyl/creative feel
-          light: 'rgba(139,92,246,0.1)',
-          border: 'rgba(139,92,246,0.2)',
-        },
-        games: {
-          DEFAULT: '#14b8a6',   // teal-500 — gaming feel
-          light: 'rgba(20,184,166,0.1)',
-          border: 'rgba(20,184,166,0.2)',
-        },
+        // Per-category accent colors (flat keys for Tailwind detection)
+        movies: '#f59e0b',
+        'movies-light': 'rgba(245,158,11,0.1)',
+        'movies-border': 'rgba(245,158,11,0.2)',
+        music: '#8b5cf6',
+        'music-light': 'rgba(139,92,246,0.1)',
+        'music-border': 'rgba(139,92,246,0.2)',
+        games: '#14b8a6',
+        'games-light': 'rgba(20,184,166,0.1)',
+        'games-border': 'rgba(20,184,166,0.2)',
         surface: 'var(--color-surface)',       // page background (adapts)
         card: 'var(--color-card)',             // cards/panels (adapts)
         text: {

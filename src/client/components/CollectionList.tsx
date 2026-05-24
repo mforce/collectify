@@ -27,6 +27,24 @@ interface Props<T extends MediaType> {
   category?: 'movies' | 'music' | 'games';
 }
 
+const TITLE_CLASS: Record<string, string> = {
+  movies: 'text-movies',
+  music: 'text-music',
+  games: 'text-games',
+};
+
+const BTN_CLASS: Record<string, string> = {
+  movies: 'border-movies-light text-movies',
+  music: 'border-music-light text-music',
+  games: 'border-games-light text-games',
+};
+
+const CARD_BORDER: Record<string, string> = {
+  movies: 'group-hover:border-movies',
+  music: 'group-hover:border-music',
+  games: 'group-hover:border-games',
+};
+
 export default function CollectionList<T extends MediaType>({ type, title, newPath, renderItem, category }: Props<T>) {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') ?? '';
@@ -49,13 +67,15 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
     navigate(newPath, { state: { barcodeOnly: code } });
   };
 
-  // Card hover border class — category accent or brand fallback
-  const cardHoverBorder = category ? `group-hover:border-${category}/30` : 'group-hover:border-brand/30';
+  // Hardcoded class lookups — Tailwind can't detect dynamic template literals
+  const titleClass = category ? TITLE_CLASS[category] : 'text-text-primary';
+  const btnClass = category ? BTN_CLASS[category] : '';
+  const cardBorder = category ? CARD_BORDER[category] : 'group-hover:border-brand/30';
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className={`text-xl font-medium tracking-tight ${category ? `text-${category}` : 'text-text-primary'}`}>{title}</h1>
+        <h1 className={`text-xl font-medium tracking-tight ${titleClass}`}>{title}</h1>
         <div className="flex items-center gap-2">
           <BarcodeLookup
             type={type}
@@ -63,7 +83,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
             onBarcodeFallback={onBarcodeFallback}
           />
           <Link to={newPath}>
-            <Button variant={category ? 'secondary' : 'primary'} className={category ? `border-${category}/30 text-${category}` : ''}>+ Add</Button>
+            <Button variant={category ? 'secondary' : 'primary'} className={btnClass}>+ Add</Button>
           </Link>
         </div>
       </div>
@@ -94,7 +114,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
           const tags = base.tags ?? [];
           return (
             <Link key={base.id} to={`${newPath.replace(/\/new$/, '')}/${base.id}`} className="group block">
-              <Card className={`h-full !p-0 overflow-hidden transition-shadow hover:shadow-md ${cardHoverBorder} dark:hover:bg-card/80`}>
+              <Card className={`h-full !p-0 overflow-hidden transition-shadow hover:shadow-md ${cardBorder} dark:hover:bg-card/80`}>
                 <div className="flex flex-col md:flex-row">
                   {/* Cover art — scales with breakpoint, horizontal at md+ */}
                   <div className="relative w-full shrink-0 bg-imgPlaceholder overflow-hidden sm:w-24 md:w-36 lg:w-48">
@@ -130,7 +150,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
                     )}
 
                     {base.personalRating != null && (
-                      <div className={`text-sm font-medium ${category ? `text-${category}` : 'text-brand'}`}>★ {base.personalRating}/10</div>
+                      <div className={`text-sm font-medium ${category ? TITLE_CLASS[category] : 'text-brand'}`}>★ {base.personalRating}/10</div>
                     )}
 
                     {tags.length > 0 && (
