@@ -63,31 +63,37 @@ function RecentSection({
         </Card>
       )}
       {summary && summary.recent.length > 0 && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {summary.recent.map((r) => (
-            <Link key={`${r.type}-${r.id}`} to={`/${r.type}/${r.id}`} className="block">
-              <Card className="hover:border-brand/40 transition-colors !p-3 flex gap-3 h-full">
-                {r.imagePath ? (
-                  <img
-                    src={r.imagePath}
-                    alt=""
-                    loading="lazy"
-                    className="w-12 h-16 object-cover rounded border border-border flex-none bg-imgPlaceholder"
-                  />
-                ) : (
-                  <div
-                    aria-hidden
-                    className="w-12 h-16 rounded flex-none bg-imgPlaceholder border border-border flex items-center justify-center text-text-tertiary text-[10px]"
-                  >
-                    no cover
+            <Link key={`${r.type}-${r.id}`} to={`/${r.type}/${r.id}`} className="group block">
+              <Card className="h-full !p-0 overflow-hidden transition-shadow hover:shadow-md group-hover:border-brand/30 dark:hover:bg-card/80">
+                <div className="flex flex-col sm:flex-row">
+                  {/* Cover art — dominant visual element */}
+                  <div className="relative w-full sm:w-48 shrink-0 bg-imgPlaceholder overflow-hidden">
+                    {r.imagePath ? (
+                      <img
+                        src={r.imagePath}
+                        alt=""
+                        loading="lazy"
+                        className="w-full h-48 sm:h-auto sm:aspect-[2/3] object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div
+                        aria-hidden
+                        className="w-full h-48 sm:h-auto sm:aspect-[2/3] flex items-center justify-center text-text-tertiary text-sm font-medium"
+                      >
+                        no cover
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs uppercase tracking-wide text-text-tertiary">
-                    {TYPE_LABEL[r.type]}
+
+                  {/* Metadata — right side on desktop, below cover on mobile */}
+                  <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
+                    <h3 className="font-medium text-text-primary leading-snug line-clamp-2">{r.title}</h3>
+                    <div className="text-xs uppercase tracking-wide text-text-tertiary">
+                      {TYPE_LABEL[r.type]}{r.year != null ? ` · ${r.year}` : ''}
+                    </div>
                   </div>
-                  <div className="text-sm font-medium text-text-primary truncate">{r.title}</div>
-                  {r.year != null && <div className="text-xs text-text-secondary">{r.year}</div>}
                 </div>
               </Card>
             </Link>
