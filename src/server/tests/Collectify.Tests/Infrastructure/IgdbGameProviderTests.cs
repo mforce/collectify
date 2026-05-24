@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
@@ -57,6 +58,19 @@ public class IgdbGameProviderTests : IDisposable
           }
         ]
         """;
+
+    private async Task SeedRawCacheRowAsync(string provider, string key, string json)
+    {
+        using var ctx = new CollectifyDbContext(_dbOptions);
+        ctx.LookupCache.Add(new LookupCacheEntry
+        {
+            Provider = provider,
+            Key = key,
+            JsonResponse = json,
+            FetchedAt = _clock.GetUtcNow().UtcDateTime,
+        });
+        await ctx.SaveChangesAsync();
+    }
 
     [Fact]
     public void IsConfigured_ReflectsBothCredentials()
@@ -199,6 +213,23 @@ public class IgdbGameProviderTests : IDisposable
         await p1.SearchAsync("witcher");
         await p2.SearchAsync("WITCHER"); // case-insensitive cache key
 
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithStaleIncompatibleCachedResult_TreatsCacheAsMissAndRefreshes()
+    {
+        await SeedRawCacheRowAsync(
+            "igdb",
+            "search:witcher",
+            "[{\"provider\":\"igdb\",\"providerKey\":\"old\",\"title\":\"Old\",\"platform\":\"Windows 95\"}]");
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler);
+
+        var hit = Assert.Single(await provider.SearchAsync("witcher"));
+
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
         Assert.Single(handler.Requests);
     }
 

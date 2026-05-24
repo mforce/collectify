@@ -1,7 +1,9 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Collectify.Domain.Entities;
 using Collectify.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Collectify.Infrastructure.Lookup;
 
@@ -19,15 +21,20 @@ public interface ILookupCache
 
 public sealed class LookupCache : ILookupCache
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(allowIntegerValues: true) },
+    };
 
     private readonly CollectifyDbContext _db;
     private readonly TimeProvider _clock;
+    private readonly ILogger<LookupCache> _log;
 
-    public LookupCache(CollectifyDbContext db, TimeProvider clock)
+    public LookupCache(CollectifyDbContext db, TimeProvider clock, ILogger<LookupCache>? log = null)
     {
         _db = db;
         _clock = clock;
+        _log = log ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<LookupCache>.Instance;
     }
 
     public async Task<T?> GetAsync<T>(string provider, string key, TimeSpan ttl, CancellationToken ct = default)
@@ -36,7 +43,22 @@ public sealed class LookupCache : ILookupCache
             .FirstOrDefaultAsync(e => e.Provider == provider && e.Key == key, ct);
         if (entry is null) return default;
         if (_clock.GetUtcNow().UtcDateTime - entry.FetchedAt > ttl) return default;
-        return JsonSerializer.Deserialize<T>(entry.JsonResponse, Json);
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(entry.JsonResponse, Json);
+        }
+        catch (JsonException ex)
+        {
+            _log.LogWarning(
+                ex,
+                "Ignoring stale or incompatible lookup cache entry for provider {Provider}, key {Key}, type {Type}",
+                provider,
+                key,
+                typeof(T).FullName);
+            await DeleteAsync(provider, key, ct);
+            return default;
+        }
     }
 
     public async Task SetAsync<T>(string provider, string key, T value, CancellationToken ct = default)
@@ -60,5 +82,12 @@ public sealed class LookupCache : ILookupCache
             existing.FetchedAt = _clock.GetUtcNow().UtcDateTime;
         }
         await _db.SaveChangesAsync(ct);
+    }
+
+    private async Task DeleteAsync(string provider, string key, CancellationToken ct)
+    {
+        await _db.LookupCache
+            .Where(e => e.Provider == provider && e.Key == key)
+            .ExecuteDeleteAsync(ct);
     }
 }

@@ -1,4 +1,5 @@
 using Collectify.Domain.Entities;
+using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Microsoft.Data.Sqlite;
@@ -27,6 +28,20 @@ public class LookupCacheTests : IDisposable
     private LookupCache NewCache() => new(new CollectifyDbContext(_options), _clock);
 
     private record Sample(string Title, int Year);
+    private record PlatformSample(GamePlatform? Platform);
+
+    private async Task SeedRawCacheRowAsync(string provider, string key, string json)
+    {
+        using var ctx = new CollectifyDbContext(_options);
+        ctx.LookupCache.Add(new LookupCacheEntry
+        {
+            Provider = provider,
+            Key = key,
+            JsonResponse = json,
+            FetchedAt = _clock.GetUtcNow().UtcDateTime,
+        });
+        await ctx.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task Get_BeforeSet_ReturnsDefault()
@@ -101,5 +116,40 @@ public class LookupCacheTests : IDisposable
         Assert.Equal("tmdb", entry.Provider);
         Assert.Equal("550", entry.Key);
         Assert.IsType<LookupCacheEntry>(entry);
+    }
+
+    [Fact]
+    public async Task Get_WithStringEnumPayload_ReadsEnumValue()
+    {
+        await SeedRawCacheRowAsync("igdb", "search:witcher", "{\"platform\":\"Pc\"}");
+
+        var result = await NewCache().GetAsync<PlatformSample>("igdb", "search:witcher", TimeSpan.FromDays(30));
+
+        Assert.NotNull(result);
+        Assert.Equal(GamePlatform.Pc, result!.Platform);
+    }
+
+    [Fact]
+    public async Task Get_WithIncompatibleJson_ReturnsDefaultAndDeletesBadRow()
+    {
+        await SeedRawCacheRowAsync("igdb", "search:witcher", "{\"platform\":\"Windows 95\"}");
+
+        var result = await NewCache().GetAsync<PlatformSample>("igdb", "search:witcher", TimeSpan.FromDays(30));
+
+        Assert.Null(result);
+        using var ctx = new CollectifyDbContext(_options);
+        Assert.False(await ctx.LookupCache.AnyAsync(e => e.Provider == "igdb" && e.Key == "search:witcher"));
+    }
+
+    [Fact]
+    public async Task Get_WithCorruptJson_ReturnsDefaultAndDeletesBadRow()
+    {
+        await SeedRawCacheRowAsync("igdb", "search:witcher", "{ nope");
+
+        var result = await NewCache().GetAsync<PlatformSample>("igdb", "search:witcher", TimeSpan.FromDays(30));
+
+        Assert.Null(result);
+        using var ctx = new CollectifyDbContext(_options);
+        Assert.False(await ctx.LookupCache.AnyAsync(e => e.Provider == "igdb" && e.Key == "search:witcher"));
     }
 }
