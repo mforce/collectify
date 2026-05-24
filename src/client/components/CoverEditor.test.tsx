@@ -107,11 +107,26 @@ describe('CoverEditor', () => {
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
-  it('starts collapsed when a cover already exists', () => {
+  it('starts collapsed when a cover already exists and renders compact buttons', () => {
     render(<CoverEditor value="/covers/abc1234567890def" onChange={vi.fn()} />);
 
-    // The disclosure links should be visible; the URL input shouldn't.
-    expect(screen.getByRole('button', { name: /change cover/i })).toBeInTheDocument();
+    // The compact actions should be visible; the URL input shouldn't.
+    expect(screen.getByTestId('cover-collapsed-actions')).toHaveClass('flex-col');
+    expect(screen.getByRole('button', { name: /change cover/i })).toHaveClass('rounded-md');
+    expect(screen.getByRole('button', { name: /remove cover/i })).toHaveClass('rounded-md');
     expect(screen.queryByPlaceholderText(/cover.jpg/i)).not.toBeInTheDocument();
+  });
+
+  it('uses wrapping, min-width-safe controls when expanded', async () => {
+    render(<CoverEditor value="/covers/abc1234567890def" onChange={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /change cover/i }));
+
+    expect(screen.getByTestId('cover-editor-card')).toHaveClass('w-full', 'min-w-0');
+    expect(screen.getByTestId('cover-url-row')).toHaveClass('flex-wrap');
+    expect(screen.getByTestId('cover-url-field')).toHaveClass('w-full', 'min-w-0', 'sm:basis-64');
+    expect(screen.getByPlaceholderText(/cover.jpg/i)).toHaveClass('min-w-0');
+    expect(screen.getByLabelText(/upload a file/i)).toHaveClass('max-w-full');
+    expect(screen.getByTestId('cover-editor-actions')).toHaveClass('flex-wrap');
   });
 });
