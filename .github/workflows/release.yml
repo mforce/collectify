@@ -117,6 +117,10 @@ jobs:
           echo "name=${REF}" >> "$GITHUB_OUTPUT"
           # Assembly Version wants pure semver without the "v" prefix.
           echo "version=${REF#v}" >> "$GITHUB_OUTPUT"
+          # Resolve the actual commit SHA for the OCI revision label.
+          # During workflow_dispatch, github.sha is the dispatch ref (main),
+          # not necessarily the checked-out tag — so we resolve it explicitly.
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -140,15 +144,15 @@ jobs:
           # semver tags via flavor=latest=auto (the default), so v1.2.3-rc1
           # won't clobber :latest but v1.2.3 will.
           tags: |
-            type=semver,pattern={{version}},value=${{ steps.tag.outputs.name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ steps.tag.outputs.name }}
-            type=semver,pattern={{major}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern=v{{version}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern=v{{major}}.{{minor}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern=v{{major}},value=${{ steps.tag.outputs.name }}
           labels: |
             org.opencontainers.image.title=Collectify
             org.opencontainers.image.description=Self-hosted media collection tracker
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.version=${{ steps.tag.outputs.version }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ steps.tag.outputs.sha }}
 
       - name: Build and push (linux/amd64, linux/arm64)
         uses: docker/build-push-action@v5
