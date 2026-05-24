@@ -8,15 +8,21 @@ const TYPE_LABEL: Record<DashboardRecent['type'], string> = {
   games: 'Game',
 };
 
+const TILE_BORDER: Record<string, string> = {
+  movies: 'border-t-movies',
+  music: 'border-t-music',
+  games: 'border-t-games',
+};
+
 export default function Dashboard() {
   const dashboard = useDashboard();
   const summary = dashboard.data;
   const counts = summary?.counts;
 
   const tiles = [
-    { to: '/movies', label: 'Movies', count: counts?.movies },
-    { to: '/music', label: 'Music', count: counts?.music },
-    { to: '/games', label: 'Games', count: counts?.games },
+    { to: '/movies', label: 'Movies', count: counts?.movies, type: 'movies' as const },
+    { to: '/music', label: 'Music', count: counts?.music, type: 'music' as const },
+    { to: '/games', label: 'Games', count: counts?.games, type: 'games' as const },
   ];
 
   return (
@@ -26,7 +32,7 @@ export default function Dashboard() {
       <div className="grid sm:grid-cols-3 gap-3">
         {tiles.map((t) => (
           <Link key={t.to} to={t.to} className="block">
-            <Card className="hover:border-brand/40 transition-colors">
+            <Card className={`hover:border-brand/40 transition-colors border-t-2 ${TILE_BORDER[t.type]}`}>
               <div className="text-text-secondary text-sm">{t.label}</div>
               <div className="text-2xl font-medium text-text-primary mt-1">
                 {t.count ?? '…'}

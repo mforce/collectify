@@ -7,6 +7,7 @@ export default function MusicList() {
       type="music"
       title="Music"
       newPath="/music/new"
+      category="music"
       renderItem={(a: Album) => ({
         primary: a.title,
         secondary: [a.artistName, a.year].filter(Boolean).join(' · '),

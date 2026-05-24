@@ -4,12 +4,28 @@ import { useAuth, useLogout } from '../services/auth';
 import { useToast } from './toaster';
 import DarkModeToggle from './DarkModeToggle';
 
-const navItems = [
-  { to: '/movies', label: 'Movies' },
-  { to: '/music', label: 'Music' },
-  { to: '/games', label: 'Games' },
-  { to: '/tags', label: 'Tags' },
+type NavCategory = 'movies' | 'music' | 'games';
+
+const navItems: { to: string; label: string; category: NavCategory | null }[] = [
+  { to: '/movies', label: 'Movies', category: 'movies' },
+  { to: '/music', label: 'Music', category: 'music' },
+  { to: '/games', label: 'Games', category: 'games' },
+  { to: '/tags', label: 'Tags', category: null },
 ];
+
+const NAV_ACTIVE_DESKTOP: Record<string, string> = {
+  movies: 'text-movies font-medium border-b-2 border-movies',
+  music: 'text-music font-medium border-b-2 border-music',
+  games: 'text-games font-medium border-b-2 border-games',
+  default: 'text-brand font-medium border-b-2 border-brand/30',
+};
+
+const NAV_ACTIVE_MOBILE: Record<string, string> = {
+  movies: 'text-movies font-medium',
+  music: 'text-music font-medium',
+  games: 'text-games font-medium',
+  default: 'text-brand font-medium',
+};
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { data: auth } = useAuth();
@@ -56,7 +72,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `inline-flex items-center px-3 py-1.5 rounded text-sm transition-colors ${
                     isActive
-                      ? 'text-brand font-medium'
+                      ? NAV_ACTIVE_DESKTOP[item.category ?? 'default'] ?? ''
                       : 'text-text-secondary hover:text-text-primary'
                   }`
                 }
@@ -113,7 +129,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `block px-3 py-2 rounded text-sm transition-colors ${
                     isActive
-                      ? 'text-brand font-medium'
+                      ? NAV_ACTIVE_MOBILE[item.category ?? 'default'] ?? ''
                       : 'text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840]'
                   }`
                 }

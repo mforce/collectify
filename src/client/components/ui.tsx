@@ -252,11 +252,32 @@ interface RatingInputProps {
   ariaLabel?: string;
 }
 
-export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: RatingInputProps) {
+const CAT_RATING_ACTIVE: Record<string, string> = {
+  movies: 'bg-movies border-movies text-white',
+  music: 'bg-music border-music text-white',
+  games: 'bg-games border-games text-white',
+};
+
+const CAT_RATING_FILLED: Record<string, string> = {
+  movies: 'bg-movies/20 border-movies/30 text-movies',
+  music: 'bg-music/20 border-music/30 text-music',
+  games: 'bg-games/20 border-games/30 text-games',
+};
+
+const CAT_RATING_CLEAR: Record<string, string> = {
+  movies: 'border-movies/40 text-movies hover:border-movies',
+  music: 'border-music/40 text-music hover:border-music',
+  games: 'border-games/40 text-games hover:border-games',
+};
+
+export function RatingInput({ value, onChange, ariaLabel = 'Personal rating', category }: RatingInputProps & { category?: string }) {
   return (
     <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-1.5">
       {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
         const selected = value === n;
+        const activeClass = category && CAT_RATING_ACTIVE[category] ? CAT_RATING_ACTIVE[category] : 'bg-brand border-brand text-white';
+        const filledClass = category && CAT_RATING_FILLED[category] ? CAT_RATING_FILLED[category] : 'bg-brand/20 border-brand/30 text-brand';
+        const clearClass = category && CAT_RATING_CLEAR[category] ? CAT_RATING_CLEAR[category] : 'border-border text-text-secondary hover:border-gray-400';
         return (
           <button
             key={n}
@@ -267,10 +288,10 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
             onClick={() => onChange(selected ? null : n)}
             className={`w-9 h-9 rounded text-sm font-medium border transition-colors ${
               selected
-                ? 'bg-brand border-brand text-white'
+                ? activeClass
                 : value != null && n <= value
-                  ? 'bg-brand/20 border-brand/30 text-brand'
-                  : 'bg-input-bg border-border text-text-secondary hover:border-gray-400'
+                  ? filledClass
+                  : clearClass
             }`}
           >
             {n}
@@ -294,16 +315,38 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating' }: 
 // ─── Pills ───────────────────────────────────────────────────────
 
 const STATUS_STYLE: Record<CollectionStatus, string> = {
-  Owned: 'bg-brand/10 text-brand border-brand/20',
+  Owned: 'bg-pill-bg text-text-secondary border-border',
   Wishlist: 'bg-pill-bg text-text-secondary border-border',
-  OnOrder: 'bg-brand/15 text-brand border-brand/30',
+  OnOrder: 'bg-pill-bg text-text-secondary border-border',
   Sold: 'bg-pill-bg text-text-tertiary border-border',
 };
 
-export function StatusPill({ status }: { status: CollectionStatus }) {
+const CAT_STATUS_STYLE: Record<string, Record<CollectionStatus, string>> = {
+  movies: {
+    Owned: 'bg-movies-light text-movies border-movies-border',
+    Wishlist: 'bg-movies-light/60 text-movies/70 border-movies-border',
+    OnOrder: 'bg-movies-light text-movies border-movies-border',
+    Sold: 'bg-pill-bg text-text-tertiary border-border',
+  },
+  music: {
+    Owned: 'bg-music-light text-music border-music-border',
+    Wishlist: 'bg-music-light/60 text-music/70 border-music-border',
+    OnOrder: 'bg-music-light text-music border-music-border',
+    Sold: 'bg-pill-bg text-text-tertiary border-border',
+  },
+  games: {
+    Owned: 'bg-games-light text-games border-games-border',
+    Wishlist: 'bg-games-light/60 text-games/70 border-games-border',
+    OnOrder: 'bg-games-light text-games border-games-border',
+    Sold: 'bg-pill-bg text-text-tertiary border-border',
+  },
+};
+
+export function StatusPill({ status, category }: { status: CollectionStatus; category?: string }) {
   const label = COLLECTION_STATUSES.find((s) => s.value === status)?.label ?? status;
+  const style = category && CAT_STATUS_STYLE[category] ? CAT_STATUS_STYLE[category][status] : STATUS_STYLE[status];
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLE[status]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${style}`}>
       {label}
     </span>
   );
@@ -320,16 +363,23 @@ export function ConditionPill({ condition }: { condition: Condition }) {
 
 // ─── Tag chips & input ──────────────────────────────────────────
 
-export function TagChip({ name, onRemove }: { name: string; onRemove?: () => void }) {
+const CAT_TAG_STYLE: Record<string, string> = {
+  movies: 'bg-movies-light text-movies border-movies-border hover:bg-movies/20',
+  music: 'bg-music-light text-music border-music-border hover:bg-music/20',
+  games: 'bg-games-light text-games border-games-border hover:bg-games/20',
+};
+
+export function TagChip({ name, category, onRemove }: { name: string; category?: string; onRemove?: () => void }) {
+  const style = category && CAT_TAG_STYLE[category] ? CAT_TAG_STYLE[category] : 'bg-brand/10 text-brand border-brand/20 hover:bg-brand/20';
   return (
-    <span className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs bg-brand/10 text-brand border border-brand/20">
+    <span className={`inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs ${style}`}>
       {name}
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
           aria-label={`Remove tag ${name}`}
-          className="inline-flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full hover:bg-brand/20 transition-colors"
+          className="inline-flex items-center justify-center min-w-[24px] min-h-[24px] rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
         >
           ×
         </button>
@@ -343,9 +393,10 @@ interface TagInputProps {
   onChange: (next: string[]) => void;
   suggestions?: string[];
   placeholder?: string;
+  category?: string;
 }
 
-export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add tag…' }: TagInputProps) {
+export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add tag…', category }: TagInputProps) {
   const [draft, setDraft] = useState('');
 
   const commit = (raw: string) => {
@@ -376,7 +427,7 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
     <div>
       <div className="flex flex-wrap gap-1.5 items-center rounded border border-border bg-card p-1.5 focus-within:border-brand transition-colors">
         {value.map((t) => (
-          <TagChip key={t} name={t} onRemove={() => remove(t)} />
+          <TagChip key={t} name={t} category={category} onRemove={() => remove(t)} />
         ))}
         <input
           value={draft}
