@@ -1,7 +1,19 @@
+# Collectify — consumer compose (pull from registry)
+#
+# Quick start:
+#   docker compose up -d
+#
+# Override the image source via environment variables or a .env file:
+#   REGISTRY=git.example.com      # defaults to ghcr.io
+#   IMAGE_NAME=mforce/collectify  # defaults to mforce/collectify
+#   TAG=v0.1.0                    # defaults to latest
+#
+# For local development (build from source), use docker-compose.dev.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
 services:
   collectify:
-    build: .
-    image: collectify:latest
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-mforce/collectify}:${TAG:-latest}
     container_name: collectify
     restart: unless-stopped
     ports:

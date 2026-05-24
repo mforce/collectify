@@ -1,0 +1,10 @@
+# Development override: build the image from the local checkout instead of
+# pulling a published release image.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  collectify:
+    build: .
+    image: collectify:dev
