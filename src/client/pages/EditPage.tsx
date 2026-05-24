@@ -1,16 +1,18 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDelete, useItem, useUpdate } from '../services/collection';
 import { useToast } from '../components/toaster';
-import type { Album, Game, MediaType, Movie } from '../services/types';
+import DetailView from '../components/DetailView';
 import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
-import { Card } from '../components/ui';
+import { Card, Button } from '../components/ui';
+import type { Album, Game, MediaType, Movie } from '../services/types';
 
 const titleByType: Record<MediaType, string> = {
-  movies: 'Edit movie',
-  music: 'Edit album',
-  games: 'Edit game',
+  movies: 'Movie',
+  music: 'Album',
+  games: 'Game',
 };
 
 const deletedByType: Record<MediaType, string> = {
@@ -28,6 +30,8 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
   const nav = useNavigate();
   const toast = useToast();
 
+  const [editing, setEditing] = useState(false);
+
   if (item.isLoading) return <p className="text-text-secondary">Loading…</p>;
   if (item.error || !item.data) return <p className="text-error">Not found.</p>;
 
@@ -43,13 +47,29 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
     });
   };
 
-  const onSaved = () => toast.success('Saved.');
+  const onSaved = () => {
+    toast.success('Saved.');
+    setEditing(false);
+  };
+
   const onSaveFailure = (err: unknown) =>
     toast.error(`Failed to save: ${(err as Error).message ?? 'unknown error'}`);
 
+  // Detail view (default)
+  if (!editing) {
+    return <DetailView item={item.data} type={type} onEdit={() => setEditing(true)} />;
+  }
+
+  // Edit mode
+  const onCancel = () => setEditing(false);
+
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-medium text-text-primary tracking-tight">{titleByType[type]}</h1>
+      {/* Header with back and cancel */}
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-medium text-text-primary tracking-tight">Edit {titleByType[type]}</h1>
+        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+      </div>
 
       <Card>
         {type === 'movies' && (
