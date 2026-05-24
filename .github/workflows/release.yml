@@ -172,8 +172,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ steps.tag.outputs.version }}
-          # GitHub Actions cache. First release is a cold build; subsequent
-          # ones reuse layers (apt-get curl install, npm install, dotnet
-          # restore) and finish in a fraction of the time.
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
