@@ -548,3 +548,69 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
     </>
   );
 }
+
+// ─── View switcher ──────────────────────────────────────────────
+
+import type { ViewMode } from '../hooks/useViewPreference';
+
+const VIEW_MODES: { value: ViewMode; label: string; icon: React.ReactNode }[] = [
+  {
+    value: 'list',
+    label: 'List',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+        <rect x="2" y="2" width="3" height="3" rx="0.5" />
+        <line x1="6" y1="3.5" x2="14" y2="3.5" />
+        <rect x="2" y="7" width="3" height="3" rx="0.5" />
+        <line x1="6" y1="8.5" x2="14" y2="8.5" />
+        <rect x="2" y="12" width="3" height="3" rx="0.5" />
+        <line x1="6" y1="13.5" x2="14" y2="13.5" />
+      </svg>
+    ),
+  },
+  {
+    value: 'medium',
+    label: 'Medium',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+        <rect x="2" y="2" width="5" height="5" rx="1" />
+        <rect x="9" y="2" width="5" height="5" rx="1" />
+        <rect x="2" y="9" width="5" height="5" rx="1" />
+        <rect x="9" y="9" width="5" height="5" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    value: 'big',
+    label: 'Big',
+    icon: (
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+        <rect x="2" y="2" width="12" height="12" rx="1.5" />
+      </svg>
+    ),
+  },
+];
+
+export function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
+  return (
+    <div className="inline-flex rounded-md border border-border overflow-hidden">
+      {VIEW_MODES.map((mode, i) => {
+        const active = mode.value === value;
+        return (
+          <button
+            key={mode.value}
+            type="button"
+            aria-pressed={active}
+            title={mode.label}
+            onClick={() => onChange(mode.value)}
+            className={`inline-flex items-center justify-center w-9 h-8 transition-colors ${
+              active ? 'bg-brand/10 text-brand' : 'text-text-secondary hover:text-text-primary bg-card'
+            } ${i > 0 ? 'border-l border-border' : ''}`}
+          >
+            {mode.icon}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
