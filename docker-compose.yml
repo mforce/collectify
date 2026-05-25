@@ -8,6 +8,12 @@
 #   IMAGE_NAME=mforce/collectify  # defaults to mforce/collectify
 #   TAG=v0.1.0                    # defaults to latest
 #
+# Metadata provider keys (TMDB, MusicBrainz, IGDB) go in .env — see .env.example:
+#   Collectify__Metadata__Tmdb__ApiKey=your-tmdb-key
+#   Collectify__Metadata__MusicBrainz__UserAgent="Collectify/1.0 (you@example.com)"
+#   Collectify__Metadata__Igdb__TwitchClientId=your-twitch-client-id
+#   Collectify__Metadata__Igdb__TwitchClientSecret=your-twitch-secret
+#
 # For local development (build from source), use docker-compose.dev.yml:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
