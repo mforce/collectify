@@ -30,19 +30,27 @@ WORKDIR /app
 # it. Pulls in ~14 transitive deps for ~6 MiB of overhead, in exchange
 # for a self-contained image that doesn't depend on the host
 # orchestrator providing its own probe.
+ARG DEFAULT_PUID=1000
+ARG DEFAULT_PGID=1000
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends curl gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && if ! getent group app >/dev/null; then groupadd -o -g "$DEFAULT_PGID" app; fi \
+    && if ! id -u app >/dev/null 2>&1; then useradd -o -u "$DEFAULT_PUID" -g app -d /app -s /usr/sbin/nologin app; fi
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
-    Collectify__DataDir=/data
+    Collectify__DataDir=/data \
+    PUID=${DEFAULT_PUID} \
+    PGID=${DEFAULT_PGID}
 COPY --from=server-build /app/publish ./
-RUN mkdir -p /data && chown -R 1000:1000 /data
-USER 1000:1000
+COPY docker/entrypoint.sh /usr/local/bin/collectify-entrypoint
+RUN chmod +x /usr/local/bin/collectify-entrypoint \
+    && mkdir -p /data \
+    && chown -R app:app /data
 EXPOSE 8080
 # Hits /api/health (anonymous, DB-free) so a migration-in-progress or
 # write-stall doesn't flap the container. Orchestrators / Watchtower /
 # Docker compose all key off this.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
     CMD curl -fsS http://localhost:8080/api/health || exit 1
-ENTRYPOINT ["dotnet", "Collectify.Api.dll"]
+ENTRYPOINT ["collectify-entrypoint"]
