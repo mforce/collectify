@@ -7,6 +7,7 @@ import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
 import { Card } from '../components/ui';
+import MediaIcon from '../components/MediaIcon';
 
 interface PrefillState {
   prefill?: MovieLookupResult | MusicLookupResult | GameLookupResult;
@@ -29,6 +30,18 @@ const successByType: Record<MediaType, string> = {
   movies: 'Movie added.',
   music: 'Album added.',
   games: 'Game added.',
+};
+
+const themeByType: Record<MediaType, { title: string }> = {
+  movies: {
+    title: 'text-movies',
+  },
+  music: {
+    title: 'text-music',
+  },
+  games: {
+    title: 'text-games',
+  },
 };
 
 export default function AddPage<T extends MediaType>({ type }: { type: T }) {
@@ -54,9 +67,14 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-medium text-text-primary tracking-tight">{titleByType[type]}</h1>
+      <div className="flex items-center gap-3">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
+          <MediaIcon type={type} className="h-7 w-7" />
+        </span>
+        <h1 className={`text-3xl font-extrabold tracking-tight ${themeByType[type].title}`}>{titleByType[type]}</h1>
+      </div>
 
-      <Card>
+      <Card className={`theme-${type}`}>
         {type === 'movies' && (
           <MovieForm
             prefillLookup={prefill as MovieLookupResult | undefined}

@@ -112,8 +112,8 @@ describe('CoverEditor', () => {
 
     // The compact actions should be visible; the URL input shouldn't.
     expect(screen.getByTestId('cover-collapsed-actions')).toHaveClass('flex-col');
-    expect(screen.getByRole('button', { name: /change cover/i })).toHaveClass('rounded-md');
-    expect(screen.getByRole('button', { name: /remove cover/i })).toHaveClass('rounded-md');
+    expect(screen.getByRole('button', { name: /change cover/i })).toHaveClass('rounded-xl');
+    expect(screen.getByRole('button', { name: /remove cover/i })).toHaveClass('rounded-xl');
     expect(screen.queryByPlaceholderText(/cover.jpg/i)).not.toBeInTheDocument();
   });
 

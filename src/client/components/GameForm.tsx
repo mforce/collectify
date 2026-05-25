@@ -271,7 +271,9 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
       </Field>
 
       <div className="flex items-center justify-between">
-        <Button type="submit" disabled={submitting}>{submitLabel}</Button>
+        <Button type="submit" disabled={submitting} className="bg-games text-white hover:bg-games/85">
+          {submitLabel}
+        </Button>
         {onDelete && (
           <Button type="button" variant="danger" onClick={onDelete}>Delete</Button>
         )}

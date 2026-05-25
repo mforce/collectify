@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useDashboard, type DashboardRecent } from '../services/collection';
 import { Card, ViewSwitcher } from '../components/ui';
 import { useViewPreference, type ViewMode } from '../hooks/useViewPreference';
+import MediaIcon from '../components/MediaIcon';
 
 const TYPE_LABEL: Record<DashboardRecent['type'], string> = {
   movies: 'Movie',
@@ -10,9 +11,21 @@ const TYPE_LABEL: Record<DashboardRecent['type'], string> = {
 };
 
 const TILE_BORDER: Record<string, string> = {
-  movies: 'border-t-movies',
-  music: 'border-t-music',
-  games: 'border-t-games',
+  movies: 'border-movies-border bg-movies-light',
+  music: 'border-music-border bg-music-light',
+  games: 'border-games-border bg-games-light',
+};
+
+const TILE_ACCENT: Record<string, string> = {
+  movies: 'text-movies',
+  music: 'text-music',
+  games: 'text-games',
+};
+
+const RECENT_HOVER: Record<DashboardRecent['type'], string> = {
+  movies: 'group-hover:border-movies group-hover:bg-movies-light/70',
+  music: 'group-hover:border-music group-hover:bg-music-light/70',
+  games: 'group-hover:border-games group-hover:bg-games-light/70',
 };
 
 export default function Dashboard() {
@@ -29,18 +42,38 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-medium text-text-primary tracking-tight">Your collection</h1>
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">My Collection</h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            Browse your{' '}
+            <Link to="/movies" className="font-semibold text-movies underline-offset-4 hover:underline">
+              movies
+            </Link>
+            ,{' '}
+            <Link to="/music" className="font-semibold text-music underline-offset-4 hover:underline">
+              music
+            </Link>
+            , and{' '}
+            <Link to="/games" className="font-semibold text-games underline-offset-4 hover:underline">
+              games
+            </Link>
+            .
+          </p>
+        </div>
         <ViewSwitcher value={viewMode} onChange={setViewMode} />
       </div>
 
       <div className="grid sm:grid-cols-3 gap-3">
         {tiles.map((t) => (
           <Link key={t.to} to={t.to} className="block">
-            <Card className={`hover:border-brand/40 transition-colors border-t-2 ${TILE_BORDER[t.type]}`}>
-              <div className="text-text-secondary text-sm">{t.label}</div>
-              <div className="text-2xl font-medium text-text-primary mt-1">
+            <Card className={`border transition-colors hover:-translate-y-0.5 hover:border-brand/40 ${TILE_BORDER[t.type]}`}>
+              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-card shadow-sm ${TILE_ACCENT[t.type]}`}>
+                <MediaIcon type={t.type} className="h-7 w-7" />
+              </div>
+              <div className="text-sm font-semibold text-text-secondary">{t.label}</div>
+              <div className="mt-1 text-3xl font-extrabold text-text-primary">
                 {t.count ?? '…'}
               </div>
             </Card>
@@ -72,7 +105,7 @@ function RecentSection({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+      <h2 className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
         Recent additions
       </h2>
       {loading && <p className="text-text-secondary">Loading…</p>}
@@ -103,7 +136,7 @@ function RecentSection({
 
 function ListRecentCard({ r }: { r: DashboardRecent }) {
   return (
-    <Card className="!p-0 overflow-hidden transition-shadow hover:shadow-md group-hover:border-brand/30 dark:hover:bg-card/80">
+    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${RECENT_HOVER[r.type]}`}>
       <div className="flex items-center gap-3 p-2">
         <div className="w-16 shrink-0 bg-imgPlaceholder overflow-hidden rounded">
           {r.imagePath ? (
@@ -125,7 +158,7 @@ function ListRecentCard({ r }: { r: DashboardRecent }) {
 
 function MediumRecentCard({ r }: { r: DashboardRecent }) {
   return (
-    <Card className="!p-0 overflow-hidden transition-shadow hover:shadow-md group-hover:border-brand/30 dark:hover:bg-card/80">
+    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${RECENT_HOVER[r.type]}`}>
       <div className="flex gap-3 p-3">
         <div className="w-24 shrink-0 bg-imgPlaceholder overflow-hidden rounded">
           {r.imagePath ? (
@@ -147,7 +180,7 @@ function MediumRecentCard({ r }: { r: DashboardRecent }) {
 
 function BigRecentCard({ r }: { r: DashboardRecent }) {
   return (
-    <Card className="h-full !p-0 overflow-hidden transition-shadow hover:shadow-md group-hover:border-brand/30 dark:hover:bg-card/80">
+    <Card className={`h-full !p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${RECENT_HOVER[r.type]}`}>
       <div className="flex flex-col md:flex-row">
         <div className="relative w-full shrink-0 bg-imgPlaceholder overflow-hidden sm:w-24 md:w-36 lg:w-48">
           {r.imagePath ? (

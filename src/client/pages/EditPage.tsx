@@ -7,6 +7,7 @@ import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
 import { Card, Button } from '../components/ui';
+import MediaIcon from '../components/MediaIcon';
 import type { Album, Game, MediaType, Movie } from '../services/types';
 
 const titleByType: Record<MediaType, string> = {
@@ -19,6 +20,18 @@ const deletedByType: Record<MediaType, string> = {
   movies: 'Movie deleted.',
   music: 'Album deleted.',
   games: 'Game deleted.',
+};
+
+const themeByType: Record<MediaType, { title: string }> = {
+  movies: {
+    title: 'text-movies',
+  },
+  music: {
+    title: 'text-music',
+  },
+  games: {
+    title: 'text-games',
+  },
 };
 
 export default function EditPage<T extends MediaType>({ type }: { type: T }) {
@@ -67,11 +80,16 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
     <div className="space-y-4">
       {/* Header with back and cancel */}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-medium text-text-primary tracking-tight">Edit {titleByType[type]}</h1>
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
+            <MediaIcon type={type} className="h-7 w-7" />
+          </span>
+          <h1 className={`text-3xl font-extrabold tracking-tight ${themeByType[type].title}`}>Edit {titleByType[type]}</h1>
+        </div>
         <Button variant="secondary" onClick={onCancel}>Cancel</Button>
       </div>
 
-      <Card>
+      <Card className={`theme-${type}`}>
         {type === 'movies' && (
           <MovieForm
             initial={item.data as Movie}

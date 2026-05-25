@@ -9,21 +9,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Coinbase-inspired palette
         brand: {
-          DEFAULT: '#0052ff',   // Coinbase Blue — primary CTA / links (neutral fallback)
-          hover: '#578bfa',     // lighter blue on hover
+          DEFAULT: '#7C3FF2',
+          hover: '#6D32DD',
+          navy: '#071333',
+          teal: '#14C8B6',
+          blue: '#2F6FF2',
         },
-        // Per-category accent colors (flat keys for Tailwind detection)
-        movies: '#f59e0b',
-        'movies-light': 'rgba(245,158,11,0.1)',
-        'movies-border': 'rgba(245,158,11,0.2)',
-        music: '#8b5cf6',
-        'music-light': 'rgba(139,92,246,0.1)',
-        'music-border': 'rgba(139,92,246,0.2)',
-        games: '#14b8a6',
-        'games-light': 'rgba(20,184,166,0.1)',
-        'games-border': 'rgba(20,184,166,0.2)',
+        movies: '#14C8B6',
+        'movies-light': 'rgba(20,200,182,0.12)',
+        'movies-border': 'rgba(20,200,182,0.28)',
+        music: '#7C3FF2',
+        'music-light': 'rgba(124,63,242,0.12)',
+        'music-border': 'rgba(124,63,242,0.28)',
+        games: '#2F6FF2',
+        'games-light': 'rgba(47,111,242,0.12)',
+        'games-border': 'rgba(47,111,242,0.28)',
         surface: 'var(--color-surface)',       // page background (adapts)
         card: 'var(--color-card)',             // cards/panels (adapts)
         text: {
@@ -46,16 +47,16 @@ export default {
         divider: 'var(--color-divider)',    // list dividers (adapts)
         imgPlaceholder: 'var(--color-image-placeholder)', // image placeholder bg (adapts)
         error: {
-          DEFAULT: '#CF4939',   // red for errors / destructive
+          DEFAULT: '#D94C4C',   // red for errors / destructive
           bg: '#FFF1F0',        // light error background
         },
         success: {
-          DEFAULT: '#0A7470',   // teal/green for success states
-          bg: '#E6F8F7',        // light success background
+          DEFAULT: '#16C7A9',
+          bg: '#E8FBF7',
         },
       },
       fontFamily: {
-        sans: ['DM Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
       },
       fontWeight: {
         normal: '400',
@@ -64,13 +65,16 @@ export default {
         bold: '700',
       },
       borderRadius: {
-        DEFAULT: '8px',    // Coinbase standard card radius
-        sm: '4px',         // small elements
-        lg: '12px',        // cards, menus
-        xl: '16px',        // larger containers
-        '2xl': '24px',     // feature sections
-        pill: '56px',      // Coinbase CTA buttons
+        DEFAULT: '12px',
+        sm: '8px',
+        lg: '18px',
+        xl: '24px',
+        '2xl': '28px',
+        pill: '9999px',
         full: '9999px',    // maximum pill shape
+      },
+      boxShadow: {
+        card: 'var(--shadow-card)',
       },
     },
   },

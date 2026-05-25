@@ -18,7 +18,7 @@ export default function TagsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-medium text-text-primary tracking-tight">Tags</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">Tags</h1>
       <p className="text-sm text-text-secondary">
         Tags you've created across movies, music, and games. Deleting a tag here
         removes it from every item it's attached to — the items themselves are kept.

@@ -1,5 +1,7 @@
 # Collectify
 
+![Collectify banner](src/client/public/brand/collectify-sample.png)
+
 A self-hostable web app for tracking your personal collection of **movies** (DVD / Blu-ray / UHD Blu-ray), **music** (CDs / vinyl), and **videogames** (physical and digital).
 
 > **Status:** Phase 1 complete — manual entry, edit, search for all three types. Internet metadata lookup (TMDB / MusicBrainz / IGDB) and barcode camera scanning are included. Single-user with password, packaged as a Docker image.

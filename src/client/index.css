@@ -2,14 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Coinbase-inspired design system: clean, trustworthy, blue accent */
-
 html, body, #root {
   height: 100%;
 }
 
 body {
-  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   background-color: var(--color-surface);
   color: var(--color-text-primary);
   font-weight: 400;
@@ -17,84 +15,93 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Light mode — Coinbase white + cool gray ─────────────── */
 :root {
-  /* Surfaces — clean white, cool gray secondary */
-  --color-surface: #ffffff;
+  --color-surface: #f7f9ff;
   --color-card: #ffffff;
-  --card-border: rgba(91, 97, 110, 0.2);
+  --card-border: rgba(11, 28, 77, 0.12);
 
-  /* Text — near-black primary, muted blue-gray secondary */
-  --color-text-primary: #0a0b0d;
-  --color-text-secondary: #5b616e;
-  --color-text-tertiary: #8a8f9a;
+  --color-text-primary: #071333;
+  --color-text-secondary: #52607f;
+  --color-text-tertiary: #8791ad;
 
-  /* Inputs / interactive backgrounds */
   --color-input-bg: #ffffff;
-  --color-input-border: rgba(91, 97, 110, 0.2);
-  --color-input-hover: #eef0f3;
+  --color-input-border: rgba(11, 28, 77, 0.14);
+  --color-input-hover: #eef3ff;
   --color-dropdown-bg: #ffffff;
-  --color-placeholder: #8a8f9a;
+  --color-placeholder: #8791ad;
 
-  /* Pills / badges */
-  --color-pill-bg: #eef0f3;
-  --color-pill-border: rgba(91, 97, 110, 0.2);
+  --color-pill-bg: #eef3ff;
+  --color-pill-border: rgba(11, 28, 77, 0.12);
 
-  /* Misc */
-  --color-divider: rgba(91, 97, 110, 0.2);
-  --color-image-placeholder: #eef0f3;
+  --color-divider: rgba(11, 28, 77, 0.1);
+  --color-image-placeholder: #eef3ff;
+  --shadow-card: 0 18px 45px rgba(7, 19, 51, 0.08);
+  --category-accent: #7c3ff2;
+  --category-accent-rgb: 124, 63, 242;
+  --category-text-on-accent: #ffffff;
 }
 
-/* ── Dark mode — near-black surfaces ─────────────────────── */
 html.dark {
-  /* Surfaces — near-black + dark card */
-  --color-surface: #0a0b0d;
-  --color-card: #282b31;
-  --card-border: rgba(91, 97, 110, 0.3);
+  --color-surface: #071333;
+  --color-card: #0b1c4d;
+  --card-border: rgba(124, 63, 242, 0.28);
 
-  /* Text — white primary, muted secondary */
   --color-text-primary: #ffffff;
-  --color-text-secondary: #a0a5ae;
-  --color-text-tertiary: #6b7080;
+  --color-text-secondary: #bfcae8;
+  --color-text-tertiary: #8492bd;
 
-  /* Inputs / interactive backgrounds */
-  --color-input-bg: #282b31;
-  --color-input-border: rgba(91, 97, 110, 0.3);
-  --color-input-hover: #353840;
-  --color-dropdown-bg: #282b31;
-  --color-placeholder: #6b7080;
+  --color-input-bg: #102466;
+  --color-input-border: rgba(124, 63, 242, 0.28);
+  --color-input-hover: #162d78;
+  --color-dropdown-bg: #0b1c4d;
+  --color-placeholder: #8492bd;
 
-  /* Pills / badges */
-  --color-pill-bg: #282b31;
-  --color-pill-border: rgba(91, 97, 110, 0.3);
+  --color-pill-bg: rgba(255, 255, 255, 0.06);
+  --color-pill-border: rgba(255, 255, 255, 0.12);
 
-  /* Misc */
-  --color-divider: rgba(91, 97, 110, 0.3);
-  --color-image-placeholder: #282b31;
+  --color-divider: rgba(255, 255, 255, 0.1);
+  --color-image-placeholder: #102466;
+  --shadow-card: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
-/* Coinbase typography — tight line-height on headings */
+.theme-movies {
+  --category-accent: #14c8b6;
+  --category-accent-rgb: 20, 200, 182;
+  --category-text-on-accent: #071333;
+}
+
+.theme-music {
+  --category-accent: #7c3ff2;
+  --category-accent-rgb: 124, 63, 242;
+  --category-text-on-accent: #ffffff;
+}
+
+.theme-games {
+  --category-accent: #2f6ff2;
+  --category-accent-rgb: 47, 111, 242;
+  --category-text-on-accent: #ffffff;
+}
+
 h1 {
-  font-weight: 400;
+  font-weight: 800;
   line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 h2 {
-  font-weight: 400;
+  font-weight: 750;
   line-height: 1.1;
 }
 h3 {
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.25;
 }
 
-/* Remove default focus outlines and use a clean ring instead */
 :focus-visible {
-  outline: 2px solid #0052ff;
+  outline: 2px solid #7c3ff2;
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
-/* Scrollbar styling — subtle, matching the minimal aesthetic */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -103,9 +110,77 @@ h3 {
   background: var(--color-surface);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(91, 97, 110, 0.3);
+  background: rgba(124, 63, 242, 0.32);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
+  background: #7c3ff2;
+}
+
+.theme-movies input:focus,
+.theme-movies textarea:focus,
+.theme-movies select:focus,
+.theme-movies [role='combobox']:focus,
+.theme-music input:focus,
+.theme-music textarea:focus,
+.theme-music select:focus,
+.theme-music [role='combobox']:focus,
+.theme-games input:focus,
+.theme-games textarea:focus,
+.theme-games select:focus,
+.theme-games [role='combobox']:focus {
+  border-color: var(--category-accent);
+  box-shadow: 0 0 0 2px rgba(var(--category-accent-rgb), 0.18);
+}
+
+.theme-movies select,
+.theme-music select,
+.theme-games select {
+  accent-color: var(--category-accent);
+}
+
+.theme-movies select option:checked,
+.theme-music select option:checked,
+.theme-games select option:checked {
+  background: var(--category-accent);
+  color: var(--category-text-on-accent);
+}
+
+.theme-movies button:focus-visible,
+.theme-music button:focus-visible,
+.theme-games button:focus-visible {
+  outline-color: var(--category-accent);
+  box-shadow: 0 0 0 2px rgba(var(--category-accent-rgb), 0.18);
+}
+
+.theme-movies .category-focus-within:focus-within,
+.theme-music .category-focus-within:focus-within,
+.theme-games .category-focus-within:focus-within {
+  border-color: var(--category-accent);
+  box-shadow: 0 0 0 2px rgba(var(--category-accent-rgb), 0.18);
+}
+
+.theme-movies .category-active,
+.theme-music .category-active,
+.theme-games .category-active {
+  border-color: var(--category-accent);
+  background-color: var(--category-accent);
+  color: var(--category-text-on-accent);
+}
+
+.theme-movies .category-active-soft,
+.theme-music .category-active-soft,
+.theme-games .category-active-soft,
+.theme-movies .category-hover-soft:hover,
+.theme-music .category-hover-soft:hover,
+.theme-games .category-hover-soft:hover {
+  border-color: rgba(var(--category-accent-rgb), 0.28);
+  background-color: rgba(var(--category-accent-rgb), 0.12);
+  color: var(--category-accent);
+}
+
+.theme-movies .category-text,
+.theme-music .category-text,
+.theme-games .category-text {
+  color: var(--category-accent);
 }

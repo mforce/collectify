@@ -6,25 +6,26 @@ import DarkModeToggle from './DarkModeToggle';
 
 type NavCategory = 'movies' | 'music' | 'games';
 
-const navItems: { to: string; label: string; category: NavCategory | null }[] = [
-  { to: '/movies', label: 'Movies', category: 'movies' },
-  { to: '/music', label: 'Music', category: 'music' },
-  { to: '/games', label: 'Games', category: 'games' },
-  { to: '/tags', label: 'Tags', category: null },
+const navItems: { to: string; label: string; category: NavCategory | null; icon: ReactNode }[] = [
+  { to: '/', label: 'Home', category: null, icon: <BrandIcon src="/brand/media-home.svg" alt="" /> },
+  { to: '/movies', label: 'Movies', category: 'movies', icon: <BrandIcon src="/brand/media-movies.svg" alt="" /> },
+  { to: '/music', label: 'Music', category: 'music', icon: <BrandIcon src="/brand/media-music.svg" alt="" /> },
+  { to: '/games', label: 'Games', category: 'games', icon: <BrandIcon src="/brand/media-games.svg" alt="" /> },
+  { to: '/tags', label: 'Tags', category: null, icon: <TagIcon /> },
 ];
 
 const NAV_ACTIVE_DESKTOP: Record<string, string> = {
-  movies: 'text-movies font-medium border-b-2 border-movies',
-  music: 'text-music font-medium border-b-2 border-music',
-  games: 'text-games font-medium border-b-2 border-games',
-  default: 'text-brand font-medium border-b-2 border-brand/30',
+  movies: 'bg-movies-light text-movies border-movies-border shadow-sm',
+  music: 'bg-music-light text-music border-music-border shadow-sm',
+  games: 'bg-games-light text-games border-games-border shadow-sm',
+  default: 'bg-brand/10 text-brand border-brand/20 shadow-sm',
 };
 
 const NAV_ACTIVE_MOBILE: Record<string, string> = {
-  movies: 'text-movies font-medium',
-  music: 'text-music font-medium',
-  games: 'text-games font-medium',
-  default: 'text-brand font-medium',
+  movies: 'bg-movies-light text-movies border-movies-border',
+  music: 'bg-music-light text-music border-music-border',
+  games: 'bg-games-light text-games border-games-border',
+  default: 'bg-brand/10 text-brand border-brand/20',
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -56,27 +57,34 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       {/* Header */}
-      <nav ref={navRef} className="sticky top-0 z-50 bg-card/80 backdrop-blur-sm border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
+      <nav ref={navRef} className="sticky top-0 z-50 border-b border-border bg-card/88 backdrop-blur-xl shadow-sm">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           {/* Brand */}
-          <Link to="/" className="text-base font-medium text-text-primary tracking-tight hover:text-brand transition-colors">
-            Collectify
+          <Link to="/" className="inline-flex items-center gap-3 text-text-primary transition-colors hover:text-brand">
+            <img
+              src="/brand/collectify-logo.png"
+              alt=""
+              className="h-10 w-10 rounded-xl shadow-sm"
+            />
+            <span className="hidden text-base font-extrabold tracking-tight sm:inline">Collectify</span>
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden items-center gap-2 md:flex">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.to === '/'}
                 className={({ isActive }) =>
-                  `inline-flex items-center px-3 py-1.5 rounded text-sm transition-colors ${
+                  `inline-flex h-10 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition-colors ${
                     isActive
                       ? NAV_ACTIVE_DESKTOP[item.category ?? 'default'] ?? ''
-                      : 'text-text-secondary hover:text-text-primary'
+                      : 'border-transparent text-text-secondary hover:bg-pill-bg hover:text-text-primary'
                   }`
                 }
               >
+                <span aria-hidden className="h-4 w-4">{item.icon}</span>
                 {item.label}
               </NavLink>
             ))}
@@ -85,10 +93,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           {/* Desktop user area */}
           <div className="hidden md:flex items-center gap-3">
             <DarkModeToggle />
-            <span className="text-sm text-text-secondary">{auth?.userName}</span>
+            <span className="max-w-32 truncate rounded-full border border-border bg-pill-bg px-3 py-1.5 text-sm font-medium text-text-secondary">
+              {auth?.userName}
+            </span>
             <button
               onClick={handleLogout}
-              className="inline-flex items-center px-3 py-1.5 rounded text-sm text-text-secondary hover:text-error transition-colors"
+              className="inline-flex h-10 items-center rounded-full px-3 text-sm font-semibold text-text-secondary transition-colors hover:bg-error/10 hover:text-error"
             >
               Sign out
             </button>
@@ -100,7 +110,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-text-primary transition-colors hover:bg-pill-bg md:hidden"
           >
             <svg aria-hidden viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               {menuOpen ? (
@@ -121,19 +131,21 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         {/* Mobile nav */}
         {menuOpen && (
-          <div className="md:hidden border-t border-border px-4 py-3 space-y-1">
+          <div className="space-y-2 border-t border-border px-4 py-3 md:hidden">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.to === '/'}
                 className={({ isActive }) =>
-                  `block px-3 py-2 rounded text-sm transition-colors ${
+                  `flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors ${
                     isActive
                       ? NAV_ACTIVE_MOBILE[item.category ?? 'default'] ?? ''
-                      : 'text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840]'
+                      : 'border-transparent text-text-secondary hover:bg-pill-bg hover:text-text-primary'
                   }`
                 }
               >
+                <span aria-hidden className="h-4 w-4">{item.icon}</span>
                 {item.label}
               </NavLink>
             ))}
@@ -144,7 +156,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               </div>
               <button
                 onClick={handleLogout}
-                className="px-3 py-1.5 rounded text-sm text-text-secondary hover:text-error transition-colors"
+                className="rounded-full px-3 py-1.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-error/10 hover:text-error"
               >
                 Sign out
               </button>
@@ -154,9 +166,22 @@ export default function Layout({ children }: { children: ReactNode }) {
       </nav>
 
       {/* Main content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
         {children}
       </main>
     </div>
+  );
+}
+
+function BrandIcon({ src, alt }: { src: string; alt: string }) {
+  return <img src={src} alt={alt} className="h-full w-full object-contain" aria-hidden={alt === '' || undefined} />;
+}
+
+function TagIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+      <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+    </svg>
   );
 }

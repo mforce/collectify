@@ -9,13 +9,13 @@ import {
 // ─── Button ──────────────────────────────────────────────────────
 
 const btnBase =
-  'inline-flex items-center justify-center rounded-pill transition-colors text-sm font-semibold disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1';
+  'inline-flex min-h-[44px] items-center justify-center rounded-xl transition-colors text-sm font-bold disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface';
 
 export function Button({ className = '', variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
   const variants: Record<string, string> = {
-    primary: 'bg-brand hover:bg-brand-hover text-white min-h-[40px] px-5 py-2',
-    secondary: 'bg-pill-bg hover:bg-gray-100 dark:hover:bg-[#353840] text-text-primary border border-border min-h-[40px] px-5 py-2',
-    danger: 'bg-error hover:bg-red-600 text-white min-h-[40px] px-5 py-2',
+    primary: 'bg-brand hover:bg-brand-hover text-white px-5 py-2 shadow-sm shadow-brand/20',
+    secondary: 'bg-card hover:bg-pill-bg text-text-primary border border-border px-5 py-2',
+    danger: 'bg-error hover:bg-red-600 text-white px-5 py-2',
   };
   return (
     <button {...props} className={`${btnBase} ${variants[variant]} ${className}`} />
@@ -25,7 +25,7 @@ export function Button({ className = '', variant = 'primary', ...props }: Button
 // ─── Input / Select / Textarea ──────────────────────────────────
 
 const inputBase =
-  'block w-full rounded border px-3 py-2 text-sm bg-input-bg transition-colors placeholder:text-input-placeholder focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-40 disabled:bg-gray-50 dark:disabled:bg-[#353840] text-text-primary';
+  'block min-h-[44px] w-full rounded-xl border px-3 py-2 text-sm bg-input-bg transition-colors placeholder:text-input-placeholder focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-40 disabled:bg-pill-bg text-text-primary';
 
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -163,7 +163,7 @@ export function SearchableSelect({
         <div
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="absolute z-20 mt-1 w-full rounded border border-border bg-input-bg max-h-72 overflow-auto"
+          className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-border bg-input-bg shadow-card"
         >
           {filtered.length === 0 && (
             <div className="px-3 py-2 text-sm text-text-secondary">No matches.</div>
@@ -193,11 +193,11 @@ export function SearchableSelect({
                   commit(row.opt!);
                 }}
                 className={`w-full text-left px-3 py-2 text-sm border-b last:border-b-0 flex items-center justify-between transition-colors ${
-                  isActive ? 'bg-gray-50 dark:bg-[#353840] text-text-primary' : 'text-text-secondary hover:bg-gray-50 dark:hover:bg-[#353840]'
+                  isActive ? 'category-active-soft' : 'text-text-secondary category-hover-soft'
                 }`}
               >
                 <span>{row.text}</span>
-                {isSelected && <span aria-hidden className="text-brand text-xs">✓</span>}
+                {isSelected && <span aria-hidden className="category-text text-xs">✓</span>}
               </button>
             );
           })}
@@ -211,7 +211,7 @@ export function SearchableSelect({
 
 export function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
-    <label htmlFor={htmlFor} className="block text-xs font-medium text-text-secondary mb-1">
+    <label htmlFor={htmlFor} className="mb-1 block text-xs font-bold text-text-secondary">
       {children}
     </label>
   );
@@ -230,7 +230,7 @@ export function Field({ label, children }: { label: string; children: React.Reac
 
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded border border-border bg-card p-4 ${className}`}>{children}</div>
+    <div className={`rounded-lg border border-border bg-card p-4 shadow-card ${className}`}>{children}</div>
   );
 }
 
@@ -238,7 +238,7 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
 
 export function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mt-6 mb-2 pb-1 border-b border-border">
+    <h2 className="mb-2 mt-6 border-b border-border pb-1 text-xs font-bold uppercase tracking-wide text-text-tertiary">
       {children}
     </h2>
   );
@@ -286,7 +286,7 @@ export function RatingInput({ value, onChange, ariaLabel = 'Personal rating', ca
             aria-checked={selected}
             aria-label={`${n} of 10`}
             onClick={() => onChange(selected ? null : n)}
-            className={`w-9 h-9 rounded text-sm font-medium border transition-colors ${
+            className={`h-9 w-9 rounded-xl border text-sm font-bold transition-colors ${
               selected
                 ? activeClass
                 : value != null && n <= value
@@ -346,7 +346,7 @@ export function StatusPill({ status, category }: { status: CollectionStatus; cat
   const label = COLLECTION_STATUSES.find((s) => s.value === status)?.label ?? status;
   const style = category && CAT_STATUS_STYLE[category] ? CAT_STATUS_STYLE[category][status] : STATUS_STYLE[status];
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${style}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${style}`}>
       {label}
     </span>
   );
@@ -355,7 +355,7 @@ export function StatusPill({ status, category }: { status: CollectionStatus; cat
 export function ConditionPill({ condition }: { condition: Condition }) {
   const label = CONDITIONS.find((c) => c.value === condition)?.label ?? condition;
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-pill-bg text-text-secondary border-border">
+    <span className="inline-flex items-center rounded-full border border-border bg-pill-bg px-2 py-0.5 text-xs font-semibold text-text-secondary">
       {label}
     </span>
   );
@@ -372,7 +372,7 @@ const CAT_TAG_STYLE: Record<string, string> = {
 export function TagChip({ name, category, onRemove }: { name: string; category?: string; onRemove?: () => void }) {
   const style = category && CAT_TAG_STYLE[category] ? CAT_TAG_STYLE[category] : 'bg-brand/10 text-brand border-brand/20 hover:bg-brand/20';
   return (
-    <span className={`inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-xs ${style}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border py-0.5 pl-2 pr-1 text-xs font-semibold ${style}`}>
       {name}
       {onRemove && (
         <button
@@ -425,7 +425,7 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
 
   return (
     <div>
-      <div className="flex flex-wrap gap-1.5 items-center rounded border border-border bg-card p-1.5 focus-within:border-brand transition-colors">
+      <div className="category-focus-within flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-card p-1.5 transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20">
         {value.map((t) => (
           <TagChip key={t} name={t} category={category} onRemove={() => remove(t)} />
         ))}
@@ -447,7 +447,7 @@ export function TagInput({ value, onChange, suggestions = [], placeholder = 'Add
               key={s}
               type="button"
               onClick={() => commit(s)}
-              className="px-2 py-0.5 rounded-full text-xs bg-pill-bg text-text-secondary hover:bg-gray-100 dark:hover:bg-[#353840] border border-border transition-colors"
+              className="rounded-full border border-border bg-pill-bg px-2 py-0.5 text-xs text-text-secondary transition-colors hover:bg-card hover:text-text-primary"
             >
               + {s}
             </button>
@@ -482,7 +482,7 @@ export function ExternalIdField({ label, value, onChange, urlPrefix, placeholder
             href={`${urlPrefix}${value}`}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-brand hover:text-brand-hover underline whitespace-nowrap transition-colors"
+            className="whitespace-nowrap text-xs font-semibold text-brand underline transition-colors hover:text-brand-hover"
             aria-label={`Open ${label} on the provider's site`}
           >
             View ↗
@@ -527,7 +527,7 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
           src={src}
           alt={alt}
           loading="lazy"
-          className="w-full object-contain rounded border border-border bg-imgPlaceholder cursor-zoom-in hover:opacity-90 transition-opacity"
+          className="w-full cursor-zoom-in rounded-lg border border-border bg-imgPlaceholder object-contain transition-opacity hover:opacity-90"
         />
       </button>
       {open && (
@@ -541,7 +541,7 @@ export function CoverPreview({ src, alt = '', className = '' }: CoverPreviewProp
           <img
             src={src}
             alt={alt}
-            className="max-h-[90dvh] max-w-full object-contain rounded"
+            className="max-h-[90dvh] max-w-full rounded-lg object-contain"
           />
         </div>
       )}
@@ -593,7 +593,7 @@ const VIEW_MODES: { value: ViewMode; label: string; icon: React.ReactNode }[] = 
 
 export function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
   return (
-    <div className="inline-flex rounded-md border border-border overflow-hidden">
+    <div className="inline-flex overflow-hidden rounded-xl border border-border bg-card">
       {VIEW_MODES.map((mode, i) => {
         const active = mode.value === value;
         return (
@@ -604,7 +604,7 @@ export function ViewSwitcher({ value, onChange }: { value: ViewMode; onChange: (
             title={mode.label}
             onClick={() => onChange(mode.value)}
             className={`inline-flex items-center justify-center w-9 h-8 transition-colors ${
-              active ? 'bg-brand/10 text-brand' : 'text-text-secondary hover:text-text-primary bg-card'
+              active ? 'category-active-soft' : 'bg-card text-text-secondary category-hover-soft hover:text-text-primary'
             } ${i > 0 ? 'border-l border-border' : ''}`}
           >
             {mode.icon}
