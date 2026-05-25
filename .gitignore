@@ -11,6 +11,8 @@
 bin/
 obj/
 *.user
+src/server/Collectify.Api/appsettings.Development.json
+
 
 # Node
 node_modules/
@@ -22,3 +24,4 @@ data/
 *.db
 *.db-shm
 *.db-wal
+
