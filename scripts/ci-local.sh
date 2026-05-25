@@ -7,6 +7,7 @@
 #   ./scripts/ci-local.sh             # both jobs
 #   ./scripts/ci-local.sh server      # server only (.NET build + xUnit)
 #   ./scripts/ci-local.sh client      # client only (npm ci + build)
+#   ./scripts/ci-local.sh docker      # Docker entrypoint smoke tests
 
 set -Eeuo pipefail
 
@@ -33,14 +34,21 @@ client_job() {
   npm run build
 }
 
+docker_job() {
+  bold "==> docker"
+  cd "$REPO_ROOT"
+  ./scripts/test-docker-entrypoint.sh
+}
+
 start_ts=$(date +%s)
 trap 'red "ci-local: FAILED (job exited non-zero)"; exit 1' ERR
 
 case "$TARGET" in
   server) server_job ;;
   client) client_job ;;
-  all)    server_job; client_job ;;
-  *)      red "unknown target: $TARGET (expected: server | client | all)"; exit 2 ;;
+  docker) docker_job ;;
+  all)    server_job; client_job; docker_job ;;
+  *)      red "unknown target: $TARGET (expected: server | client | docker | all)"; exit 2 ;;
 esac
 
 elapsed=$(( $(date +%s) - start_ts ))

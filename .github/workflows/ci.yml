@@ -33,6 +33,15 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --logger "console;verbosity=normal"
 
+  docker:
+    name: Docker entrypoint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test entrypoint
+        run: ./scripts/test-docker-entrypoint.sh
+
   client:
     name: Client (Vite/TS)
     runs-on: ubuntu-latest

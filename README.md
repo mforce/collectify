@@ -14,6 +14,14 @@ Open <http://localhost:8080>. The first visit sends you to **/setup** to create 
 
 Data is persisted to a named Docker volume `collectify-data` (mounted at `/data` inside the container, holds `collectify.db`).
 
+The container follows the LinuxServer-style `PUID`/`PGID` convention. On startup it runs a small root entrypoint, ensures `/data` is owned by the configured IDs, then drops privileges before launching Collectify. Both values default to `1000`:
+
+```bash
+PUID=$(id -u) PGID=$(id -g) docker compose up -d
+```
+
+For named volumes the defaults usually work. For bind mounts, set `PUID` and `PGID` to the host user that should own the data directory.
+
 ### Configuration
 
 Copy `.env.example` to `.env` and set provider keys for internet metadata lookup:
