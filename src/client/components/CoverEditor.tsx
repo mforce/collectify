@@ -129,14 +129,14 @@ export default function CoverEditor({ value, onChange, expanded, onExpandedChang
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex min-h-[36px] items-center justify-center rounded-md border border-border bg-pill-bg px-3 py-1.5 font-semibold text-text-primary hover:bg-gray-100 dark:hover:bg-[#353840]"
+          className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-border bg-pill-bg px-3 py-1.5 font-semibold text-text-primary transition-colors hover:bg-card"
         >
           Change cover
         </button>
         <button
           type="button"
           onClick={remove}
-          className="inline-flex min-h-[36px] items-center justify-center rounded-md border border-error/50 bg-transparent px-3 py-1.5 font-semibold text-error hover:bg-error/10"
+          className="inline-flex min-h-[36px] items-center justify-center rounded-xl border border-error/50 bg-transparent px-3 py-1.5 font-semibold text-error hover:bg-error/10"
         >
           Remove cover
         </button>
@@ -145,7 +145,7 @@ export default function CoverEditor({ value, onChange, expanded, onExpandedChang
   }
 
   return (
-    <div data-testid="cover-editor-card" className="w-full min-w-0 space-y-2 rounded-md border border-border bg-card/80 p-3">
+    <div data-testid="cover-editor-card" className="w-full min-w-0 space-y-2 rounded-xl border border-border bg-card/80 p-3">
       <div data-testid="cover-url-row" className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-end">
         <div data-testid="cover-url-field" className="w-full min-w-0 flex-1 sm:basis-64">
           <label className="block text-xs font-medium text-text-secondary mb-1">Image URL</label>
@@ -178,7 +178,7 @@ export default function CoverEditor({ value, onChange, expanded, onExpandedChang
           accept={ALLOWED_MIME.join(',')}
           onChange={onFileChange}
           disabled={uploading}
-          className="max-w-full min-w-0 text-sm text-text-primary file:mr-2 file:rounded-md file:border-0 file:bg-input-bg file:px-3 file:py-1.5 file:text-sm file:text-text-primary hover:file:bg-gray-300"
+          className="max-w-full min-w-0 text-sm text-text-primary file:mr-2 file:rounded-xl file:border-0 file:bg-input-bg file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-text-primary hover:file:bg-pill-bg"
         />
         {uploading && <span className="text-xs text-text-secondary">Uploading…</span>}
       </div>

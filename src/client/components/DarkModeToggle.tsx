@@ -21,7 +21,7 @@ export default function DarkModeToggle() {
       type="button"
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       onClick={() => setIsDark((prev) => !prev)}
-      className="inline-flex items-center justify-center w-9 h-9 rounded border border-border bg-card text-text-primary hover:bg-gray-50 dark:hover:bg-[#353840] transition-colors"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-text-primary transition-colors hover:bg-pill-bg"
     >
       {isDark ? (
         // Moon icon — dark mode active

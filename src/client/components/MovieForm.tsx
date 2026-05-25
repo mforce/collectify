@@ -222,7 +222,7 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
                 type="button"
                 key={f.key}
                 onClick={() => toggleFormat(f.value)}
-                className={`inline-flex items-center px-3 min-h-[44px] rounded-md text-sm border ${checked ? 'bg-brand border-brand text-text-primary' : 'bg-input-bg border-border text-text-primary'}`}
+                className={`inline-flex min-h-[44px] items-center rounded-xl border px-3 text-sm font-semibold transition-colors ${checked ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
               >
                 {f.label}
               </button>
@@ -314,7 +314,9 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
       </Field>
 
       <div className="flex items-center justify-between">
-        <Button type="submit" disabled={submitting}>{submitLabel}</Button>
+        <Button type="submit" disabled={submitting} className="bg-movies text-[#071333] hover:bg-movies/85">
+          {submitLabel}
+        </Button>
         {onDelete && (
           <Button type="button" variant="danger" onClick={onDelete}>Delete</Button>
         )}

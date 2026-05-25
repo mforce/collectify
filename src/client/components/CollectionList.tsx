@@ -4,6 +4,7 @@ import { useFiltersState } from '../services/filters';
 import { Button, Card, Input, StatusPill, TagChip, ViewSwitcher } from './ui';
 import BarcodeLookup from './BarcodeLookup';
 import FiltersPanel from './FiltersPanel';
+import MediaIcon from './MediaIcon';
 import { useViewPreference, type ViewMode } from '../hooks/useViewPreference';
 import type { CollectionItemBase, MediaType } from '../services/types';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
@@ -35,15 +36,15 @@ const TITLE_CLASS: Record<string, string> = {
 };
 
 const BTN_CLASS: Record<string, string> = {
-  movies: 'border-movies-light text-movies',
-  music: 'border-music-light text-music',
-  games: 'border-games-light text-games',
+  movies: 'border-movies-border text-movies hover:bg-movies-light',
+  music: 'border-music-border text-music hover:bg-music-light',
+  games: 'border-games-border text-games hover:bg-games-light',
 };
 
 const CARD_BORDER: Record<string, string> = {
-  movies: 'group-hover:border-movies',
-  music: 'group-hover:border-music',
-  games: 'group-hover:border-games',
+  movies: 'group-hover:border-movies group-hover:bg-movies-light/70',
+  music: 'group-hover:border-music group-hover:bg-music-light/70',
+  games: 'group-hover:border-games group-hover:bg-games-light/70',
 };
 
 // ─── Card variants ──────────────────────────────────────────────
@@ -74,9 +75,9 @@ function CoverBlock({ src }: { src?: string | null }) {
 function ListCard({ item, r, category }: { item: BaseItem; r: RenderedItem; category?: string }) {
   const titleClass = category ? TITLE_CLASS[category] : 'text-text-primary';
   return (
-    <Card className={`!p-0 overflow-hidden transition-shadow hover:shadow-md ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'} dark:hover:bg-card/80`}>
+    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'}`}>
       <div className="flex items-center gap-3 p-2">
-        <div className="w-16 shrink-0 bg-imgPlaceholder overflow-hidden rounded">
+        <div className="w-16 shrink-0 overflow-hidden rounded-xl bg-imgPlaceholder">
           <CoverBlock src={item.imagePath} />
         </div>
         <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -93,9 +94,9 @@ function MediumCard({ item, r, category }: { item: BaseItem; r: RenderedItem; ca
   const titleClass = category ? TITLE_CLASS[category] : 'text-text-primary';
   const tags = item.tags ?? [];
   return (
-    <Card className={`!p-0 overflow-hidden transition-shadow hover:shadow-md ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'} dark:hover:bg-card/80`}>
+    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'}`}>
       <div className="flex gap-3 p-3">
-        <div className="w-24 shrink-0 bg-imgPlaceholder overflow-hidden rounded">
+        <div className="w-24 shrink-0 overflow-hidden rounded-xl bg-imgPlaceholder">
           <CoverBlock src={item.imagePath} />
         </div>
         <div className="flex-1 min-w-0 flex flex-col gap-1.5">
@@ -125,9 +126,9 @@ function BigCard({ item, r, category }: { item: BaseItem; r: RenderedItem; categ
   const titleClass = category ? TITLE_CLASS[category] : 'text-text-primary';
   const tags = item.tags ?? [];
   return (
-    <Card className={`!p-0 overflow-hidden transition-shadow hover:shadow-md ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'} dark:hover:bg-card/80`}>
+    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'}`}>
       <div className="flex flex-col md:flex-row">
-        <div className="relative w-full shrink-0 bg-imgPlaceholder overflow-hidden sm:w-24 md:w-36 lg:w-48">
+        <div className="relative w-full shrink-0 overflow-hidden bg-imgPlaceholder sm:w-24 md:w-36 lg:w-48">
           <CoverBlock src={item.imagePath} />
         </div>
         <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
@@ -188,14 +189,27 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
       : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${category ? `theme-${category}` : ''}`}>
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h1 className={`text-xl font-medium tracking-tight ${category ? TITLE_CLASS[category] : 'text-text-primary'}`}>{title}</h1>
+        <div>
+          <div className="flex items-center gap-3">
+            {category && (
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-card shadow-sm">
+                <MediaIcon type={category} className="h-7 w-7" />
+              </span>
+            )}
+            <h1 className={`text-3xl font-extrabold tracking-tight ${category ? TITLE_CLASS[category] : 'text-text-primary'}`}>{title}</h1>
+          </div>
+          <p className="mt-1 text-sm text-text-secondary">Search, filter, and add to this shelf.</p>
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <ViewSwitcher value={viewMode} onChange={setViewMode} />
           <BarcodeLookup type={type} onPick={onBarcodePick} onBarcodeFallback={onBarcodeFallback} />
           <Link to={newPath}>
-            <Button variant={category ? 'secondary' : 'primary'} className={btnClass}>+ Add</Button>
+            <Button variant={category ? 'secondary' : 'primary'} className={btnClass}>
+              <span aria-hidden className="mr-1 text-lg leading-none">+</span>
+              Add
+            </Button>
           </Link>
         </div>
       </div>

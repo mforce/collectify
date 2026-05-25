@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { Card, CoverPreview, StatusPill, TagChip } from './ui';
-import type { Album, Game, Movie } from '../services/types';
+import type { Album, Game, MediaType, Movie } from '../services/types';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, COMPLETION_STATUSES, gamePlatformLabel } from '../services/types';
+import MediaIcon from './MediaIcon';
 
 interface Props<T> {
   item: T;
@@ -35,6 +37,46 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+const detailTheme: Record<MediaType, {
+  title: string;
+  accent: string;
+  button: string;
+}> = {
+  movies: {
+    title: 'text-movies',
+    accent: 'bg-movies-light text-movies border-movies-border',
+    button: 'border-movies-border text-movies hover:bg-movies-light',
+  },
+  music: {
+    title: 'text-music',
+    accent: 'bg-music-light text-music border-music-border',
+    button: 'border-music-border text-music hover:bg-music-light',
+  },
+  games: {
+    title: 'text-games',
+    accent: 'bg-games-light text-games border-games-border',
+    button: 'border-games-border text-games hover:bg-games-light',
+  },
+};
+
+function ThemedCard({ type, children, className = '' }: { type: MediaType; children: ReactNode; className?: string }) {
+  return <Card className={className}>{children}</Card>;
+}
+
+function HeroTitle({ type, title, subtitle }: { type: MediaType; title: string; subtitle?: string | null }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
+        <MediaIcon type={type} className="h-7 w-7" />
+      </span>
+      <div className="min-w-0">
+        <h2 className={`text-2xl font-extrabold leading-tight tracking-tight ${detailTheme[type].title}`}>{title}</h2>
+        {subtitle && <p className="mt-0.5 text-sm text-text-secondary">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
 // ─── Movie detail ────────────────────────────────────────────────
 
 function MovieDetail({ item }: { item: Movie }) {
@@ -56,10 +98,11 @@ function MovieDetail({ item }: { item: Movie }) {
         </div>
         <div className="flex-1 space-y-3 min-w-0">
           <div>
-            <h2 className="text-xl font-medium text-text-primary leading-tight">{item.title}</h2>
-            {item.originalTitle && item.originalTitle !== item.title && (
-              <p className="text-sm text-text-secondary mt-0.5">{item.originalTitle}</p>
-            )}
+            <HeroTitle
+              type="movies"
+              title={item.title}
+              subtitle={item.originalTitle && item.originalTitle !== item.title ? item.originalTitle : null}
+            />
           </div>
 
           {/* Year / Director / Runtime row */}
@@ -73,7 +116,7 @@ function MovieDetail({ item }: { item: Movie }) {
           {formats.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {formats.map((f) => (
-                <span key={f.key} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand border border-brand/20">
+                <span key={f.key} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.movies.accent}`}>
                   {f.label}
                 </span>
               ))}
@@ -107,7 +150,7 @@ function MovieDetail({ item }: { item: Movie }) {
       </div>
 
       {/* Info grid */}
-      <Card className="p-4">
+      <ThemedCard type="movies" className="p-4">
         <dl className="grid md:grid-cols-2 gap-x-6">
           <InfoRow label="Studio" value={item.studio} />
           <InfoRow label="Genres" value={item.genres} />
@@ -115,37 +158,37 @@ function MovieDetail({ item }: { item: Movie }) {
           <InfoRow label="TMDB ID" value={item.tmdbId} />
           <InfoRow label="IMDB ID" value={item.imdbId} />
         </dl>
-      </Card>
+      </ThemedCard>
 
       {/* Watching info */}
       {(item.lastWatchedOn || item.watchCount > 0) && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Watching</h3>
+        <ThemedCard type="movies" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-movies mb-2">Watching</h3>
           <dl className="grid md:grid-cols-2 gap-x-6">
             <InfoRow label="Last watched" value={item.lastWatchedOn ? formatDate(item.lastWatchedOn) : undefined} />
             <InfoRow label="Watch count" value={`${item.watchCount}`} />
           </dl>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Acquisition info */}
       {(item.acquiredOn || item.acquisitionPrice != null || item.acquisitionSource) && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Acquisition</h3>
+        <ThemedCard type="movies" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-movies mb-2">Acquisition</h3>
           <dl className="grid md:grid-cols-2 gap-x-6">
             <InfoRow label="Date" value={item.acquiredOn ? formatDate(item.acquiredOn) : undefined} />
             <InfoRow label="Price" value={formatPrice(item.acquisitionPrice, item.acquisitionCurrency)} />
             <InfoRow label="Source" value={item.acquisitionSource} />
           </dl>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Notes */}
       {item.notes && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Notes</h3>
+        <ThemedCard type="movies" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-movies mb-2">Notes</h3>
           <p className="text-sm text-text-primary whitespace-pre-wrap">{item.notes}</p>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Condition */}
@@ -178,17 +221,14 @@ function MusicDetail({ item }: { item: Album }) {
         </div>
         <div className="flex-1 space-y-3 min-w-0">
           <div>
-            <h2 className="text-xl font-medium text-text-primary leading-tight">{item.title}</h2>
-            {item.artistName && (
-              <p className="text-sm text-text-secondary mt-0.5">{item.artistName}</p>
-            )}
+            <HeroTitle type="music" title={item.title} subtitle={item.artistName} />
           </div>
 
           {/* Year / Format row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span>{item.year}</span>}
             {item.format && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand border border-brand/20">
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.music.accent}`}>
                 {item.format === 'Cd' ? 'CD' : item.format === 'Vinyl' ? 'Vinyl' : 'Other'}
               </span>
             )}
@@ -214,7 +254,7 @@ function MusicDetail({ item }: { item: Album }) {
       </div>
 
       {/* Info grid */}
-      <Card className="p-4">
+      <ThemedCard type="music" className="p-4">
         <dl className="grid md:grid-cols-2 gap-x-6">
           <InfoRow label="Label" value={item.label} />
           <InfoRow label="Genres" value={item.genres} />
@@ -222,37 +262,37 @@ function MusicDetail({ item }: { item: Album }) {
           <InfoRow label="MusicBrainz ID" value={item.musicBrainzReleaseId} />
           <InfoRow label="Discogs ID" value={item.discogsId} />
         </dl>
-      </Card>
+      </ThemedCard>
 
       {/* Listening info */}
       {(item.lastPlayedOn || item.listenCount > 0) && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Listening</h3>
+        <ThemedCard type="music" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-music mb-2">Listening</h3>
           <dl className="grid md:grid-cols-2 gap-x-6">
             <InfoRow label="Last played" value={item.lastPlayedOn ? formatDate(item.lastPlayedOn) : undefined} />
             <InfoRow label="Listen count" value={`${item.listenCount}`} />
           </dl>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Acquisition info */}
       {(item.acquiredOn || item.acquisitionPrice != null || item.acquisitionSource) && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Acquisition</h3>
+        <ThemedCard type="music" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-music mb-2">Acquisition</h3>
           <dl className="grid md:grid-cols-2 gap-x-6">
             <InfoRow label="Date" value={item.acquiredOn ? formatDate(item.acquiredOn) : undefined} />
             <InfoRow label="Price" value={formatPrice(item.acquisitionPrice, item.acquisitionCurrency)} />
             <InfoRow label="Source" value={item.acquisitionSource} />
           </dl>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Notes */}
       {item.notes && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Notes</h3>
+        <ThemedCard type="music" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-music mb-2">Notes</h3>
           <p className="text-sm text-text-primary whitespace-pre-wrap">{item.notes}</p>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Condition */}
@@ -287,17 +327,14 @@ function GameDetail({ item }: { item: Game }) {
         </div>
         <div className="flex-1 space-y-3 min-w-0">
           <div>
-            <h2 className="text-xl font-medium text-text-primary leading-tight">{item.title}</h2>
-            {gamePlatformLabel(item.platform) && (
-              <p className="text-sm text-text-secondary mt-0.5">{gamePlatformLabel(item.platform)}</p>
-            )}
+            <HeroTitle type="games" title={item.title} subtitle={gamePlatformLabel(item.platform)} />
           </div>
 
           {/* Year / Platform row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span>{item.year}</span>}
             {item.isDigital ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand border border-brand/20">
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.games.accent}`}>
                 Digital{item.digitalStore ? ` (${item.digitalStore})` : ''}
               </span>
             ) : (
@@ -334,46 +371,46 @@ function GameDetail({ item }: { item: Game }) {
       </div>
 
       {/* Info grid */}
-      <Card className="p-4">
+      <ThemedCard type="games" className="p-4">
         <dl className="grid md:grid-cols-2 gap-x-6">
           <InfoRow label="Publisher" value={item.publisher} />
           <InfoRow label="Developer" value={item.developer} />
           <InfoRow label="Barcode" value={item.barcode} />
           <InfoRow label="IGDB ID" value={item.igdbId} />
         </dl>
-      </Card>
+      </ThemedCard>
 
       {/* Playing info */}
       {(item.lastPlayedOn || item.hoursPlayed != null) && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Playing</h3>
+        <ThemedCard type="games" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-games mb-2">Playing</h3>
           <dl className="grid md:grid-cols-2 gap-x-6">
             <InfoRow label="Last played" value={item.lastPlayedOn ? formatDate(item.lastPlayedOn) : undefined} />
             {item.hoursPlayed != null && (
               <InfoRow label="Hours played" value={`${Number(item.hoursPlayed).toFixed(1)}h`} />
             )}
           </dl>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Acquisition info */}
       {(item.acquiredOn || item.acquisitionPrice != null || item.acquisitionSource) && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Acquisition</h3>
+        <ThemedCard type="games" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-games mb-2">Acquisition</h3>
           <dl className="grid md:grid-cols-2 gap-x-6">
             <InfoRow label="Date" value={item.acquiredOn ? formatDate(item.acquiredOn) : undefined} />
             <InfoRow label="Price" value={formatPrice(item.acquisitionPrice, item.acquisitionCurrency)} />
             <InfoRow label="Source" value={item.acquisitionSource} />
           </dl>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Notes */}
       {item.notes && (
-        <Card className="p-4">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-text-tertiary mb-2">Notes</h3>
+        <ThemedCard type="games" className="p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-games mb-2">Notes</h3>
           <p className="text-sm text-text-primary whitespace-pre-wrap">{item.notes}</p>
-        </Card>
+        </ThemedCard>
       )}
 
       {/* Condition */}
@@ -395,13 +432,13 @@ export default function DetailView<T extends Movie | Album | Game>({ item, type,
     <div className="space-y-4">
       {/* Header with back link and edit button */}
       <div className="flex items-center justify-between gap-4">
-        <Link to={`/${type}`} className="text-sm text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1">
+        <Link to={`/${type}`} className={`flex items-center gap-1 text-sm font-semibold transition-colors ${detailTheme[type].title}`}>
           ← Back to {type}
         </Link>
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex items-center px-3 py-1.5 rounded-md text-sm border border-border bg-card hover:border-brand/40 transition-colors"
+          className={`inline-flex min-h-[40px] items-center rounded-xl border bg-card px-4 py-1.5 text-sm font-bold transition-colors ${detailTheme[type].button}`}
         >
           Edit
         </button>

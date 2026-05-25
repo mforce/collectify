@@ -260,7 +260,9 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
       </Field>
 
       <div className="flex items-center justify-between">
-        <Button type="submit" disabled={submitting}>{submitLabel}</Button>
+        <Button type="submit" disabled={submitting} className="bg-music text-white hover:bg-music/85">
+          {submitLabel}
+        </Button>
         {onDelete && (
           <Button type="button" variant="danger" onClick={onDelete}>Delete</Button>
         )}

@@ -131,7 +131,7 @@ export default function BarcodeLookup<T extends MediaType>({
                   onPick(item);
                   setPhase({ kind: 'idle' });
                 }}
-                className="w-full text-left flex gap-3 items-start px-3 py-2 hover:bg-gray-50 dark:hover:bg-[#353840] border-b border-border last:border-b-0"
+                className="category-hover-soft flex w-full items-start gap-3 border-b border-border px-3 py-2 text-left transition-colors last:border-b-0"
               >
                 {view.image && (
                   <img src={view.image} alt="" className="w-10 h-14 object-cover rounded flex-none" />

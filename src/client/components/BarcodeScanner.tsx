@@ -136,7 +136,7 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
         // commonly stream 16:9 even when held portrait). Without
         // object-cover the stream was stretched / mis-cropped, leaving
         // the slate-900 fallback bg visible alongside the live frame.
-        className="h-[60dvh] w-full max-w-md rounded-md bg-gray-100 object-cover"
+        className="h-[60dvh] w-full max-w-md rounded-2xl bg-imgPlaceholder object-cover"
         muted
         playsInline
       />
@@ -168,12 +168,12 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
           autoComplete="off"
           placeholder="Or type a barcode"
           aria-label="Barcode"
-          className="flex-1 rounded-md bg-gray-100 border border-border px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-brand"
+          className="min-h-[44px] flex-1 rounded-xl border border-border bg-input-bg px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
         />
         <button
           type="submit"
           disabled={!manualCode.trim()}
-          className="px-3 py-2 rounded-md bg-brand hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed text-text-primary text-sm font-medium"
+          className="rounded-xl bg-brand px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           Look up
         </button>
@@ -182,7 +182,7 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
       <button
         type="button"
         onClick={onClose}
-        className="px-4 py-2 rounded-pill bg-pill-bg hover:bg-gray-200 dark:hover:bg-[#353840] text-text-primary font-semibold"
+        className="rounded-xl bg-pill-bg px-4 py-2 font-semibold text-text-primary transition-colors hover:bg-card"
       >
         Cancel
       </button>

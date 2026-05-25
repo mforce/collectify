@@ -12,9 +12,24 @@ export default function Login() {
   const toast = useToast();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-surface">
-      <Card className="w-full max-w-md !p-6">
-        <h1 className="text-xl font-medium text-text-primary tracking-tight mb-6">Sign in to Collectify</h1>
+    <div className="grid min-h-screen bg-surface lg:grid-cols-[1fr_440px]">
+      <div className="relative hidden overflow-hidden bg-[#071333] lg:block">
+        <img
+          src="/brand/collectify-sample.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+      </div>
+      <div className="flex items-center justify-center p-4 sm:p-8">
+      <Card className="w-full max-w-md !p-6 sm:!p-8">
+        <div className="mb-6 flex items-center gap-3">
+          <img src="/brand/collectify-logo.png" alt="" className="h-12 w-12 rounded-2xl shadow-sm" />
+          <div>
+            <div className="text-lg font-extrabold tracking-tight text-text-primary">Collectify</div>
+            <p className="text-sm text-text-secondary">Your server. Your collection.</p>
+          </div>
+        </div>
+        <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-text-primary">Sign in</h1>
         <form
           className="space-y-4"
           onSubmit={(e) => {
@@ -47,6 +62,7 @@ export default function Login() {
           </p>
         )}
       </Card>
+      </div>
     </div>
   );
 }
