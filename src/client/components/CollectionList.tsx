@@ -80,11 +80,18 @@ function ListCard({ item, r, category }: { item: BaseItem; r: RenderedItem; cate
         <div className="w-16 shrink-0 overflow-hidden rounded-xl bg-imgPlaceholder">
           <CoverBlock src={item.imagePath} />
         </div>
-        <div className="flex-1 min-w-0 flex items-center gap-2">
-          <h3 className={`font-medium text-text-primary leading-snug truncate ${titleClass}`}>{r.primary}</h3>
-          {r.secondary && <span className="text-sm text-text-secondary shrink-0">{r.secondary}</span>}
+        <div className="min-w-0 flex-1 flex flex-col gap-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className={`min-w-0 flex-1 font-medium text-text-primary leading-snug truncate ${titleClass}`}>{r.primary}</h3>
+            <StatusPill status={item.status} category={category} />
+          </div>
+          {r.secondary && (
+            <span className="text-sm text-text-secondary truncate shrink-0">{r.secondary}</span>
+          )}
+          {r.tertiary && (
+            <span className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</span>
+          )}
         </div>
-        <StatusPill status={item.status} category={category} />
       </div>
     </Card>
   );
@@ -99,12 +106,17 @@ function MediumCard({ item, r, category }: { item: BaseItem; r: RenderedItem; ca
         <div className="w-24 shrink-0 overflow-hidden rounded-xl bg-imgPlaceholder">
           <CoverBlock src={item.imagePath} />
         </div>
-        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+        <div className="min-w-0 flex-1 flex flex-col gap-1.5">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
+            <h3 className={`min-w-0 flex-1 font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
             <StatusPill status={item.status} category={category} />
           </div>
-          {r.secondary && <div className="text-sm text-text-secondary truncate">{r.secondary}</div>}
+          {r.secondary && (
+            <div className="text-sm text-text-secondary truncate shrink-0">{r.secondary}</div>
+          )}
+          {r.tertiary && (
+            <div className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</div>
+          )}
           {item.personalRating != null && (
             <div className={`text-sm font-medium ${titleClass}`}>★ {item.personalRating}/10</div>
           )}
@@ -127,17 +139,21 @@ function BigCard({ item, r, category }: { item: BaseItem; r: RenderedItem; categ
   const tags = item.tags ?? [];
   return (
     <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'}`}>
-      <div className="flex flex-col md:flex-row">
+      <div className="flex flex-col gap-3 md:flex-row">
         <div className="relative w-full shrink-0 overflow-hidden bg-imgPlaceholder sm:w-24 md:w-36 lg:w-48">
           <CoverBlock src={item.imagePath} />
         </div>
-        <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
+        <div className="flex flex-col gap-1.5 p-3 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
+            <h3 className={`min-w-0 flex-1 font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
             <StatusPill status={item.status} category={category} />
           </div>
-          {r.secondary && <div className="text-sm text-text-secondary truncate">{r.secondary}</div>}
-          {r.tertiary && <div className="text-xs text-text-tertiary truncate">{r.tertiary}</div>}
+          {r.secondary && (
+            <div className="text-sm text-text-secondary truncate shrink-0">{r.secondary}</div>
+          )}
+          {r.tertiary && (
+            <div className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</div>
+          )}
           {item.personalRating != null && (
             <div className={`text-sm font-medium ${titleClass}`}>★ {item.personalRating}/10</div>
           )}
