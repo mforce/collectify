@@ -30,9 +30,9 @@ function formatDate(date?: string | null): string {
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
-    <div className="flex items-start gap-2 py-1.5">
-      <dt className="w-36 shrink-0 text-sm text-text-secondary">{label}</dt>
-      <dd className="text-sm text-text-primary break-words">{value}</dd>
+    <div className="flex flex-col sm:flex-row gap-1 py-1.5">
+      <dt className="w-24 shrink-0 sm:w-36 text-sm text-text-secondary">{label}</dt>
+      <dd className="text-sm text-text-primary break-words min-w-0">{value}</dd>
     </div>
   );
 }
@@ -65,13 +65,13 @@ function ThemedCard({ type, children, className = '' }: { type: MediaType; child
 
 function HeroTitle({ type, title, subtitle }: { type: MediaType; title: string; subtitle?: string | null }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-3 min-w-0">
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
         <MediaIcon type={type} className="h-7 w-7" />
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <h2 className={`text-2xl font-extrabold leading-tight tracking-tight ${detailTheme[type].title}`}>{title}</h2>
-        {subtitle && <p className="mt-0.5 text-sm text-text-secondary">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 text-sm text-text-secondary truncate">{subtitle}</p>}
       </div>
     </div>
   );
@@ -86,8 +86,8 @@ function MovieDetail({ item }: { item: Movie }) {
   return (
     <div className="space-y-6">
       {/* Hero section */}
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        <div className="w-48 shrink-0 mx-auto md:mx-0">
+      <div className="flex flex-col gap-4 md:flex-row items-start">
+        <div className="w-36 shrink-0 sm:w-40 md:w-48 mx-auto">
           {item.imagePath ? (
             <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
           ) : (
@@ -96,7 +96,7 @@ function MovieDetail({ item }: { item: Movie }) {
             </div>
           )}
         </div>
-        <div className="flex-1 space-y-3 min-w-0">
+        <div className="min-w-0 flex-1 space-y-3">
           <div>
             <HeroTitle
               type="movies"
@@ -107,9 +107,9 @@ function MovieDetail({ item }: { item: Movie }) {
 
           {/* Year / Director / Runtime row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
-            {item.year && <span>{item.year}</span>}
-            {item.director && <span>{item.director}</span>}
-            {item.runtimeMinutes && <span>{item.runtimeMinutes} min</span>}
+            {item.year && <span className="shrink-0">{item.year}</span>}
+            {item.director && <span className="shrink-0 min-w-0 truncate">{item.director}</span>}
+            {item.runtimeMinutes && <span className="shrink-0">{item.runtimeMinutes} min</span>}
           </div>
 
           {/* Formats */}
@@ -209,8 +209,8 @@ function MusicDetail({ item }: { item: Album }) {
   return (
     <div className="space-y-6">
       {/* Hero section */}
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        <div className="w-48 shrink-0 mx-auto md:mx-0">
+      <div className="flex flex-col gap-4 md:flex-row items-start">
+        <div className="w-36 shrink-0 sm:w-40 md:w-48 mx-auto">
           {item.imagePath ? (
             <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
           ) : (
@@ -219,16 +219,16 @@ function MusicDetail({ item }: { item: Album }) {
             </div>
           )}
         </div>
-        <div className="flex-1 space-y-3 min-w-0">
+        <div className="min-w-0 flex-1 space-y-3">
           <div>
             <HeroTitle type="music" title={item.title} subtitle={item.artistName} />
           </div>
 
           {/* Year / Format row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
-            {item.year && <span>{item.year}</span>}
+            {item.year && <span className="shrink-0">{item.year}</span>}
             {item.format && (
-              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.music.accent}`}>
+              <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.music.accent}`}>
                 {item.format === 'Cd' ? 'CD' : item.format === 'Vinyl' ? 'Vinyl' : 'Other'}
               </span>
             )}
@@ -315,8 +315,8 @@ function GameDetail({ item }: { item: Game }) {
   return (
     <div className="space-y-6">
       {/* Hero section */}
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        <div className="w-48 shrink-0 mx-auto md:mx-0">
+      <div className="flex flex-col gap-4 md:flex-row items-start">
+        <div className="w-36 shrink-0 sm:w-40 md:w-48 mx-auto">
           {item.imagePath ? (
             <CoverPreview src={item.imagePath} alt={`${item.title} cover`} />
           ) : (
@@ -325,20 +325,20 @@ function GameDetail({ item }: { item: Game }) {
             </div>
           )}
         </div>
-        <div className="flex-1 space-y-3 min-w-0">
+        <div className="min-w-0 flex-1 space-y-3">
           <div>
             <HeroTitle type="games" title={item.title} subtitle={gamePlatformLabel(item.platform)} />
           </div>
 
           {/* Year / Platform row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
-            {item.year && <span>{item.year}</span>}
+            {item.year && <span className="shrink-0">{item.year}</span>}
             {item.isDigital ? (
-              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.games.accent}`}>
-                Digital{item.digitalStore ? ` (${item.digitalStore})` : ''}
+              <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.games.accent}`}>
+                Digital{item.digitalStore && <span className="min-w-0 truncate"> ({item.digitalStore})</span>}
               </span>
             ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-pill-bg text-text-secondary border border-border">
+              <span className="inline-flex items-center shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-pill-bg text-text-secondary border border-border">
                 Physical
               </span>
             )}
