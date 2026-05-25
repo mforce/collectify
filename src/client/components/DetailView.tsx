@@ -108,7 +108,7 @@ function MovieDetail({ item }: { item: Movie }) {
           {/* Year / Director / Runtime row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span className="shrink-0">{item.year}</span>}
-            {item.director && <span className="shrink-0 min-w-0 truncate">{item.director}</span>}
+            {item.director && <span className="flex-1 min-w-0 truncate">{item.director}</span>}
             {item.runtimeMinutes && <span className="shrink-0">{item.runtimeMinutes} min</span>}
           </div>
 

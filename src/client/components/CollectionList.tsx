@@ -82,7 +82,7 @@ function ListCard({ item, r, category }: { item: BaseItem; r: RenderedItem; cate
         </div>
         <div className="min-w-0 flex-1 flex flex-col gap-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-medium text-text-primary leading-snug truncate ${titleClass}`}>{r.primary}</h3>
+            <h3 className={`min-w-0 flex-1 font-medium text-text-primary leading-snug truncate ${titleClass}`}>{r.primary}</h3>
             <StatusPill status={item.status} category={category} />
           </div>
           {r.secondary && (
@@ -108,7 +108,7 @@ function MediumCard({ item, r, category }: { item: BaseItem; r: RenderedItem; ca
         </div>
         <div className="min-w-0 flex-1 flex flex-col gap-1.5">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
+            <h3 className={`min-w-0 flex-1 font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
             <StatusPill status={item.status} category={category} />
           </div>
           {r.secondary && (
@@ -145,7 +145,7 @@ function BigCard({ item, r, category }: { item: BaseItem; r: RenderedItem; categ
         </div>
         <div className="flex flex-col gap-1.5 p-3 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
+            <h3 className={`min-w-0 flex-1 font-medium text-text-primary leading-snug line-clamp-2 ${titleClass}`}>{r.primary}</h3>
             <StatusPill status={item.status} category={category} />
           </div>
           {r.secondary && (
