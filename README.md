@@ -24,14 +24,32 @@ For named volumes the defaults usually work. For bind mounts, set `PUID` and `PG
 
 ### Configuration
 
-Copy `.env.example` to `.env` and set provider keys for internet metadata lookup:
+Copy `.env.example` to `.env`, set the variables you need, and restart:
 
 ```bash
 cp .env.example .env   # edit API keys here
 docker compose restart
 ```
 
-All provider keys are optional — lookups degrade gracefully when unconfigured. See [`.env.example`](.env.example) for the full list.
+All provider keys are optional — lookups degrade gracefully when unconfigured. The container reads `.env` via `env_file` in [`docker-compose.yml`](docker-compose.yml), so every variable flows into the runtime automatically.
+
+#### Metadata lookup providers
+
+| Provider | Variable(s) | Required? | Purpose |
+|---|---|---|---|
+| **TMDB** (movies) | `Collectify__Metadata__Tmdb__ApiKey` | Yes | Movie title search, cover images. Get a v3 key at [themoviedb.org](https://www.themoviedb.org/settings/api). |
+| **MusicBrainz** (music) | `Collectify__Metadata__MusicBrainz__UserAgent` | Yes | Music release lookup by barcode/title. Format: `"AppName/Version (contact@example.com)"`. No API key needed — the User-Agent is your identity per [their etiquette policy](https://musicbrainz.org/doc/MusicBrainz_API#etiquette). |
+| **IGDB** (games) | `Collectify__Metadata__Igdb__TwitchClientId`<br>`Collectify__Metadata__Igdb__TwitchClientSecret` | Both | Game title search and cover images. Create a Twitch app at [dev.twitch.tv](https://dev.twitch.tv/console/apps). |
+| **UPCitemdb** (barcode fallback) | *(none)* | No | Free trial endpoint, IP rate-limited (~100/day). Used for movies/games when TMDB/IGDB don't recognize a UPC. Override `Collectify__Metadata__Upc__BaseUrl` only for tests or paid-tier swaps. |
+
+#### Other settings
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `Collectify__Metadata__CacheTtl` | `30.00:00:00` | How long a cached lookup stays fresh (`.NET TimeSpan`). |
+| `Collectify__Auth__AllowRegistration` | `false` | Flip to `true` to expose `/register` and allow sign-ups. |
+
+See [`.env.example`](.env.example) for the full list including optional base URL overrides.
 
 ### Changing the image source
 
