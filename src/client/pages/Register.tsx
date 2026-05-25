@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useRegister } from '../services/auth';
 import { useToast } from '../components/toaster';
 import { Button, Card, Field, Input } from '../components/ui';
+import AuthBrandPanel from '../components/AuthBrandPanel';
 
 export default function Register() {
   const [userName, setUserName] = useState('');
@@ -14,15 +15,9 @@ export default function Register() {
   const mismatched = confirm.length > 0 && password !== confirm;
 
   return (
-    <div className="grid min-h-screen bg-surface lg:grid-cols-[1fr_440px]">
-      <div className="relative hidden overflow-hidden bg-[#071333] lg:block">
-        <img
-          src="/brand/collectify-banner-dark.png"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover object-center"
-        />
-      </div>
-      <div className="flex items-center justify-center p-4 sm:p-8">
+    <div className="grid min-h-screen bg-surface lg:grid-cols-[minmax(0,1fr)_480px]">
+      <AuthBrandPanel imageSrc="/brand/collectify-banner-dark.png" />
+      <div className="flex items-center justify-center p-4 sm:p-8 lg:bg-surface">
       <Card className="w-full max-w-md !p-6 sm:!p-8">
         <div className="mb-6 flex items-center gap-3">
           <img src="/brand/collectify-logo.png" alt="" className="h-12 w-12 rounded-2xl shadow-sm" />
