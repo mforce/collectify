@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace Collectify.Infrastructure.Data;
 
@@ -43,5 +44,37 @@ public static class CollectifyDbContextExtensions
                 }
             }
         });
+    }
+
+    /// <summary>
+    /// Ensures the target PostgreSQL database exists before migrations run.
+    /// Connects to the <c>postgres</c> admin database, checks for the target
+    /// database, and creates it if missing. Does not touch the schema —
+    /// migrations handle that.
+    /// </summary>
+    public static async Task EnsurePostgresDatabaseAsync(IConfiguration configuration)
+    {
+        var connectionString = configuration["Collectify:Database:ConnectionString"]
+            ?? throw new InvalidOperationException("Database connection string is not configured.");
+
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        var databaseName = builder.Database;
+
+        // Connect to the default "postgres" admin database to check/create.
+        builder.Database = "postgres";
+        using var adminConn = new NpgsqlConnection(builder.ConnectionString);
+        await adminConn.OpenAsync();
+
+        using var cmd = new NpgsqlCommand(
+            "SELECT 1 FROM pg_database WHERE datname = @db",
+            adminConn);
+        cmd.Parameters.AddWithValue("@db", (object?)databaseName!);
+
+        if ((long?)await cmd.ExecuteScalarAsync() != 1)
+        {
+            await new NpgsqlCommand(
+                $"CREATE DATABASE \"{databaseName}\"",
+                adminConn).ExecuteNonQueryAsync();
+        }
     }
 }

@@ -80,11 +80,11 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
 
     // Postgres requires the database to exist before migrations run.
-    // SQLite creates the file on first connection — no EnsureCreated needed.
+    // SQLite creates the file on first connection — no pre-check needed.
     var provider = builder.Configuration["Collectify:Database:Provider"]
         ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider;
     if (provider.Equals("postgres", StringComparison.OrdinalIgnoreCase))
-        await db.Database.EnsureCreatedAsync();
+        await CollectifyDbContextExtensions.EnsurePostgresDatabaseAsync(builder.Configuration);
     await db.Database.MigrateAsync();
     // Resolve any free-text Game.Platform values that the
     // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
