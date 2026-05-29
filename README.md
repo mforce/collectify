@@ -32,7 +32,9 @@ Collectify defaults to SQLite (zero-config, single-file DB). If you prefer Postg
 docker compose -f docker-compose.yml -f docker-compose.postgres.yml up -d
 ```
 
-This adds a `postgres` service and configures Collectify to use it. Data lives in the `collectify-postgres-data` named volume. The database is created automatically on first boot.
+This adds a `postgres` service and configures Collectify to use it. Data lives in the `collectify-postgres-data` named volume. The database is created automatically on first boot. Schema evolution uses
+`EnsureCreated()` (not EF migrations) — if the model changes, you need to
+reset the `collectify-postgres-data` volume and let it recreate.
 
 For your own Postgres instance, set the connection string in `.env`:
 

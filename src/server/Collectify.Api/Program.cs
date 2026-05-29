@@ -79,13 +79,21 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
 
-    // Postgres requires the database to exist before migrations run.
-    // SQLite creates the file on first connection — no pre-check needed.
+    // SQLite: migrations own the schema.
+    // Postgres: shared migrations carry SQLite-specific DDL (BLOB vs bytea),
+    // so we use EnsureCreated() which builds the schema from the current model.
+    // For a self-hosted app this is fine — schema evolution requires a DB reset.
     var provider = builder.Configuration["Collectify:Database:Provider"]
         ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider;
     if (provider.Equals("postgres", StringComparison.OrdinalIgnoreCase))
+    {
         await CollectifyDbContextExtensions.EnsurePostgresDatabaseAsync(builder.Configuration);
-    await db.Database.MigrateAsync();
+        await db.Database.EnsureCreatedAsync();
+    }
+    else
+    {
+        await db.Database.MigrateAsync();
+    }
     // Resolve any free-text Game.Platform values that the
     // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
     // No-ops on a fresh DB or once everything's resolved.
