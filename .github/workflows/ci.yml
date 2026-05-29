@@ -68,6 +68,8 @@ jobs:
   postgres:
     name: Postgres smoke test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       postgres:
         image: postgres:17-alpine
