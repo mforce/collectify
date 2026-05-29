@@ -70,7 +70,7 @@ public static class CollectifyDbContextExtensions
             adminConn);
         cmd.Parameters.AddWithValue("@db", (object?)databaseName!);
 
-        if ((long?)await cmd.ExecuteScalarAsync() != 1)
+        if (await cmd.ExecuteScalarAsync() is not DBNull and not int)
         {
             await new NpgsqlCommand(
                 $"CREATE DATABASE \"{databaseName}\"",
