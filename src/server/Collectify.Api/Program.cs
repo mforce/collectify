@@ -13,20 +13,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Resolve / create the data directory inside the registration callback so the
-// filesystem touch happens lazily — only if this DbContext registration is
-// actually used. Tests replace it with an in-memory SqliteConnection and
-// never trigger the mkdir, which avoids platform-specific permission
-// surprises (e.g. AppContext.BaseDirectory resolving to "/" inside the
-// WebApplicationFactory test host).
-builder.Services.AddDbContext<CollectifyDbContext>(opt =>
-{
-    var dataDir = builder.Configuration["Collectify:DataDir"]
-        ?? Path.Combine(AppContext.BaseDirectory, "data");
-    Directory.CreateDirectory(dataDir);
-    var dbPath = Path.Combine(dataDir, "collectify.db");
-    opt.UseSqlite($"Data Source={dbPath}");
-});
+// Database provider selection via Collectify:Database:Provider (default: sqlite).
+// Tests replace this registration entirely with an in-memory SQLite connection.
+builder.Services.AddCollectifyDbContext(builder.Configuration);
 
 builder.Services.AddOptions<AuthOptions>()
     .Bind(builder.Configuration.GetSection(AuthOptions.SectionName));
@@ -89,7 +78,22 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
-    await db.Database.MigrateAsync();
+
+    // SQLite: migrations own the schema.
+    // Postgres: shared migrations carry SQLite-specific DDL (BLOB vs bytea),
+    // so we use EnsureCreated() which builds the schema from the current model.
+    // For a self-hosted app this is fine — schema evolution requires a DB reset.
+    var provider = builder.Configuration["Collectify:Database:Provider"]
+        ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider;
+    if (provider.Equals("postgres", StringComparison.OrdinalIgnoreCase))
+    {
+        await CollectifyDbContextExtensions.EnsurePostgresDatabaseAsync(builder.Configuration);
+        await db.Database.EnsureCreatedAsync();
+    }
+    else
+    {
+        await db.Database.MigrateAsync();
+    }
     // Resolve any free-text Game.Platform values that the
     // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
     // No-ops on a fresh DB or once everything's resolved.

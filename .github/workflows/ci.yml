@@ -64,3 +64,48 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  postgres:
+    name: Postgres smoke test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: collectify
+          POSTGRES_USER: collectify
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      Collectify__Database__Provider: postgres
+      Collectify__Database__ConnectionString: >-
+        Host=localhost;Port=5432;Database=collectify;Username=collectify;Password=secret
+      ASPNETCORE_URLS: http://+:5041
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        run: dotnet build src/server/Collectify.slnx --configuration Release
+
+      - name: Run app (background)
+        run: |
+          dotnet run --project src/server/Collectify.Api --no-build --configuration Release &
+          sleep 10
+
+      - name: Smoke test
+        run: |
+          curl -fsS http://localhost:5041/api/health
+          echo "\nPostgres smoke passed"

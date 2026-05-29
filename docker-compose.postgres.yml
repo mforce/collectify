@@ -1,0 +1,36 @@
+# Collectify — PostgreSQL override
+#
+# Use alongside docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up
+#
+# Or for local builds:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.postgres.yml up --build
+
+services:
+  collectify:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Collectify__Database__Provider: postgres
+      Collectify__Database__ConnectionString: >-
+        Host=postgres;Port=5432;Database=collectify;Username=collectify;Password=${POSTGRES_PASSWORD:-secret}
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: collectify-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: collectify
+      POSTGRES_USER: collectify
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    volumes:
+      - collectify-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U collectify -d collectify"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  collectify-postgres-data:

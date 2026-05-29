@@ -40,6 +40,9 @@ The dependency arrow points **inward only**. Domain knows nothing about Infrastr
 
 ### Collectify.Infrastructure
 - `CollectifyDbContext` and EF configuration live here. Migrations under `Data/Migrations/`.
+- Database provider selection via `Collectify:Database:Provider` config (default: `sqlite`; alternate: `postgres`).
+  The `AddCollectifyDbContext()` extension in `Data/CollectifyDbContextExtensions.cs` handles the switch.
+  SQLite is the migration author — migrations are generated against SQLite and replayed on Postgres.
 - Identity user model (`AppUser : IdentityUser`) lives here, **not** in Domain — `IdentityUser` drags in framework types that would pollute Domain.
 - External HTTP clients implement `IMetadataProvider<T>` (Phase 2) defined in Domain.
 - Allowed dependencies: Domain, EF Core, Identity, `IHttpClientFactory`, etc.
