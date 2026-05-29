@@ -24,6 +24,25 @@ PUID=$(id -u) PGID=$(id -g) docker compose up -d
 
 For named volumes the defaults usually work. For bind mounts, set `PUID` and `PGID` to the host user that should own the data directory.
 
+### PostgreSQL (optional)
+
+Collectify defaults to SQLite (zero-config, single-file DB). If you prefer PostgreSQL for persistence, backups, or operational tooling:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.postgres.yml up -d
+```
+
+This adds a `postgres` service and configures Collectify to use it. Data lives in the `collectify-postgres-data` named volume. The database is created automatically on first boot.
+
+For your own Postgres instance, set the connection string in `.env`:
+
+```
+Collectify__Database__Provider=postgres
+Collectify__Database__ConnectionString=Host=my-db;Port=5432;Database=collectify;Username=collectify;Password=secret
+```
+
+The connection string user needs `CREATEDB` permission so the app can create the database on first run. Subsequent starts just apply migrations.
+
 ### Configuration
 
 Copy `.env.example` to `.env`, set the variables you need, and restart:

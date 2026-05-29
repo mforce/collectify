@@ -13,20 +13,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Resolve / create the data directory inside the registration callback so the
-// filesystem touch happens lazily — only if this DbContext registration is
-// actually used. Tests replace it with an in-memory SqliteConnection and
-// never trigger the mkdir, which avoids platform-specific permission
-// surprises (e.g. AppContext.BaseDirectory resolving to "/" inside the
-// WebApplicationFactory test host).
-builder.Services.AddDbContext<CollectifyDbContext>(opt =>
-{
-    var dataDir = builder.Configuration["Collectify:DataDir"]
-        ?? Path.Combine(AppContext.BaseDirectory, "data");
-    Directory.CreateDirectory(dataDir);
-    var dbPath = Path.Combine(dataDir, "collectify.db");
-    opt.UseSqlite($"Data Source={dbPath}");
-});
+// Database provider selection via Collectify:Database:Provider (default: sqlite).
+// Tests replace this registration entirely with an in-memory SQLite connection.
+builder.Services.AddCollectifyDbContext(builder.Configuration);
 
 builder.Services.AddOptions<AuthOptions>()
     .Bind(builder.Configuration.GetSection(AuthOptions.SectionName));
@@ -89,6 +78,13 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
+
+    // Postgres requires the database to exist before migrations run.
+    // SQLite creates the file on first connection — no EnsureCreated needed.
+    var provider = builder.Configuration["Collectify:Database:Provider"]
+        ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider;
+    if (provider.Equals("postgres", StringComparison.OrdinalIgnoreCase))
+        await db.Database.EnsureCreatedAsync();
     await db.Database.MigrateAsync();
     // Resolve any free-text Game.Platform values that the
     // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
