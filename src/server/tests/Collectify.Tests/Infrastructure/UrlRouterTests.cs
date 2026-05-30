@@ -88,15 +88,18 @@ public class UrlRouterTests
     }
 
     [Fact]
-    public void ExtractIgdbSlug_StandardUrl_ReturnsSlug()
+    public void ExtractIgdbId_AlwaysReturnsNull()
     {
-        var uri = new Uri("https://www.igdb.com/games/the-witcher-3-wild-hunt");
-        Assert.Equal("the-witcher-3-wild-hunt", UrlRouter.ExtractIgdbSlug(uri));
+        // IGDB accepts only numeric IDs; slugs can't be resolved.
+        Assert.Null(UrlRouter.ExtractIgdbId(new Uri("https://www.igdb.com/games/the-witcher-3-wild-hunt")));
+        Assert.Null(UrlRouter.ExtractIgdbId(new Uri("https://example.com/games/some-game")));
     }
 
     [Fact]
-    public void ExtractIgdbSlug_NonIgdbDomain_ReturnsNull()
+    public void ExtractIgdbSlug_ObsoleteAlwaysReturnsNull()
     {
-        Assert.Null(UrlRouter.ExtractIgdbSlug(new Uri("https://example.com/games/some-game")));
+#pragma warning disable CS0618 // ExtractIgdbSlug is obsolete
+        Assert.Null(UrlRouter.ExtractIgdbSlug(new Uri("https://www.igdb.com/games/the-witcher-3")));
+#pragma warning restore CS0618
     }
 }

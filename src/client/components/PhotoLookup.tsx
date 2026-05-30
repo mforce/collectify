@@ -20,7 +20,7 @@ interface Props<T extends MediaType> {
 type Phase =
   | { kind: 'idle' }
   | { kind: 'preview' }
-  | { kind: 'confirm'; thumbnail: string }
+  | { kind: 'confirm'; thumbnail: string; fullFrame: string }
   | { kind: 'searching' }
   | { kind: 'results'; results: object[]; configured: boolean; hint?: string }
   | { kind: 'error'; message: string };
@@ -109,29 +109,33 @@ export default function PhotoLookup<T extends MediaType>({
     const video = videoRef.current;
     if (!video) return;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
+    const ctx = document.createElement('canvas').getContext('2d');
     if (!ctx) return;
+    ctx.canvas.width = video.videoWidth;
+    ctx.canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
     stopCamera();
 
-    // Use thumbnail-sized data URL for the confirm step
+    // Full-resolution data URL for upload
+    const fullFrame = ctx.canvas.toDataURL('image/jpeg', 0.9);
+
+    // Thumbnail for the confirm preview (320px)
     const thumbCanvas = document.createElement('canvas');
     const thumbSize = 320;
     const ratio = Math.min(thumbSize / video.videoWidth, thumbSize / video.videoHeight);
     thumbCanvas.width = video.videoWidth * ratio;
     thumbCanvas.height = video.videoHeight * ratio;
     thumbCanvas.getContext('2d')!.drawImage(video, 0, 0, thumbCanvas.width, thumbCanvas.height);
-    setPhase({ kind: 'confirm', thumbnail: thumbCanvas.toDataURL('image/jpeg', 0.6) });
+    const thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.6);
+
+    setPhase({ kind: 'confirm', thumbnail, fullFrame });
   }, [stopCamera]);
 
   const handleSearch = useCallback(async () => {
     const p = phase;
     if (p.kind !== 'confirm') return;
 
-    // Decode thumbnail to canvas, resize, and upload
+    // Decode the full-frame capture, resize to 1200px, and upload
     const img = new Image();
     img.onload = async () => {
       const canvas = document.createElement('canvas');
@@ -160,7 +164,7 @@ export default function PhotoLookup<T extends MediaType>({
         }
       }, 'image/jpeg', JPEG_QUALITY);
     };
-    img.src = p.thumbnail;
+    img.src = p.fullFrame;
   }, [phase, type]);
 
   const handleClose = useCallback(() => {

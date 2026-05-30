@@ -31,14 +31,14 @@ const mockStream = {
 };
 
 // ---------- Canvas mock (jsdom doesn't implement getContext) ----------
-const mockCanvasContext = { drawImage: vi.fn() };
 const originalCreateElement = document.createElement.bind(document);
 
 function mockCanvas() {
   document.createElement = (tagName: string) => {
     const el = originalCreateElement(tagName);
     if (tagName.toLowerCase() === 'canvas') {
-      (el as any).getContext = vi.fn().mockReturnValue(mockCanvasContext);
+      const ctx = { canvas: el, drawImage: vi.fn() };
+      (el as any).getContext = vi.fn().mockReturnValue(ctx);
       (el as any).toDataURL = vi.fn().mockReturnValue('data:image/jpeg;base64,fake');
       (el as any).toBlob = vi.fn((cb) => {
         cb(new Blob(['fake'], { type: 'image/jpeg' }));

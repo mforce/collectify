@@ -53,20 +53,16 @@ public static class UrlRouter
     }
 
     /// <summary>
-    /// IGDB slugs are not stable numeric IDs; this is optional/fallback
-    /// only and requires a slug-to-id reverse lookup in the provider.
+    /// Always returns null. IGDB's API accepts only positive numeric IDs
+    /// in GetByIdAsync — slugs from igdb.com URLs (e.g. "the-witcher-3")
+    /// cannot be resolved without a separate slug-to-id search round-trip.
+    /// Games still benefit from the OCR and web-entity paths; only the
+    /// direct URL routing step is skipped.
     /// </summary>
-    public static string? ExtractIgdbSlug(Uri uri)
-    {
-        if (!IsHost(uri, "igdb.com") && !IsHost(uri, "www.igdb.com"))
-            return null;
+    public static string? ExtractIgdbId(Uri uri) => null;
 
-        var segments = uri.AbsolutePath.TrimStart('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length < 2 || segments[0] != "games")
-            return null;
-
-        return segments[1];
-    }
+    [Obsolete("Use ExtractIgdbId (always null). IGDB has no slug-to-id endpoint.")]
+    public static string? ExtractIgdbSlug(Uri uri) => null;
 
     private static bool IsHost(Uri uri, string expected)
         => uri.Host.Equals(expected, StringComparison.Ordinal);

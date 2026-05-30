@@ -251,7 +251,7 @@ public static class LookupEndpoints
 
             var vision = await visionClient.AnalyseAsync(bytes, ct);
             var candidates = await CollectCandidates(
-                provider, vision, url => UrlRouter.ExtractIgdbSlug(url), ct);
+                provider, vision, url => UrlRouter.ExtractIgdbId(url), ct);
 
             if (candidates.Count > 0)
                 return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, candidates));

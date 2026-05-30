@@ -116,18 +116,18 @@ public sealed class CloudVisionClient : IVisionClient
 
             if (resp.WebDetection.FullMatchingImageUrls is not null)
             {
-                foreach (var url in resp.WebDetection.FullMatchingImageUrls)
+                foreach (var img in resp.WebDetection.FullMatchingImageUrls)
                 {
-                    if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                    if (Uri.TryCreate(img.Url, UriKind.Absolute, out var uri))
                         matchingUrls.Add(new MatchingUrlSignal(uri, "fullMatch"));
                 }
             }
 
             if (resp.WebDetection.PartialMatchingImageUrls is not null)
             {
-                foreach (var url in resp.WebDetection.PartialMatchingImageUrls)
+                foreach (var img in resp.WebDetection.PartialMatchingImageUrls)
                 {
-                    if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                    if (Uri.TryCreate(img.Url, UriKind.Absolute, out var uri))
                         matchingUrls.Add(new MatchingUrlSignal(uri, "partialMatch"));
                 }
             }
@@ -168,8 +168,8 @@ public sealed class CloudVisionClient : IVisionClient
     {
         public WebEntity[]? WebEntities { get; set; }
         public PageWithMatchingImage[]? PagesWithMatchingImages { get; set; }
-        public string[]? FullMatchingImageUrls { get; set; }
-        public string[]? PartialMatchingImageUrls { get; set; }
+        public VisuallySimilarImage[]? FullMatchingImageUrls { get; set; }
+        public VisuallySimilarImage[]? PartialMatchingImageUrls { get; set; }
         public VisuallySimilarImage[]? VisuallySimilarImages { get; set; }
     }
 
