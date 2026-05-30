@@ -58,6 +58,7 @@ public sealed class CloudVisionClient : IVisionClient
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<CloudVisionResponse>();
+            var json = await response.Content.ReadAsStringAsync(ct);
             if (result?.Responses is null || result.Responses.Length == 0)
                 return new VisionExtractResult([], 0f, [], []);
 

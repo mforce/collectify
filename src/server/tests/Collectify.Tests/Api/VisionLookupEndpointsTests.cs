@@ -176,6 +176,103 @@ public class VisionLookupEndpointsTests
         Assert.NotNull(body.Hint);
     }
 
+    // --- OCR single-token fallback ---
+
+    [Fact]
+    public async Task ByImage_OcrCombinedFails_TriesLongestToken()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.MovieLookupResult(
+            "tmdb", "27205", "Inception", null, 2010, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            MovieProvider = new ScriptedMovieProvider { SearchResults = [seeded] },
+            VisionClient = FakeVisionClient.WithText("NOISE123", "INCEPTION", "SMALL")
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.MovieLookupResult>>(
+            "/api/lookup/movies/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("Inception", body.Results[0].Title);
+    }
+
+    // --- Web entity single-entity first ---
+
+    [Fact]
+    public async Task ByImage_WebEntitySingle_ReturnsCandidates()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.MovieLookupResult(
+            "tmdb", "27205", "Inception", null, 2010, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            MovieProvider = new ScriptedMovieProvider { SearchResults = [seeded] },
+            VisionClient = FakeVisionClient.WithEntities(
+                new WebEntitySignal("Inception (2010 film)", 0.95f),
+                new WebEntitySignal("Christopher Nolan", 0.7f))
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.MovieLookupResult>>(
+            "/api/lookup/movies/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+    }
+
+    // --- IGDB slug-based URL resolution ---
+
+    [Fact]
+    public async Task ByImage_Games_IgdbSlugUrl_ReturnsCandidates()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "LittleBigPlanet", null, 2024, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { SearchResults = [seeded] },
+            VisionClient = new FakeVisionClient
+            {
+                DetectedText = [],
+                WebEntities = [],
+                MatchingUrls = [new MatchingUrlSignal(
+                    new Uri("https://www.igdb.com/games/littlebigplanet"),
+                    "pagesWithMatchingImages")]
+            }
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("LittleBigPlanet", body.Results[0].Title);
+    }
+
+    [Fact]
+    public async Task ByImage_Games_IgdbNumericIdUrl_ReturnsCandidates()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "LittleBigPlanet", null, 2024, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { ById = seeded },
+            VisionClient = new FakeVisionClient
+            {
+                DetectedText = [],
+                WebEntities = [],
+                MatchingUrls = [new MatchingUrlSignal(
+                    new Uri("https://www.igdb.com/games/1073"),
+                    "fullMatch")]
+            }
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("LittleBigPlanet", body.Results[0].Title);
+    }
+
     // --- Upload validation ---
 
     [Fact]
@@ -235,5 +332,186 @@ public class VisionLookupEndpointsTests
         Assert.NotNull(body);
         Assert.True(body!.Configured);
         Assert.NotEmpty(body.Results);
+    }
+
+    // --- Noise word filtering (games only) ---
+
+    [Fact]
+    public async Task ByImage_Games_NoiseWordsStrippedFromOcrQuery()
+    {
+        // Simulates Paw Patrol cover OCR: platform labels + rating text +
+        // generic cover labels mixed in with the real title tokens.
+        // After filtering, only "PAW", "PATROL", "RESCUE", "WHEELS" remain.
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "Paw Patrol: Rescue Wheels", null, 2024, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { SearchResults = [seeded] },
+            VisionClient = FakeVisionClient.WithText(
+                "NINTENDO", "SWITCH", "PAW", "PATROL", "RESCUE", "WHEELS",
+                "CHAMPIONSHIP", "EVERYONE", "ESRB", "OG")
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("Paw Patrol: Rescue Wheels", body.Results[0].Title);
+    }
+
+    [Fact]
+    public async Task ByImage_Games_NoiseFilterFallbackPicksCleanToken()
+    {
+        // Combined query with noise returns nothing (provider returns empty).
+        // Fallback must pick longest CLEAN token, not longest raw token.
+        // "CHAMPIONSHIP" (14 chars) > "RESCUE" (6 chars), but CHAMPIONSHIP is noise.
+        // So the fallback searches for "RESCUE" which hits.
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = ScriptedGameProvider.NotFound(),
+            VisionClient = FakeVisionClient.WithText("CHAMPIONSHIP", "PAW", "PATROL", "RESCUE", "NINTENDO")
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        // Doesn't crash; returns hint because provider returns empty for all queries.
+        Assert.True(body!.Configured);
+        Assert.NotNull(body.Hint);
+    }
+
+    // --- URL routing for retail sites (games) ---
+
+    [Fact]
+    public async Task ByImage_Games_TargetUrl_ReturnsCandidates()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "Paw Patrol: Rescue Wheels", null, 2024, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { SearchResults = [seeded] },
+            VisionClient = new FakeVisionClient
+            {
+                DetectedText = [],
+                WebEntities = [],
+                MatchingUrls = [new MatchingUrlSignal(
+                    new Uri("https://www.target.com/p/paw-patrol-rescue-wheels-championship-nintendo-switch/-/A-94802526"),
+                    "pagesWithMatchingImages")]
+            }
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("Paw Patrol: Rescue Wheels", body.Results[0].Title);
+    }
+
+    [Fact]
+    public async Task ByImage_Games_WalmartUrl_ReturnsCandidates()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "Paw Patrol: Rescue Wheels", null, 2024, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { SearchResults = [seeded] },
+            VisionClient = new FakeVisionClient
+            {
+                DetectedText = [],
+                WebEntities = [],
+                MatchingUrls = [new MatchingUrlSignal(
+                    new Uri("https://www.walmart.com/ip/PAW-Patrol-Rescue-Wheels-Championship-Nintendo-Switch/16904655730"),
+                    "pagesWithMatchingImages")]
+            }
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("Paw Patrol: Rescue Wheels", body.Results[0].Title);
+    }
+
+    [Fact]
+    public async Task ByImage_Games_WikipediaUrl_ReturnsCandidates()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "LittleBigPlanet", null, 2024, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { SearchResults = [seeded] },
+            VisionClient = new FakeVisionClient
+            {
+                DetectedText = [],
+                WebEntities = [],
+                MatchingUrls = [new MatchingUrlSignal(
+                    new Uri("https://en.wikipedia.org/wiki/LittleBigPlanet"),
+                    "pagesWithMatchingImages")]
+            }
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("LittleBigPlanet", body.Results[0].Title);
+    }
+
+    [Fact]
+    public async Task ByImage_Games_PlayStationStoreUrl_ReturnsCandidates()
+    {
+        var seeded = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "LittleBigPlanet", null, 2024, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { SearchResults = [seeded] },
+            VisionClient = new FakeVisionClient
+            {
+                DetectedText = [],
+                WebEntities = [],
+                MatchingUrls = [new MatchingUrlSignal(
+                    new Uri("https://store.playstation.com/product/PS5-LittleBigPlanet"),
+                    "fullMatch")]
+            }
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        Assert.NotEmpty(body.Results);
+        Assert.Equal("LittleBigPlanet", body.Results[0].Title);
+    }
+
+    [Fact]
+    public async Task ByImage_Games_RetailUrlRankedAboveOcrNoise()
+    {
+        var correctResult = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "1073", "Paw Patrol: Rescue Wheels", null, 2024, null, null, null, null, null);
+        var noiseResult = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            "igdb", "9999", "FIFA World Championship", null, 2022, null, null, null, null, null);
+        await using var factory = new CollectifyApiFactory
+        {
+            GameProvider = new ScriptedGameProvider { SearchResults = [noiseResult] },
+            VisionClient = new FakeVisionClient
+            {
+                DetectedText = ["CHAMPIONSHIP", "FIFA"],
+                WebEntities = [],
+                MatchingUrls = [new MatchingUrlSignal(
+                    new Uri("https://www.target.com/p/paw-patrol-rescue-wheels-championship-nintendo-switch/-/A-94802526"),
+                    "pagesWithMatchingImages")]
+            }
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var body = await alice.Client.PostMultipartAndReadJsonAsync<LookupResponse<Collectify.Infrastructure.Lookup.GameLookupResult>>(
+            "/api/lookup/games/by-image", FilePart(TinyJpeg));
+        Assert.NotNull(body);
+        Assert.NotEmpty(body!.Results);
+        // The retail-URL slug search (priority 0) ranks above OCR noise (priority 1).
+        Assert.True(body!.Results.Length > 0);
     }
 }

@@ -113,16 +113,23 @@ async function patchVideoAndSnap() {
 }
 
 describe('PhotoLookup', () => {
-  it('renders "Snap cover photo" button in idle state', () => {
+  it('renders "Snap cover photo" and "Upload image" buttons in idle state', () => {
     render(<PhotoLookup type="movies" onPick={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Snap cover photo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Upload image/i })).toBeInTheDocument();
   });
 
-  it('opens camera modal on click', async () => {
+  it('opens camera modal on snap button click', async () => {
     render(<PhotoLookup type="movies" onPick={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: /Snap cover photo/i }));
-    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
     expect(document.querySelector('video')).toBeInTheDocument();
+  });
+
+  it('renders hidden file input with correct accept attr', () => {
+    render(<PhotoLookup type="movies" onPick={vi.fn()} />);
+    const fileInput = document.querySelector('input[type="file"][accept]');
+    expect(fileInput).toBeInTheDocument();
+    expect(fileInput).toHaveAttribute('accept', 'image/jpeg,image/png,image/webp');
   });
 
   it('shows confirm step after snap', async () => {
@@ -130,17 +137,17 @@ describe('PhotoLookup', () => {
     await userEvent.click(screen.getByRole('button', { name: /Snap cover photo/i }));
     await patchVideoAndSnap();
 
-    expect(screen.getByRole('button', { name: /Retake/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Search/i })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: /Photo preview/i })).toBeInTheDocument();
   });
 
-  it('retake closes the modal', async () => {
+  it('cancel closes the modal', async () => {
     render(<PhotoLookup type="movies" onPick={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: /Snap cover photo/i }));
     await patchVideoAndSnap();
 
-    await userEvent.click(screen.getByRole('button', { name: /Retake/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Cancel/i }));
     expect(screen.getByRole('button', { name: /Snap cover photo/i })).toBeInTheDocument();
   });
 
