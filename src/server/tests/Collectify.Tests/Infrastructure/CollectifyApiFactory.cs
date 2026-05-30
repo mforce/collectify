@@ -1,6 +1,7 @@
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Images;
+using Collectify.Infrastructure.Lookup.Vision;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -28,6 +29,9 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Optional override for tests that want a scripted game provider.</summary>
     public IGameMetadataProvider? GameProvider { get; init; }
+
+    /// <summary>Optional override for tests that want a scripted vision client.</summary>
+    public IVisionClient? VisionClient { get; init; }
 
     /// <summary>
     /// Toggles the <c>Collectify:Auth:AllowRegistration</c> flag. Defaults
@@ -97,6 +101,11 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             {
                 services.RemoveAll<IGameMetadataProvider>();
                 services.AddSingleton(GameProvider);
+            }
+            if (VisionClient is not null)
+            {
+                services.RemoveAll<IVisionClient>();
+                services.AddSingleton(VisionClient);
             }
         });
     }
