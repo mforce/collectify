@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { lookupByImage } from '../services/lookup';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
 import type { MediaType } from '../services/types';
@@ -20,13 +20,13 @@ interface Props<T extends MediaType> {
 type Phase =
   | { kind: 'idle' }
   | { kind: 'preview' }
-  | { kind: 'confirm'; thumbnail: string; fullFrame: string }
+  | { kind: 'confirm'; thumbnail: string }
   | { kind: 'searching' }
   | { kind: 'results'; results: object[]; configured: boolean; hint?: string }
   | { kind: 'error'; message: string };
 
 const MAX_DIM = 2000;
-const UPLOAD_QUALITY = 0.92;
+const UPLOAD_QUALITY = 0.95;
 
 /**
  * "Snap cover photo" affordance used at the top of each media form. Opens
@@ -48,6 +48,9 @@ export default function PhotoLookup<T extends MediaType>({
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Keep the raw canvas frame so upload encodes from lossless pixels,
+  // not from a decoded-and-re-encoded JPEG.
+  const frameCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const startCamera = useCallback(async () => {
     try {
@@ -109,15 +112,15 @@ export default function PhotoLookup<T extends MediaType>({
     const video = videoRef.current;
     if (!video) return;
 
-    const ctx = document.createElement('canvas').getContext('2d');
+    // Draw the full frame onto a reusable canvas — lossless pixels.
+    const frame = document.createElement('canvas');
+    frame.width = video.videoWidth;
+    frame.height = video.videoHeight;
+    const ctx = frame.getContext('2d');
     if (!ctx) return;
-    ctx.canvas.width = video.videoWidth;
-    ctx.canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
+    frameCanvasRef.current = frame;
     stopCamera();
-
-    // Full-resolution data URL for upload
-    const fullFrame = ctx.canvas.toDataURL('image/jpeg', 0.9);
 
     // Thumbnail for the confirm preview (320px)
     const thumbCanvas = document.createElement('canvas');
@@ -128,45 +131,46 @@ export default function PhotoLookup<T extends MediaType>({
     thumbCanvas.getContext('2d')!.drawImage(video, 0, 0, thumbCanvas.width, thumbCanvas.height);
     const thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.6);
 
-    setPhase({ kind: 'confirm', thumbnail, fullFrame });
+    setPhase({ kind: 'confirm', thumbnail });
   }, [stopCamera]);
 
   const handleSearch = useCallback(async () => {
     const p = phase;
     if (p.kind !== 'confirm') return;
 
-    // Resize the full-frame capture and re-encode at high quality.
-    // Using a single encode step avoids the quality loss from decoding
-    // the already-compressed JPEG and re-encoding it again.
-    const img = new Image();
-    img.onload = async () => {
-      const canvas = document.createElement('canvas');
-      const scale = Math.min(MAX_DIM / img.width, MAX_DIM / img.height, 1);
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const frame = frameCanvasRef.current;
+    if (!frame) {
+      setPhase({ kind: 'error', message: 'No capture available.' });
+      return;
+    }
 
-      setPhase({ kind: 'searching' });
+    // Resize from lossless canvas pixels — single JPEG encode, no
+    // intermediate decode step. This keeps text sharp for OCR.
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(MAX_DIM / frame.width, MAX_DIM / frame.height, 1);
+    canvas.width = Math.round(frame.width * scale);
+    canvas.height = Math.round(frame.height * scale);
+    canvas.getContext('2d')!.drawImage(frame, 0, 0, canvas.width, canvas.height);
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setPhase({ kind: 'error', message: 'Could not encode image.' });
-          return;
-        }
-        try {
-          const resp = await lookupByImage(type, blob);
-          setPhase({
-            kind: 'results',
-            results: resp.results as object[],
-            configured: resp.configured,
-            hint: resp.hint,
-          });
-        } catch (err) {
-          setPhase({ kind: 'error', message: (err as Error).message ?? 'Lookup failed.' });
-        }
-      }, 'image/jpeg', UPLOAD_QUALITY);
-    };
-    img.src = p.fullFrame;
+    setPhase({ kind: 'searching' });
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        setPhase({ kind: 'error', message: 'Could not encode image.' });
+        return;
+      }
+      try {
+        const resp = await lookupByImage(type, blob);
+        setPhase({
+          kind: 'results',
+          results: resp.results as object[],
+          configured: resp.configured,
+          hint: resp.hint,
+        });
+      } catch (err) {
+        setPhase({ kind: 'error', message: (err as Error).message ?? 'Lookup failed.' });
+      }
+    }, 'image/jpeg', UPLOAD_QUALITY);
   }, [phase, type]);
 
   const handleClose = useCallback(() => {
