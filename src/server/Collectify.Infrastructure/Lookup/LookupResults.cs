@@ -2,6 +2,12 @@ using Collectify.Domain.Enums;
 
 namespace Collectify.Infrastructure.Lookup;
 
+/// <summary>Common contract for all lookup result types.</summary>
+public interface ILookupResult
+{
+    string ProviderKey { get; }
+}
+
 /// <summary>
 /// Provider-neutral suggestion the API returns to the client. ProviderKey is
 /// opaque to the frontend; subsequent providers can use it to fetch full
@@ -17,7 +23,7 @@ public record MovieLookupResult(
     int? RuntimeMinutes,
     string? Description,
     string? ImageUrl,
-    string? Genres);
+    string? Genres) : ILookupResult;
 
 public record MusicLookupResult(
     string Provider,
@@ -28,7 +34,7 @@ public record MusicLookupResult(
     string? Label,
     string? Description,
     string? ImageUrl,
-    string? Genres);
+    string? Genres) : ILookupResult;
 
 public record GameLookupResult(
     string Provider,
@@ -46,4 +52,4 @@ public record GameLookupResult(
     string? Developer,
     string? Description,
     string? ImageUrl,
-    string? Genres);
+    string? Genres) : ILookupResult;
