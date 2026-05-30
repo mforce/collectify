@@ -94,7 +94,7 @@ var q = db.Movies.AsNoTracking().Where(m => m.OwnerId == ownerId);
 
 This is the multi-user-readiness contract. Even though we ship single-user, never write a query that returns rows across owners.
 
-### External providers (Phase 2)
+### External providers (Phase 2+)
 
 The seam lives in `Collectify.Infrastructure/Lookup/`. One interface per media type so each result shape stays strongly typed:
 
@@ -112,6 +112,25 @@ public interface IMovieMetadataProvider
 - A real provider PR (TMDB / MusicBrainz / IGDB) registers its typed `HttpClient` and its `IXxxMetadataProvider` implementation. `Replace()` (or running its registration before `AddMetadataLookup`) swaps the stub out.
 - Outbound calls go through `ILookupCache` (`Provider`, `Key`) which round-trips a JSON payload through the existing `LookupCacheEntry` table. TTL comes from `MetadataLookupOptions.CacheTtl` (default 30 days).
 - Fail-soft: if not configured, `IsConfigured = false`. The lookup endpoint replies with `{ provider, configured: false, results: [] }` so the UI can show a clear "set TMDB__ApiKey to enable" hint instead of an error toast.
+
+### Vision client (Phase 5)
+
+Cover photo analysis lives behind `IVisionClient` in
+`Infrastructure/Lookup/Vision/`. Provider-agnostic — the default
+implementation uses Google Cloud Vision API (TEXT_DETECTION +
+WEB_DETECTION), but the interface can be swapped via DI. Configured
+through `MetadataLookupOptions.Vision`.
+
+- `IVisionClient.AnalyseAsync()` returns multi-signal results: OCR text,
+  web entity descriptions, and matching page URLs.
+- The `POST /api/lookup/{type}/by-image` endpoint orchestrates a
+  three-path matching strategy: (A) OCR text search, (B) web entity
+  search, (C) known-domain URL routing → direct provider ID lookup.
+- `IVisionClient` follows the same fail-soft contract: `IsConfigured`
+  controls whether the endpoint attempts analysis.
+- Images are processed in memory and discarded. Never persisted.
+- Upload validation mirrors `CoversEndpoints`: content-type whitelist,
+  magic-byte sniff, 5 MiB cap.
 
 ## Migrations
 
