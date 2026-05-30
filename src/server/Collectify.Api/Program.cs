@@ -3,6 +3,7 @@ using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup;
+using Collectify.Infrastructure.Lookup.Vision;
 using Collectify.Infrastructure.Lookup.Igdb;
 using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.MusicBrainz;
@@ -66,6 +67,7 @@ builder.Services.AddUpcItemDbLookup(builder.Configuration);
 builder.Services.AddTmdbMovieProvider(builder.Configuration);
 builder.Services.AddMusicBrainzMusicProvider(builder.Configuration);
 builder.Services.AddIgdbGameProvider(builder.Configuration);
+builder.Services.AddVisionClient(builder.Configuration);
 
 // Cover-image cache. Bytes live in the CoverImages table alongside the
 // rest of the data so a backup of collectify.db is a complete snapshot.
