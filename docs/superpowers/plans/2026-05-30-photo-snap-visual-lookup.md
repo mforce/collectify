@@ -260,16 +260,6 @@ public static class UrlRouter
     /// Games still match via OCR (Path A) and web entities (Path B).
     /// </summary>
     public static string? ExtractIgdbId(Uri uri) => null;
-    {
-        if (!IsHost(uri, "igdb.com") && !IsHost(uri, "www.igdb.com"))
-            return null;
-
-        var segments = uri.AbsolutePath.TrimStart('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length < 2 || segments[0] != "games")
-            return null;
-
-        return segments[1];
-    }
 
     private static bool IsHost(Uri uri, string expected)
         => uri.Host.Equals(expected, StringComparison.Ordinal);
