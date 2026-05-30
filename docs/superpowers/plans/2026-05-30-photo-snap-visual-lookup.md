@@ -17,7 +17,7 @@
 | Create | `src/server/Collectify.Infrastructure/Lookup/Vision/IVisionClient.cs` | Interface + records (`VisionExtractResult`, `WebEntitySignal`, `MatchingUrlSignal`) |
 | Create | `src/server/Collectify.Infrastructure/Lookup/Vision/CloudVisionClient.cs` | Google Cloud Vision API implementation (TEXT_DETECTION + WEB_DETECTION) |
 | Create | `src/server/Collectify.Infrastructure/Lookup/Vision/VisionServiceCollectionExtensions.cs` | DI registration for `IVisionClient` |
-| Create | `src/server/Collectify.Infrastructure/Lookup/Vision/UrlRouter.cs` | Static helper: extract TMDB ID, MusicBrainz MBID, IGDB slug from URIs |
+| Create | `src/server/Collectify.Infrastructure/Lookup/Vision/UrlRouter.cs` | Static helper: extract TMDB ID, MusicBrainz MBID from URIs. IGDB routing disabled (no slug-to-id endpoint) |
 | Create | `src/server/Collectify.Api/Endpoints/ImageUploadValidator.cs` | Shared upload validation (extracted from `CoversEndpoints`) |
 | Create | `src/server/tests/Collectify.Tests/Infrastructure/FakeVisionClient.cs` | Test double for `IVisionClient` |
 | Create | `src/server/tests/Collectify.Tests/Api/VisionLookupEndpointsTests.cs` | Integration tests for `POST /api/lookup/{type}/by-image` |
@@ -184,16 +184,11 @@ public class UrlRouterTests
     }
 
     [Fact]
-    public void ExtractIgdbSlug_StandardUrl_ReturnsSlug()
+    public void ExtractIgdbId_AlwaysReturnsNull()
     {
-        var uri = new Uri("https://www.igdb.com/games/the-witcher-3-wild-hunt");
-        Assert.Equal("the-witcher-3-wild-hunt", UrlRouter.ExtractIgdbSlug(uri));
-    }
-
-    [Fact]
-    public void ExtractIgdbSlug_NonIgdbDomain_ReturnsNull()
-    {
-        Assert.Null(UrlRouter.ExtractIgdbSlug(new Uri("https://example.com/games/some-game")));
+        // IGDB accepts only numeric IDs; slugs can't be resolved.
+        Assert.Null(UrlRouter.ExtractIgdbId(
+            new Uri("https://www.igdb.com/games/the-witcher-3-wild-hunt")));
     }
 }
 ```
@@ -261,10 +256,10 @@ public static class UrlRouter
     }
 
     /// <summary>
-    /// IGDB slugs are not stable numeric IDs; this is optional/fallback
-    /// only and requires a slug-to-id reverse lookup in the provider.
+    /// IGDB has no slug-to-id endpoint; always returns null.
+    /// Games still match via OCR (Path A) and web entities (Path B).
     /// </summary>
-    public static string? ExtractIgdbSlug(Uri uri)
+    public static string? ExtractIgdbId(Uri uri) => null;
     {
         if (!IsHost(uri, "igdb.com") && !IsHost(uri, "www.igdb.com"))
             return null;
@@ -759,7 +754,7 @@ group.MapPost("/movies/by-image", async (
 .DisableAntiforgery();
 ```
 
-Repeat for `/music/by-image` (using `IMusicMetadataProvider`, `MusicLookupResult`, and `UrlRouter.ExtractMusicBrainzReleaseId`) and `/games/by-image` (using `IGameMetadataProvider`, `GameLookupResult`, and `UrlRouter.ExtractIgdbSlug` — IGDB slug is optional/fallback, only attempt if nothing else resolved).
+Repeat for `/music/by-image` (using `IMusicMetadataProvider`, `MusicLookupResult`, and `UrlRouter.ExtractMusicBrainzReleaseId`) and `/games/by-image` (using `IGameMetadataProvider`, `GameLookupResult`, and `UrlRouter.ExtractIgdbId` — always null, so Path C is skipped for games; they match via OCR and web entities instead).
 
 - [ ] **Step 3: Verify build**
 

@@ -145,15 +145,16 @@ public static class UrlRouter
     // musicbrainz.org/release/<mbid> -> MBID
     public static string? ExtractMusicBrainzReleaseId(Uri uri);
 
-    // IGDB slugs are not stable IDs; mark as optional/fallback.
-    // Only used if nothing else resolves; requires slug->id reverse lookup.
-    public static string? ExtractIgdbSlug(Uri uri);
+    // IGDB has no slug-to-id endpoint; always returns null.
+    // Games still match via OCR (Path A) and web entities (Path B).
+    public static string? ExtractIgdbId(Uri uri) => null;
 }
 ```
 
 Only parses well-known, stable URL patterns. Unknown domains are ignored.
-TMDB numeric IDs and MusicBrainz MBIDs are high-confidence. IGDB slug
-extraction is optional/fallback only.
+TMDB numeric IDs and MusicBrainz MBIDs are high-confidence. IGDB has no
+slug-to-id endpoint, so URL routing for games is intentionally disabled;
+games still match via OCR and web entity paths.
 
 ### Modified files
 
@@ -201,8 +202,8 @@ Content-Type: `multipart/form-data` with field `file`.
    - **Path C — Known-domain URL routing:** Scan `MatchingUrls` with
      `UrlRouter` for trusted domains. For movies: TMDB ID →
      `provider.GetByIdAsync(tmdbId)`. For music: MBID →
-     `provider.GetByIdAsync(mbid)`. For games: IGDB slug → optional
-     fallback only. If direct lookup returns a result → add to candidates
+     `provider.GetByIdAsync(mbid)`. For games: skipped (IGDB has no
+     slug-to-id endpoint; games match via Paths A/B instead).
 5. **Dedupe and rank:** Deduplicate candidates by `ProviderKey`. Direct
    ID lookups (Path C) are placed first; search results (Paths A/B)
    follow in provider order. Truncate to top 10.
