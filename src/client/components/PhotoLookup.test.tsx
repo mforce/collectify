@@ -35,7 +35,7 @@ const mockCanvasContext = { drawImage: vi.fn() };
 const originalCreateElement = document.createElement.bind(document);
 
 function mockCanvas() {
-  document.createElement = (tagName) => {
+  document.createElement = (tagName: string) => {
     const el = originalCreateElement(tagName);
     if (tagName.toLowerCase() === 'canvas') {
       (el as any).getContext = vi.fn().mockReturnValue(mockCanvasContext);

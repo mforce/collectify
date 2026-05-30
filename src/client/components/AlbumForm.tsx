@@ -5,6 +5,7 @@ import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
+import PhotoLookup from './PhotoLookup';
 import { MUSIC_FORMATS, type Album } from '../services/types';
 import { lookupAlbumByMbid, type LookupByIdOutcome, type MusicLookupResult } from '../services/lookup';
 
@@ -158,6 +159,16 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
         onPick={importLookup}
         onBarcodeFallback={(code) => set('barcode', code)}
         fallbackLabel="Save this barcode anyway"
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: r.artistName + (r.label ? ` · ${r.label}` : ''),
+          image: r.imageUrl,
+        })}
+      />
+
+      <PhotoLookup
+        type="music"
+        onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
           secondary: r.artistName + (r.label ? ` · ${r.label}` : ''),
