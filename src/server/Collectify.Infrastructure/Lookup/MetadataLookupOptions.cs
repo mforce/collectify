@@ -15,6 +15,13 @@ public sealed class MetadataLookupOptions
     public MusicBrainzOptions MusicBrainz { get; set; } = new();
     public IgdbOptions Igdb { get; set; } = new();
     public UpcOptions Upc { get; set; } = new();
+    public VisionOptions Vision { get; set; } = new();
+}
+
+public sealed class VisionOptions
+{
+    public string? ApiKey { get; set; }
+    public string BaseUrl { get; set; } = "https://vision.googleapis.com/v1/";
 }
 
 public sealed class TmdbOptions
