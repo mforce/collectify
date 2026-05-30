@@ -3,6 +3,7 @@ import { useList } from '../services/collection';
 import { useFiltersState } from '../services/filters';
 import { Button, Card, Input, StatusPill, TagChip, ViewSwitcher } from './ui';
 import BarcodeLookup from './BarcodeLookup';
+import PhotoLookup from './PhotoLookup';
 import FiltersPanel from './FiltersPanel';
 import MediaIcon from './MediaIcon';
 import { useViewPreference, type ViewMode } from '../hooks/useViewPreference';
@@ -221,6 +222,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
         <div className="flex items-center gap-2 flex-wrap">
           <ViewSwitcher value={viewMode} onChange={setViewMode} />
           <BarcodeLookup type={type} onPick={onBarcodePick} onBarcodeFallback={onBarcodeFallback} />
+          <PhotoLookup type={type} onPick={onBarcodePick} />
           <Link to={newPath}>
             <Button variant={category ? 'secondary' : 'primary'} className={btnClass}>
               <span aria-hidden className="mr-1 text-lg leading-none">+</span>
