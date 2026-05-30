@@ -25,8 +25,8 @@ type Phase =
   | { kind: 'results'; results: object[]; configured: boolean; hint?: string }
   | { kind: 'error'; message: string };
 
-const MAX_DIM = 1200;
-const JPEG_QUALITY = 0.7;
+const MAX_DIM = 2000;
+const UPLOAD_QUALITY = 0.92;
 
 /**
  * "Snap cover photo" affordance used at the top of each media form. Opens
@@ -135,7 +135,9 @@ export default function PhotoLookup<T extends MediaType>({
     const p = phase;
     if (p.kind !== 'confirm') return;
 
-    // Decode the full-frame capture, resize to 1200px, and upload
+    // Resize the full-frame capture and re-encode at high quality.
+    // Using a single encode step avoids the quality loss from decoding
+    // the already-compressed JPEG and re-encoding it again.
     const img = new Image();
     img.onload = async () => {
       const canvas = document.createElement('canvas');
@@ -162,7 +164,7 @@ export default function PhotoLookup<T extends MediaType>({
         } catch (err) {
           setPhase({ kind: 'error', message: (err as Error).message ?? 'Lookup failed.' });
         }
-      }, 'image/jpeg', JPEG_QUALITY);
+      }, 'image/jpeg', UPLOAD_QUALITY);
     };
     img.src = p.fullFrame;
   }, [phase, type]);
