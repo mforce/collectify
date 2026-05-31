@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { lookupByImage } from '../services/lookup';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
 import type { MediaType } from '../services/types';
