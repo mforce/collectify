@@ -5,6 +5,7 @@ import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
+import PhotoLookup from './PhotoLookup';
 import {
   COMPLETION_STATUSES,
   DIGITAL_STORES,
@@ -135,6 +136,16 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         onPick={importLookup}
         onBarcodeFallback={(code) => set('barcode', code)}
         fallbackLabel="Save this barcode anyway"
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: [r.developer, r.platform ? gamePlatformLabel(r.platform) : null].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          image: r.imageUrl,
+        })}
+      />
+
+      <PhotoLookup
+        type="games"
+        onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
           secondary: [r.developer, r.platform ? gamePlatformLabel(r.platform) : null].filter(Boolean).join(' · ') || r.description?.slice(0, 120),

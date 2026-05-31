@@ -70,4 +70,11 @@ public static class TestExtensions
         var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
         return await action(db);
     }
+
+    public static async Task<T?> PostMultipartAndReadJsonAsync<T>(
+        this HttpClient client, string url, HttpContent content)
+    {
+        var response = await client.PostAsync(url, content);
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions);
+    }
 }

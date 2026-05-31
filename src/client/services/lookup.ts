@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from './client';
+import { api, ApiError } from './client';
 import type { GamePlatform, MediaType } from './types';
 
 export interface MovieLookupResult {
@@ -47,6 +47,7 @@ export interface LookupResponse<T> {
   provider: string;
   configured: boolean;
   results: T[];
+  hint?: string;
 }
 
 type ResultMap = {
@@ -150,4 +151,38 @@ export async function lookupByBarcode<T extends MediaType>(
   return api<LookupResponse<ResultMap[T]>>(
     `/api/lookup/${type}/by-barcode/${encodeURIComponent(barcode.trim())}`,
   );
+}
+
+/**
+ * Photo-snap lookup. Uploads a resized image and returns candidates from
+ * OCR + web entity + URL routing paths. Same LookupResponse shape as
+ * barcode/title search so the frontend reuses the candidate list UI.
+ *
+ * Uses fetch directly (not the api() helper) because FormData requires
+ * the browser to set the multipart Content-Type boundary. The api() helper
+ * would override it with application/json.
+ */
+export async function lookupByImage<T extends MediaType>(
+  type: T,
+  file: Blob,
+): Promise<LookupResponse<ResultMap[T]>> {
+  const form = new FormData();
+  form.append('file', file, 'cover.jpg');
+
+  const res = await fetch(`/api/lookup/${type}/by-image`, {
+    method: 'POST',
+    credentials: 'include',
+    body: form,
+  });
+
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const data = await res.json();
+      if (data?.error) message = data.error;
+    } catch {}
+    throw new ApiError(res.status, message);
+  }
+
+  return res.json() as Promise<LookupResponse<ResultMap[T]>>;
 }

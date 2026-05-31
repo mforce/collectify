@@ -5,6 +5,7 @@ import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
 import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
+import PhotoLookup from './PhotoLookup';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
 import { lookupMovieById, lookupMovieByImdbId, type LookupByIdOutcome, type MovieLookupResult } from '../services/lookup';
 
@@ -166,6 +167,16 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
         onPick={importLookup}
         onBarcodeFallback={(code) => set('barcode', code)}
         fallbackLabel="Save this barcode anyway"
+        renderItem={(r) => ({
+          primary: r.title + (r.year ? ` (${r.year})` : ''),
+          secondary: r.description?.slice(0, 120),
+          image: r.imageUrl,
+        })}
+      />
+
+      <PhotoLookup
+        type="movies"
+        onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
           secondary: r.description?.slice(0, 120),
