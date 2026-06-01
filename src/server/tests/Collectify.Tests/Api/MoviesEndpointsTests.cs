@@ -11,7 +11,7 @@ public class MoviesEndpointsTests
 {
     private record MovieResponse(
         int Id, string Title, string? OriginalTitle, int? Year,
-        MovieFormat Formats, string? Director, int? RuntimeMinutes,
+        int Formats, string? Director, int? RuntimeMinutes,
         string? Studio, string? Genres, string? Barcode,
         string? TmdbId, string? ImdbId, string? ImagePath, string? Description, string? Notes,
         int? PersonalRating, CollectionStatus Status, Condition? Condition,
@@ -35,7 +35,7 @@ public class MoviesEndpointsTests
             Title = title,
             OriginalTitle = (string?)null,
             Year = year,
-            Formats = formats,
+            Formats = (int)formats,
             Director = "Christopher Nolan",
             RuntimeMinutes = 148,
             Studio = "Warner Bros.",
@@ -317,7 +317,7 @@ public class MoviesEndpointsTests
         var dto = (object)new
         {
             Title = "Inception",
-            Formats = MovieFormat.BluRay,
+            Formats = (int)MovieFormat.BluRay,
             Status = CollectionStatus.Owned,
             WatchStatus = WatchStatus.Unwatched,
             WatchCount = 0,
@@ -343,7 +343,7 @@ public class MoviesEndpointsTests
         var dto = (object)new
         {
             Title = "Inception",
-            Formats = MovieFormat.BluRay,
+            Formats = (int)MovieFormat.BluRay,
             Status = CollectionStatus.Owned,
             WatchStatus = WatchStatus.Unwatched,
             WatchCount = 0,
@@ -469,11 +469,11 @@ public class MoviesEndpointsTests
         await factory.SeedAsync(new Tag { OwnerId = alice.Id, Name = "comedy" });
 
         await alice.Client.PostAsJsonAsync("/api/movies/",
-            new { Title = "Blade Runner", Year = 1982, Formats = MovieFormat.BluRay, Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "scifi", "noir" } });
+            new { Title = "Blade Runner", Year = 1982, Formats = (int)MovieFormat.BluRay, Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "scifi", "noir" } });
         await alice.Client.PostAsJsonAsync("/api/movies/",
-            new { Title = "Airplane",     Year = 1980, Formats = MovieFormat.Dvd,    Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "comedy" } });
+            new { Title = "Airplane",     Year = 1980, Formats = (int)MovieFormat.Dvd,    Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "comedy" } });
         await alice.Client.PostAsJsonAsync("/api/movies/",
-            new { Title = "Casablanca",   Year = 1942, Formats = MovieFormat.Dvd,    Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "noir" } });
+            new { Title = "Casablanca",   Year = 1942, Formats = (int)MovieFormat.Dvd,    Status = CollectionStatus.Owned, WatchStatus = WatchStatus.Watched, WatchCount = 0, Tags = new[] { "noir" } });
 
         // Single tag.
         var byScifi = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?tag=scifi");
@@ -501,6 +501,74 @@ public class MoviesEndpointsTests
 
         Assert.Single(hits!);
         Assert.Equal("Tenet", hits![0].Title);
+    }
+
+    // -------- Formats (flags enum as integer) --------
+
+    [Fact]
+    public async Task Create_WithFormatsAsInteger_RoundTripsFlags()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        // Frontend sends formats as a bitwise integer (3 = Dvd | BluRay).
+        // Use raw JSON to simulate what the browser actually sends —
+        // PostAsJsonAsync would stringify enums as the server expects.
+        var json = "{\"Title\":\"Inception\",\"Formats\":3,\"Status\":\"Owned\",\"WatchStatus\":\"Unwatched\",\"WatchCount\":0}";
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var response = await alice.Client.PostAsync("/api/movies/", content);
+        var raw = await response.Content.ReadAsStringAsync();
+
+        // The response must return formats as an integer so the frontend
+        // can use bitwise ops. A string like "BluyRay" breaks ((v & 1) !== 0).
+        var parsed = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(raw);
+        Assert.Equal(System.Text.Json.JsonValueKind.Number, parsed.GetProperty("formats").ValueKind);
+        Assert.Equal(3, parsed.GetProperty("formats").GetInt32());
+
+        // Verify the underlying entity stored the correct flags.
+        var stored = await factory.WithDbAsync(db =>
+            db.Movies.Where(m => m.Title == "Inception").FirstAsync());
+        Assert.Equal(MovieFormat.Dvd | MovieFormat.BluRay, stored.Formats);
+    }
+
+    [Fact]
+    public async Task Update_WithFormatsAsInteger_PersistsNewFlags()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var movie = await factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Heat" });
+
+        // Send all three flags as integer 7.
+        var json = "{\"Title\":\"Heat\",\"Formats\":7,\"Status\":\"Owned\",\"WatchStatus\":\"Unwatched\",\"WatchCount\":0}";
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var response = await alice.Client.PutAsync($"/api/movies/{movie.Id}", content);
+        var raw = await response.Content.ReadAsStringAsync();
+
+        var parsed = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(raw);
+        Assert.Equal(System.Text.Json.JsonValueKind.Number, parsed.GetProperty("formats").ValueKind);
+        Assert.Equal(7, parsed.GetProperty("formats").GetInt32());
+    }
+
+    [Fact]
+    public async Task Create_WithNewFormats_VhsAndDigital()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        // Vhs(8) | Digital(16) = 24.
+        var json = "{\"Title\":\"Retro Movie\",\"Formats\":24,\"Status\":\"Owned\",\"WatchStatus\":\"Unwatched\",\"WatchCount\":0}";
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var response = await alice.Client.PostAsync("/api/movies/", content);
+        var raw = await response.Content.ReadAsStringAsync();
+
+        var parsed = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(raw);
+        Assert.Equal(System.Text.Json.JsonValueKind.Number, parsed.GetProperty("formats").ValueKind);
+        Assert.Equal(24, parsed.GetProperty("formats").GetInt32());
+
+        var createdId = parsed.GetProperty("id").GetInt32();
+        var stored = await factory.WithDbAsync(db =>
+            db.Movies.FirstAsync(m => m.Id == createdId));
+        Assert.Equal(MovieFormat.Vhs | MovieFormat.Digital, stored.Formats);
     }
 
     // -------- Personal / acquisition / watch fields round-trip --------

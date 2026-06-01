@@ -113,7 +113,9 @@ public enum WatchStatus       { Unwatched, Watching, Watched }
 public enum CompletionStatus  { NotStarted, Playing, Beaten, HundredPercent, Abandoned }
 ```
 
-All enums serialize as **strings** in JSON (already configured globally via `JsonStringEnumConverter`).
+All enums serialize as **strings** in JSON (already configured globally via `JsonStringEnumConverter`), with one exception:
+
+- **`MovieFormat`** is a `[Flags]` enum that serializes as an **integer bitmask** (e.g. `3` for Dvd | BluRay). The DTO carries it as `int` so the frontend can use bitwise ops to read/write checkbox state. All other enums remain string-serialized.
 
 ## Migration plan
 

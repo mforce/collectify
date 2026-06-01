@@ -7,4 +7,6 @@ public enum MovieFormat
     Dvd = 1,
     BluRay = 2,
     UhdBluRay = 4,
+    Vhs = 8,
+    Digital = 16,
 }

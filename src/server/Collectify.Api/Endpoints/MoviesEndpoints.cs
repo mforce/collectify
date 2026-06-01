@@ -16,7 +16,7 @@ public static class MoviesEndpoints
         string Title,
         string? OriginalTitle,
         int? Year,
-        MovieFormat Formats,
+        int Formats,
         string? Director,
         int? RuntimeMinutes,
         string? Studio,
@@ -173,7 +173,7 @@ public static class MoviesEndpoints
     }
 
     private static MovieDto ToDto(Movie m) => new(
-        m.Id, m.Title, m.OriginalTitle, m.Year, m.Formats, m.Director, m.RuntimeMinutes,
+        m.Id, m.Title, m.OriginalTitle, m.Year, (int)m.Formats, m.Director, m.RuntimeMinutes,
         m.Studio, m.Genres, m.Barcode, m.TmdbId, m.ImdbId, m.ImagePath, m.Description, m.Notes,
         m.PersonalRating, m.Status, m.Condition,
         m.AcquiredOn, m.AcquisitionPrice, m.AcquisitionCurrency, m.AcquisitionSource,
@@ -186,7 +186,7 @@ public static class MoviesEndpoints
         m.Title = dto.Title?.Trim() ?? string.Empty;
         m.OriginalTitle = dto.OriginalTitle;
         m.Year = dto.Year;
-        m.Formats = dto.Formats;
+        m.Formats = (MovieFormat)dto.Formats;
         m.Director = dto.Director;
         m.RuntimeMinutes = dto.RuntimeMinutes;
         m.Studio = dto.Studio;
