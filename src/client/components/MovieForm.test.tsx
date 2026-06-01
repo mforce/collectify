@@ -32,6 +32,43 @@ function renderForm(onSubmit = vi.fn(), props: Partial<Parameters<typeof MovieFo
   return { onSubmit };
 }
 
+describe('MovieForm — Format toggles', () => {
+  it('renders all five format buttons', () => {
+    renderForm();
+    expect(screen.getByRole('button', { name: 'DVD' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Blu-ray' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'UHD Blu-ray' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'VHS' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Digital' })).toBeInTheDocument();
+  });
+
+  it('toggles formats independently and submits the correct bitwise value', async () => {
+    const onSubmit = vi.fn();
+    renderForm(onSubmit);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'VHS' }));
+    await user.click(screen.getByRole('button', { name: 'Digital' }));
+
+    expect(screen.getByRole('button', { name: 'VHS' })).toHaveClass('category-active');
+    expect(screen.getByRole('button', { name: 'Digital' })).toHaveClass('category-active');
+    expect(screen.getByRole('button', { name: 'DVD' })).not.toHaveClass('category-active');
+
+    const titleLabel = screen.getByText('Title');
+    const titleInput = titleLabel.parentElement?.querySelector('input') as HTMLInputElement;
+    expect(titleInput).toBeDefined();
+    await user.type(titleInput, 'Test');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formats: 24, // VHS(8) | Digital(16)
+        title: 'Test',
+      }),
+    );
+  });
+});
+
 describe('MovieForm — Fetch metadata by TMDB ID', () => {
   beforeEach(() => {
     mockLookupMovieById.mockReset();

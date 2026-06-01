@@ -53,12 +53,14 @@ export interface CollectionItemBase {
 
 // ---------- Movies ----------
 
-export type MovieFormat = 'None' | 'Dvd' | 'BluRay' | 'UhdBluRay';
+export type MovieFormat = 'None' | 'Dvd' | 'BluRay' | 'UhdBluRay' | 'Vhs' | 'Digital';
 
 export const MOVIE_FORMAT_FLAGS: { value: number; key: Exclude<MovieFormat, 'None'>; label: string }[] = [
   { value: 1, key: 'Dvd', label: 'DVD' },
   { value: 2, key: 'BluRay', label: 'Blu-ray' },
   { value: 4, key: 'UhdBluRay', label: 'UHD Blu-ray' },
+  { value: 8, key: 'Vhs', label: 'VHS' },
+  { value: 16, key: 'Digital', label: 'Digital' },
 ];
 
 export interface Movie extends CollectionItemBase {
