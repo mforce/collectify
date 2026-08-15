@@ -196,8 +196,36 @@ A `feat!:` subject or a `BREAKING CHANGE:` footer bumps the minor (below 1.0.0) 
 
 **Why it matters that PR titles count:** PRs squash-merge, and GitHub uses the **PR title** as the squashed commit subject for a multi-commit PR — so the PR title *is* the release note. A body line that starts at column 1 with a nested-paren shape (`Assert.Single(AllMigrations())`) breaks release-please's parser and drops the **whole** commit from the changelog; the `commit-msg` hook catches that locally and prints the fix.
 
-<!-- #113: a "Releases & container images" section (deploy-by-digest recipe,
-     provenance verification) will be added here once release-please lands. -->
+### Releases & container images
+
+Two stages, deliberately separate — **CI publishes an image per merge; the release PR turns one into a version:**
+
+1. **Every merge to `main`** runs [`ci.yml`](.github/workflows/ci.yml), which builds the image, Trivy-scans it, boot-tests it against a throwaway Postgres, and publishes it under the commit it came from: `ghcr.io/mforce/collectify:sha-<commit>` — plus a build-provenance attestation.
+2. **`release-please` opens a "Release vX.Y.Z" PR**, accumulating a changelog from the conventional commits since the last release. **Merging that PR** drafts the release, **promotes** that commit's already-scanned image to `:vX.Y.Z` (a server-side retag of the exact digest — never a rebuild), then publishes the release.
+
+The version tag therefore always points at bytes CI already gated. The release stays a draft until promotion succeeds, so a failed promotion leaves no tag pointing at nothing.
+
+**Deploy by digest, never by tag** — a tag can be moved, a digest cannot. Every release carries an `image.json` asset with the exact reference:
+
+```bash
+gh release download vX.Y.Z -p image.json -R mforce/collectify
+# → {"reference": "ghcr.io/mforce/collectify@sha256:…", …}
+```
+
+**Verify the bytes came from this repo's CI before deploying.** The attestation is checkable without trusting the release notes:
+
+```bash
+# requires a prior `docker login ghcr.io` — an oci:// subject needs registry credentials
+gh attestation verify oci://ghcr.io/mforce/collectify@sha256:… \
+  --repo mforce/collectify \
+  --signer-workflow mforce/collectify/.github/workflows/ci.yml \
+  --source-ref refs/heads/main \
+  --bundle-from-oci
+```
+
+All three flags are load-bearing: `--signer-workflow` binds to the workflow (not just the repo), `--source-ref` binds to the branch it ran from, and `--bundle-from-oci` reads the attestation stored beside the image in the registry.
+
+> Publishing to a registry other than GHCR: set `REGISTRY` / `IMAGE_NAME` repository **variables** and `REGISTRY_USER` / `REGISTRY_TOKEN` **secrets**. Provenance attestation requires a registry that stores OCI referrers.
 
 ## Roadmap
 
