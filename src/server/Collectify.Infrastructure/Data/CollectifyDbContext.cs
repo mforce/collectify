@@ -59,6 +59,16 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
             // same user. Id remains the PK; this is a redundant-for-lookup
             // unique key that exists to anchor the FK.
             e.HasAlternateKey(g => new { g.Id, g.OwnerId });
+            // DLC -> base game self-reference (provider-agnostic). OwnerId
+            // scoping is enforced in the relationship: a game can only be
+            // DLC of a base game owned by the same user. Restrict so deleting
+            // a base game with DLC children is an explicit call, not a silent
+            // cascade or nulling of the DLC's parent.
+            e.HasOne(g => g.ParentGame)
+             .WithMany(g => g.Dlc)
+             .HasForeignKey(g => g.ParentGameId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(g => g.ParentGameId);
         });
 
         builder.Entity<Tag>(e =>
@@ -92,6 +102,7 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
         {
             e.Property(t => t.ExternalGameId).HasMaxLength(32).IsRequired();
             e.Property(t => t.ExternalAccountId).HasMaxLength(64);
+            e.Property(t => t.ParentExternalGameId).HasMaxLength(32);
             e.Property(t => t.Title).HasMaxLength(500).IsRequired();
             // Natural idempotency key. OwnerId is the leading column, so no
             // separate OwnerId index is needed.

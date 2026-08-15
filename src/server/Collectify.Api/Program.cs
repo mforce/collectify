@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
@@ -56,6 +58,18 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(rate =>
+{
+    // Per-IP fixed-window guard for the public Steam OpenID callback so a
+    // stream of forged requests can't spam the outbound Steam verify step.
+    rate.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    rate.AddFixedWindowLimiter("steam-callback", opt =>
+    {
+        opt.PermitLimit = 30;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+});
 builder.Services.ConfigureHttpJsonOptions(opt =>
 {
     opt.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -107,14 +121,26 @@ using (var scope = app.Services.CreateScope())
     // metadata over time.
     await scope.ServiceProvider.GetRequiredService<CoverImageGarbageCollector>().SweepAsync(db);
     // Remove expired/consumed Steam OpenID auth requests so the table doesn't
-    // grow unbounded with abandoned connect attempts.
-    await db.SteamAuthRequests
-        .Where(r => r.Consumed || r.ExpiresAt <= DateTime.UtcNow)
-        .ExecuteDeleteAsync();
+    // grow unbounded with abandoned connect attempts. Best-effort: on an
+    // existing Postgres install EnsureCreated is a no-op, so the table may not
+    // exist yet — never let that take down app boot for users who don't use
+    // Steam. Fail soft like every other startup step.
+    try
+    {
+        await db.SteamAuthRequests
+            .Where(r => r.Consumed || r.ExpiresAt <= DateTime.UtcNow)
+            .ExecuteDeleteAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex,
+            "Skipped SteamAuthRequest sweep (table missing on existing Postgres; a DB reset is required to enable store import).");
+    }
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapAuthEndpoints();
 app.MapMoviesEndpoints();

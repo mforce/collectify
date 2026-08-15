@@ -155,6 +155,24 @@ Imported `Game` rows default to `Platform = Pc`, `IsDigital = true`,
 `DigitalStore = Store`, `Status = Owned`, `HoursPlayed` from playtime, and
 `AcquisitionSource = "Steam Import"`.
 
+### DLC / add-on (schema hook, provider-agnostic)
+
+Steam, Xbox and PSN all model DLC as a **separate product linked back to a base
+game**, so one self-reference covers every storefront:
+
+- `Game.ParentGameId` (int?, self FK → `Games.Id`, `Restrict`) — a DLC game
+  points at its base game. Same-owner semantics are enforced by the
+  ownership-preserving composite FK pattern applied to the ledger.
+- `GameStoreOwnedTitle.ParentExternalGameId` (string?, e.g. Steam parent appid)
+  — recorded at import time so a later DLC→parent backfill can populate
+  `Game.ParentGameId` **without re-importing or re-fetching** per app.
+
+This iteration keeps imports **flat**: no auto-linking of DLC to parents.
+`ParentGameId` is null for today's imports, and the DLC-grouping "auto-link +
+manual link" UI is a separate follow-up (needs the per-provider parent metadata
+Steam serves under `/appdetails`, which is rate-limited and not available for
+whole libraries in v1).
+
 ## Enums (planned)
 
 ```csharp

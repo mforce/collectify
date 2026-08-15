@@ -10,10 +10,11 @@ public sealed class ScriptedSteamClient : ISteamClient
 {
     public bool IsConfigured { get; set; } = true;
     public IReadOnlyList<SteamOwnedGame> OwnedGames { get; set; } = [];
+    public SteamFetchStatus FetchStatus { get; set; } = SteamFetchStatus.Ok;
     public string? PersonaName { get; set; } = "TestPersona";
 
-    public Task<IReadOnlyList<SteamOwnedGame>> GetOwnedGamesAsync(string steamId64, CancellationToken ct = default)
-        => Task.FromResult(OwnedGames);
+    public Task<SteamGamesResult> GetOwnedGamesAsync(string steamId64, CancellationToken ct = default)
+        => Task.FromResult(new SteamGamesResult(FetchStatus, OwnedGames));
 
     public Task<string?> GetPersonaNameAsync(string steamId64, CancellationToken ct = default)
         => Task.FromResult(PersonaName);

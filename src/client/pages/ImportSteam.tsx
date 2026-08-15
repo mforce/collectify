@@ -19,6 +19,7 @@ function formatPlaytime(minutes: number): string {
 export default function ImportSteam() {
   const [params, setParams] = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState('');
 
   const connection = useSteamConnection();
   const connect = useSteamConnect();
@@ -39,9 +40,15 @@ export default function ImportSteam() {
   }, [outcome]);
 
   const importable = useMemo(
-    () => (games.data ?? []).filter((g) => g.state === 'importable'),
+    () => (games.data?.titles ?? []).filter((g) => g.state === 'importable'),
     [games.data],
   );
+
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return games.data?.titles ?? [];
+    return (games.data?.titles ?? []).filter((g) => g.title.toLowerCase().includes(q));
+  }, [games.data, filter]);
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -121,12 +128,44 @@ export default function ImportSteam() {
             </Card>
           )}
 
-          {games.data && (
+          {!games.isLoading && games.data?.status === 'unavailable' && (
+            <Card>
+              <p className="text-sm text-error">
+                Couldn't reach Steam to fetch your games. Make sure your Steam profile's
+                games are set to <strong>Public</strong> in Privacy Settings, or try again
+                in a moment.
+              </p>
+            </Card>
+          )}
+
+          {!games.isLoading && games.data?.status === 'ok' && games.data.titles.length === 0 && (
+            <Card>
+              <p className="text-sm text-text-secondary">
+                No owned games returned. Make sure your Steam profile's game details are set
+                to <strong>Public</strong> in Privacy Settings, then try again.
+              </p>
+            </Card>
+          )}
+
+          {games.data?.status === 'ok' && games.data.titles.length > 0 && (
             <>
+              <input
+                type="search"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Filter your owned games…"
+                className="w-full rounded-md border border-border px-3 py-2 text-sm"
+                aria-label="Filter owned games"
+              />
               <div className="flex items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
                   <input type="checkbox" checked={allImportableSelected} onChange={toggleAll} />
                   Select all not-imported ({importable.length})
+                  {games.data.truncated && (
+                    <span className="font-normal text-xs text-text-tertiary">
+                      (showing first {games.data.titles.length})
+                    </span>
+                  )}
                 </label>
                 <Button
                   variant="primary"
@@ -140,42 +179,46 @@ export default function ImportSteam() {
               </div>
 
               <Card className="divide-y divide-border">
-                {(games.data ?? []).map((g) => {
-                  const isImported = g.state === 'imported';
-                  const checked = selected.has(g.externalGameId);
-                  return (
-                    <label
-                      key={g.externalGameId}
-                      className={`flex items-center gap-3 py-2.5 ${isImported ? 'opacity-60' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={isImported}
-                        onChange={() => toggle(g.externalGameId)}
-                      />
-                      {g.iconUrl ? (
-                        <img
-                          src={g.iconUrl}
-                          alt=""
-                          className="h-7 w-7 rounded-sm object-cover"
-                          loading="lazy"
+                {filtered.length === 0 ? (
+                  <p className="px-3 py-2.5 text-sm text-text-tertiary">No matches for “{filter}”.</p>
+                ) : (
+                  filtered.map((g) => {
+                    const isImported = g.state === 'imported';
+                    const checked = selected.has(g.externalGameId);
+                    return (
+                      <label
+                        key={g.externalGameId}
+                        className={`flex items-center gap-3 py-2.5 ${isImported ? 'opacity-60' : ''}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={isImported}
+                          onChange={() => toggle(g.externalGameId)}
                         />
-                      ) : (
-                        <span className="h-7 w-7 rounded-sm bg-pill-bg" aria-hidden />
-                      )}
-                      <span className="min-w-0 flex-1 truncate text-sm text-text-primary">
-                        {g.title}
-                      </span>
-                      <span className="whitespace-nowrap text-xs text-text-tertiary">
-                        {formatPlaytime(g.playtimeMinutes)}
-                      </span>
-                      {isImported && (
-                        <span className="text-xs font-semibold text-text-tertiary">In collection</span>
-                      )}
-                    </label>
-                  );
-                })}
+                        {g.iconUrl ? (
+                          <img
+                            src={g.iconUrl}
+                            alt=""
+                            className="h-7 w-7 rounded-sm object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="h-7 w-7 rounded-sm bg-pill-bg" aria-hidden />
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-sm text-text-primary">
+                          {g.title}
+                        </span>
+                        <span className="whitespace-nowrap text-xs text-text-tertiary">
+                          {formatPlaytime(g.playtimeMinutes)}
+                        </span>
+                        {isImported && (
+                          <span className="text-xs font-semibold text-text-tertiary">In collection</span>
+                        )}
+                      </label>
+                    );
+                  })
+                )}
               </Card>
             </>
           )}

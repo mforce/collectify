@@ -28,6 +28,14 @@ public class GameStoreOwnedTitle
     public string? ExternalAccountId { get; set; }
     /// <summary>Provider-supplied title, used for display/audit.</summary>
     public string Title { get; set; } = string.Empty;
+    /// <summary>
+    /// When the provider reports this title is DLC/add-on content, the
+    /// provider's external id of its base/parent game (Steam parent appid).
+    /// Recorded at import time so a later DLC-parent backfill can link
+    /// <see cref="Game.ParentGameId"/> without re-importing or re-fetching per
+    /// app. Null when the provider gives no parent or it's a base game.
+    /// </summary>
+    public string? ParentExternalGameId { get; set; }
     /// <summary>FK to <see cref="Game"/> when imported; null until imported or after its Game is deleted.</summary>
     public int? GameId { get; set; }
     public DateTime? ImportedAt { get; set; }

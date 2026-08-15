@@ -68,10 +68,14 @@ describe('ImportSteam', () => {
   it('lists owned games and flags imported ones as in collection', () => {
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
     mockUseGames.mockReturnValue({
-      data: [
-        { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
-        { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
-      ],
+      data: {
+        status: 'ok',
+        truncated: false,
+        titles: [
+          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
       isLoading: false,
       error: null,
     });
@@ -83,13 +87,56 @@ describe('ImportSteam', () => {
     expect(screen.getAllByText(/in collection/i).length).toBe(1);
   });
 
-  it('shows a public-profile hint when loading owned games fails', () => {
+  it('shows a qualified public-profile hint when Steam is unavailable', () => {
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
-    mockUseGames.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: new Error('boom') });
+    mockUseGames.mockReturnValue({
+      data: { status: 'unavailable', titles: [], truncated: false },
+      isLoading: false,
+      error: null,
+    });
 
     renderPage();
 
     expect(screen.getByText(/public/i)).toBeInTheDocument();
+    expect(screen.getByText(/couldn't reach steam/i)).toBeInTheDocument();
+  });
+
+  it('shows a public-profile hint when the owned-games list is empty', () => {
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: { status: 'ok', titles: [], truncated: false },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/public/i)).toBeInTheDocument();
+    expect(screen.getByText(/no owned games returned/i)).toBeInTheDocument();
+  });
+
+  it('filters the owned-games list by title', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        titles: [
+          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Hades')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/filter owned games/i), 'celeste');
+    expect(screen.queryByText('Hades')).not.toBeInTheDocument();
+    expect(screen.getByText('Celeste')).toBeInTheDocument();
   });
 
   it('imports the selected games when the user clicks Import selected', async () => {
@@ -102,10 +149,14 @@ describe('ImportSteam', () => {
     });
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
     mockUseGames.mockReturnValue({
-      data: [
-        { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
-        { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
-      ],
+      data: {
+        status: 'ok',
+        truncated: false,
+        titles: [
+          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
       isLoading: false,
       isError: false,
       error: null,

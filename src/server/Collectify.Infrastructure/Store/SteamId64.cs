@@ -1,8 +1,3 @@
-using System.Net.Http.Json;
-using System.Text;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-
 namespace Collectify.Infrastructure.Store;
 
 /// <summary>Strict SteamID64 parsing helpers shared across the OpenID flow.</summary>
@@ -26,7 +21,7 @@ public static class SteamId64
         if (!uri.Host.Equals("steamcommunity.com", StringComparison.OrdinalIgnoreCase)) return null;
 
         var segs = uri.Segments.Where(s => s.Length > 1).Select(s => s.TrimEnd('/')).ToArray();
-        if (segs.Length != 2) return null;                    // /openid/id/<id>
+        if (segs.Length != 3) return null;                    // /openid/id/<id>
         if (segs[0] != "openid" || segs[1] != "id") return null;
 
         var id = segs[2];
@@ -34,7 +29,4 @@ public static class SteamId64
         if (!ulong.TryParse(id, out var value) || value == 0 || value > long.MaxValue) return null;
         return id;
     }
-
-    /// <summary>Rejects input that isn't a well-formed 64-bit decimal SteamID.</summary>
-    public static bool IsValidSteamId(string? id) => id is { Length: > 0 } && id.All(char.IsAsciiDigit);
 }

@@ -14,6 +14,7 @@ public class SteamEndpointsTests
     private record SteamConnectDto(bool Configured, string? RedirectUrl);
     private record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
     private record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string State);
+    private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated);
     private record SteamImportResultDto(int Imported, int AlreadyImported, SteamImportItemDto[] Items);
     private record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);
 
@@ -238,10 +239,11 @@ public class SteamEndpointsTests
         await LinkSteamAsync(factory, alice);
         await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new { ExternalGameIds = new[] { "1" } });
 
-        var titles = await alice.Client.GetJsonAsync<SteamOwnedTitleDto[]>("/api/accounts/steam/games");
+        var preview = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
 
-        var hades = titles!.Single(t => t.ExternalGameId == "1");
-        var celeste = titles!.Single(t => t.ExternalGameId == "2");
+        var hades = preview!.Titles.Single(t => t.ExternalGameId == "1");
+        var celeste = preview.Titles.Single(t => t.ExternalGameId == "2");
+        Assert.Equal("ok", preview.Status);
         Assert.Equal("imported", hades.State);
         Assert.Equal("importable", celeste.State);
     }
@@ -256,9 +258,31 @@ public class SteamEndpointsTests
         };
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
 
-        var titles = await alice.Client.GetJsonAsync<SteamOwnedTitleDto[]>("/api/accounts/steam/games");
+        var preview = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
 
-        Assert.Empty(titles!);
+        // Not connected: status is "notconnected", empty titles (client shows
+        // the connect prompt, not a blank list).
+        Assert.Equal("notconnected", preview!.Status);
+        Assert.Empty(preview.Titles);
+    }
+
+    [Fact]
+    public async Task Games_SteamUnavailable_ReportsUnavailableStatus()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient { FetchStatus = SteamFetchStatus.Unavailable },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        var preview = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
+
+        // Provider failure must be surfaced as "unavailable" (client shows the
+        // qualified private/offline message), NOT a blank "you own nothing".
+        Assert.Equal("unavailable", preview!.Status);
+        Assert.Empty(preview.Titles);
     }
 
     [Fact]
@@ -287,6 +311,47 @@ public class SteamEndpointsTests
         var game = await factory.WithDbAsync(db =>
             db.Games.AsNoTracking().AnyAsync(g => g.OwnerId == alice.Id && g.Title == "Hades"));
         Assert.True(game);
+    }
+
+    [Fact]
+    public async Task Delete_ImportedGame_NullsLedgerAndSucceeds()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades" }],
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+        await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new { ExternalGameIds = new[] { "1" } });
+
+        var gameId = await factory.WithDbAsync(db =>
+            db.Games.AsNoTracking().Where(g => g.OwnerId == alice.Id && g.Title == "Hades")
+                .Select(g => (int?)g.Id).FirstAsync());
+
+        // Deleting the imported game must NOT trip the composite FK (Restrict)
+        // and must leave an importable ledger row behind.
+        var delete = await alice.Client.DeleteAsync($"/api/games/{gameId}");
+        Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+
+        var ledgerStillThere = await factory.WithDbAsync(db =>
+            db.GameStoreOwnedTitles.AsNoTracking()
+                .AnyAsync(t => t.OwnerId == alice.Id && t.Store == DigitalStore.Steam && t.ExternalGameId == "1"));
+        Assert.True(ledgerStillThere, "ledger row should persist after game delete");
+
+        var gameGone = await factory.WithDbAsync(db =>
+            db.Games.AsNoTracking().AnyAsync(g => g.Id == gameId));
+        Assert.False(gameGone);
+
+        // A second re-import is idempotent and succeeds (relinks the ledger row).
+        var reimport = await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new { ExternalGameIds = new[] { "1" } });
+        Assert.Equal(HttpStatusCode.OK, reimport.StatusCode);
+        var restored = await factory.WithDbAsync(db =>
+            db.Games.AsNoTracking().AnyAsync(g => g.OwnerId == alice.Id && g.Title == "Hades"));
+        Assert.True(restored);
     }
 
     // -------- Helpers ----------

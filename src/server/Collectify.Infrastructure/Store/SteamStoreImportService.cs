@@ -46,6 +46,14 @@ public sealed class SteamStoreImportService
     public static string HashState(string state) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(state))).ToLowerInvariant();
 
+    /// <summary>CSPRNG hex string of <paramref name="bytes"/> random bytes.</summary>
+    private static string CryptoRandomHex(int bytes)
+    {
+        var buf = new byte[bytes];
+        RandomNumberGenerator.Fill(buf);
+        return Convert.ToHexString(buf).ToLowerInvariant();
+    }
+
     /// <summary>
     /// Persist a fresh one-time auth request for an owner and return the
     /// (state, cookieHalf) pair. The stored hash binds BOTH halves together:
@@ -57,8 +65,11 @@ public sealed class SteamStoreImportService
     /// </summary>
     public (string State, string CookieHalf) CreateAuthRequest(string ownerId, TimeSpan lifetime)
     {
-        var state = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
-        var cookieHalf = Guid.NewGuid().ToString("N");
+        // CSPRNG-backed tokens, not Guid (which is random-ish but not a
+        // contractual crypto RNG); these are the security tokens for the
+        // OpenID dance.
+        var state = CryptoRandomHex(32);
+        var cookieHalf = CryptoRandomHex(24);
         _db.SteamAuthRequests.Add(new SteamAuthRequest
         {
             StateHash = HashState(state + ":" + cookieHalf),
@@ -87,22 +98,48 @@ public sealed class SteamStoreImportService
         return row.OwnerId;
     }
 
-    /// <summary>The owner's current Steam connection, if any.</summary>
-    public async Task<GameStoreConnection?> GetConnectionAsync(string ownerId, CancellationToken ct = default)
-        => await _db.GameStoreConnections.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.OwnerId == ownerId && c.Store == SteamStore, ct);
-
-    /// <summary>Best-effort persona name for a SteamID64 (null on any failure).</summary>
-    public Task<string?> GetPersonaNameAsync(string steamId64, CancellationToken ct = default)
-        => _steam.GetPersonaNameAsync(steamId64, ct);
+    /// <summary>
+    /// Read-only existence check used to short-circuit the public callback
+    /// BEFORE any outbound Steam round trip: the hashed (state, cookie) must
+    /// map to an unconsumed, unexpired request. Doesn't consume anything.
+    /// </summary>
+    public bool HasValidAuthRequest(string state, string? cookieHalf)
+    {
+        var combined = HashState(state + ":" + (cookieHalf ?? string.Empty));
+        return _db.SteamAuthRequests.Any(r =>
+            r.StateHash == combined && !r.Consumed && r.ExpiresAt > DateTime.UtcNow);
+    }
 
     /// <summary>
-    /// Upsert the owner's Steam connection on a verified callback. Consumes
-    /// the one-time state in the same unit of work.
+    /// Atomically claims the one-time auth request and upserts the owner's
+    /// Steam connection in a single transaction, so a failure between the two
+    /// can never consume the state without linking the account (or vice
+    /// versa). The state claim is a conditional update so two concurrent
+    /// callbacks can't both consume the same request. Persona lookup is
+    /// expected to have happened before this call (best-effort network I/O).
+    /// Returns null if the state is unknown/expired/already-consumed.
     /// </summary>
-    public async Task<GameStoreConnection?> CompleteConnectAsync(
-        string ownerId, string steamId64, string? personaName, CancellationToken ct = default)
+    public async Task<GameStoreConnection?> CompleteConnectAtomicAsync(
+        string state, string? cookieHalf, string steamId64, string? personaName, CancellationToken ct = default)
     {
+        var combined = HashState(state + ":" + (cookieHalf ?? string.Empty));
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        // Claim the unconsumed, unexpired request atomically. Exactly one row
+        // must flip; if none does, the request is invalid or already used.
+        var claimed = await _db.SteamAuthRequests
+            .Where(r => r.StateHash == combined && !r.Consumed && r.ExpiresAt > DateTime.UtcNow)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Consumed, true), ct);
+        if (claimed != 1)
+            return null;
+
+        var row = await _db.SteamAuthRequests.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.StateHash == combined, ct);
+        var ownerId = row?.OwnerId;
+        if (ownerId is null)
+            return null;
+
         var connection = await _db.GameStoreConnections
             .FirstOrDefaultAsync(c => c.OwnerId == ownerId && c.Store == SteamStore, ct);
         if (connection is null)
@@ -122,20 +159,40 @@ public sealed class SteamStoreImportService
             connection.LinkedAt = DateTime.UtcNow;
         }
         connection.ExternalDisplayName = personaName ?? connection.ExternalDisplayName;
+
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return connection;
     }
+
+    /// <summary>The owner's current Steam connection, if any.</summary>
+    public async Task<GameStoreConnection?> GetConnectionAsync(string ownerId, CancellationToken ct = default)
+        => await _db.GameStoreConnections.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.OwnerId == ownerId && c.Store == SteamStore, ct);
+
+    /// <summary>Best-effort persona name for a SteamID64 (null on any failure).</summary>
+    public Task<string?> GetPersonaNameAsync(string steamId64, CancellationToken ct = default)
+        => _steam.GetPersonaNameAsync(steamId64, ct);
 
     /// <summary>
     /// Owned titles for the preview: trusted Steam fetch joined against the
     /// owner's ledger to tag import state. Ordered by playtime desc.
     /// </summary>
-    public async Task<IReadOnlyList<SteamOwnedTitle>> GetOwnedTitlesAsync(string ownerId, CancellationToken ct = default)
+    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(string ownerId, CancellationToken ct = default)
     {
         var connection = await GetConnectionAsync(ownerId, ct);
-        if (connection is null) return [];
+        if (connection is null)
+            return new SteamPreviewResult(SteamPreviewStatus.NotConnected, [], false);
 
-        var owned = await _steam.GetOwnedGamesAsync(connection.ExternalAccountId, ct);
+        var fetch = await _steam.GetOwnedGamesAsync(connection.ExternalAccountId, ct);
+        if (fetch.Status == SteamFetchStatus.Unavailable)
+            return new SteamPreviewResult(SteamPreviewStatus.Unavailable, [], false);
+
+        // Successful fetch: bump LastSyncedAt so we don't keep re-pulling a
+        // private/empty library as though nothing had synced.
+        await _db.GameStoreConnections
+            .Where(c => c.OwnerId == ownerId && c.Store == SteamStore)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.LastSyncedAt, DateTime.UtcNow), ct);
 
         var ledger = await _db.GameStoreOwnedTitles.AsNoTracking()
             .Where(t => t.OwnerId == ownerId && t.Store == SteamStore)
@@ -143,7 +200,7 @@ public sealed class SteamStoreImportService
             .ToListAsync(ct);
         var imported = ledger.Where(i => i.GameId != null).Select(i => i.ExternalGameId).ToHashSet();
 
-        return owned
+        var all = fetch.Games
             .Select(g => new SteamOwnedTitle(
                 g.AppId.ToString(),
                 g.Name ?? string.Empty,
@@ -152,6 +209,13 @@ public sealed class SteamStoreImportService
                 imported.Contains(g.AppId.ToString()) ? SteamTitleImportState.Imported : SteamTitleImportState.Importable))
             .OrderByDescending(t => t.PlaytimeMinutes)
             .ToList();
+
+        // Bound the preview so a huge library stays navigable server-side; the
+        // client gets a "truncated" flag to show "show more"/search, and can
+        // request the rest later. PreviewCap covers the common self-hosted case.
+        var truncated = all.Count > _options.PreviewCap;
+        var titles = truncated ? all.Take(_options.PreviewCap).ToList() : all;
+        return new SteamPreviewResult(SteamPreviewStatus.Ok, titles, truncated);
     }
 
     private static string? IconUrl(uint appId, string? iconHash)
@@ -171,18 +235,24 @@ public sealed class SteamStoreImportService
         var connection = await GetConnectionAsync(ownerId, ct);
         if (connection is null) return (Results: [], CreatedGames: []);
 
-        // Normalize + bound the request.
+        // Normalize + bound the request (cap is enforced by the endpoint; this
+        // is a defensive floor so the service never exceeds the configured cap).
         var requested = requestedIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
             .Select(id => id.Trim())
             .Where(id => id.Length > 0 && id.All(char.IsAsciiDigit))
             .Distinct()
-            .Take(_options.ImportCap + 1)
+            .Take(_options.ImportCap)
             .ToList();
         if (requested.Count == 0) return (Results: [], CreatedGames: []);
 
-        // Trusted source of truth for ownership + titles.
-        var owned = await _steam.GetOwnedGamesAsync(connection.ExternalAccountId, ct);
-        var ownedByAppId = owned
+        // Trusted source of truth for ownership + titles. If Steam is
+        // unavailable right now, nothing can be imported safely (we refuse to
+        // import on stale/unverified ownership).
+        var fetch = await _steam.GetOwnedGamesAsync(connection.ExternalAccountId, ct);
+        if (fetch.Status == SteamFetchStatus.Unavailable)
+            return (Results: requested.Select(a => new SteamImportResultItem(a, false, false)).ToList(), CreatedGames: []);
+        var ownedByAppId = fetch.Games
             .Where(g => g.AppId > 0)
             .ToDictionary(g => g.AppId.ToString(), g => g, StringComparer.Ordinal);
 
@@ -200,59 +270,81 @@ public sealed class SteamStoreImportService
                 continue;
             }
 
-            var existing = await _db.GameStoreOwnedTitles
-                .FirstOrDefaultAsync(t => t.OwnerId == ownerId && t.Store == SteamStore && t.ExternalGameId == appIdStr, ct);
-
-            var createdGame = false;
-            Game newGame;
-
-            if (existing is null)
+            // Guard against a concurrent importer winning the (OwnerId, Store,
+            // ExternalGameId) unique race. If the ledger insert collides, the
+            // failed SaveChanges aborts this transaction — catch it, clear
+            // tracking, and report the winner as already-imported rather than
+            // surfacing a 500. This is a tiny single-user race window; the
+            // important contract is "idempotent, never a crash".
+            try
             {
-                // Save the Game FIRST so its Id is real before the ledger row
-                // references it (the ledger's composite FK needs a genuine
-                // Games.Id). Inside the same transaction as the ledger insert.
-                newGame = NewImportedGame(ownerId, game, appIdStr);
-                _db.Games.Add(newGame);
-                await _db.SaveChangesAsync(ct);
+                var existing = await _db.GameStoreOwnedTitles
+                    .FirstOrDefaultAsync(t => t.OwnerId == ownerId && t.Store == SteamStore && t.ExternalGameId == appIdStr, ct);
 
-                _db.GameStoreOwnedTitles.Add(new GameStoreOwnedTitle
-                {
-                    OwnerId = ownerId,
-                    Store = SteamStore,
-                    ExternalGameId = appIdStr,
-                    ExternalAccountId = connection.ExternalAccountId,
-                    Title = Truncate(game.Name ?? appIdStr, 500),
-                    GameId = newGame.Id,
-                    ImportedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                });
-                createdGame = true;
-            }
-            else
-            {
-                newGame = existing.GameId is { } gid
-                    ? await _db.Games.FirstOrDefaultAsync(g => g.Id == gid && g.OwnerId == ownerId, ct)
-                    : null;
+                var createdGame = false;
+                Game? newGame;
 
-                if (newGame is null)
+                if (existing is null)
                 {
-                    // Ledger row present but its Game was deleted — re-import:
-                    // save the Game first, then relink the existing ledger row.
+                    // Save the Game FIRST so its Id is real before the ledger row
+                    // references it (the ledger's composite FK needs a genuine
+                    // Games.Id). Inside the same transaction as the ledger insert.
                     newGame = NewImportedGame(ownerId, game, appIdStr);
                     _db.Games.Add(newGame);
                     await _db.SaveChangesAsync(ct);
 
-                    existing.GameId = newGame.Id;
-                    existing.ImportedAt = DateTime.UtcNow;
-                    existing.UpdatedAt = DateTime.UtcNow;
+                    _db.GameStoreOwnedTitles.Add(new GameStoreOwnedTitle
+                    {
+                        OwnerId = ownerId,
+                        Store = SteamStore,
+                        ExternalGameId = appIdStr,
+                        ExternalAccountId = connection.ExternalAccountId,
+                        Title = Truncate(game.Name ?? appIdStr, 500),
+                        GameId = newGame.Id,
+                        ImportedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                    });
                     createdGame = true;
                 }
+                else
+                {
+                    newGame = existing.GameId is { } gid
+                        ? await _db.Games.FirstOrDefaultAsync(g => g.Id == gid && g.OwnerId == ownerId, ct)
+                        : null;
+
+                    if (newGame is null)
+                    {
+                        // Ledger row present but its Game was deleted — re-import:
+                        // save the Game first, then relink the existing ledger row.
+                        newGame = NewImportedGame(ownerId, game, appIdStr);
+                        _db.Games.Add(newGame);
+                        await _db.SaveChangesAsync(ct);
+
+                        existing.GameId = newGame.Id;
+                        existing.ImportedAt = DateTime.UtcNow;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                        createdGame = true;
+                    }
+                }
+
+                await _db.SaveChangesAsync(ct);
+
+                if (createdGame && newGame is not null) created.Add(newGame);
+                results.Add(new SteamImportResultItem(appIdStr, createdGame, !createdGame && existing is { GameId: not null }));
             }
+            catch (DbUpdateException)
+            {
+                // Unique-constraint race: another import created this ledger row
+                // between our read and write. The failed save aborts the
+                // transaction; clear tracking and report the winner as
+                // already-imported instead of a 500.
+                _db.ChangeTracker.Clear();
 
-            await _db.SaveChangesAsync(ct);
-
-            if (createdGame) created.Add(newGame);
-            results.Add(new SteamImportResultItem(appIdStr, createdGame, !createdGame && existing is { GameId: not null }));
+                var winner = await _db.GameStoreOwnedTitles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.OwnerId == ownerId && t.Store == SteamStore && t.ExternalGameId == appIdStr, ct);
+                results.Add(new SteamImportResultItem(appIdStr, false, winner is { GameId: not null }));
+            }
         }
 
         await tx.CommitAsync(ct);

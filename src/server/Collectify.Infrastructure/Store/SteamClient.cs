@@ -46,26 +46,29 @@ public sealed class SteamClient : ISteamClient
 
     /// <summary>
     /// Returns the app ids + metadata the account owns. Cached per SteamID64
-    /// for <see cref="SteamOptions.SteamSubOptions.CacheTtl"/>. Returns empty
-    /// (never throws) on a private/empty response, error, timeout, or when
-    /// unconfigured — the caller is responsible for the qualified UI message.
+    /// for <see cref="SteamOptions.SteamSubOptions.CacheTtl"/>. Distinguishes a
+    /// genuine empty/private library (Ok with no games) from a provider
+    /// failure (Unavailable) so the caller can show the right message.
     /// </summary>
-    public async Task<IReadOnlyList<SteamOwnedGame>> GetOwnedGamesAsync(string steamId, CancellationToken ct = default)
+    public async Task<SteamGamesResult> GetOwnedGamesAsync(string steamId, CancellationToken ct = default)
     {
-        if (!IsConfigured || string.IsNullOrWhiteSpace(steamId)) return [];
+        if (!IsConfigured || string.IsNullOrWhiteSpace(steamId))
+            return new SteamGamesResult(SteamFetchStatus.Unavailable, []);
 
         var cacheKey = "owned:" + steamId;
-        var cached = await _cache.GetAsync<List<SteamOwnedGame>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<SteamGamesResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
-        var games = await FetchOwnedGamesAsync(steamId, ct);
-        if (games.Count > 0)
-            await _cache.SetAsync(ProviderName, cacheKey, games, ct);
+        var result = await FetchOwnedGamesAsync(steamId, ct);
+        // Only cache successful responses (Ok, even if empty — a private/empty
+        // library is still a valid state and shouldn't be re-fetched every 5s).
+        if (result.Status == SteamFetchStatus.Ok)
+            await _cache.SetAsync(ProviderName, cacheKey, result, ct);
 
-        return games;
+        return result;
     }
 
-    private async Task<List<SteamOwnedGame>> FetchOwnedGamesAsync(string steamId, CancellationToken ct)
+    private async Task<SteamGamesResult> FetchOwnedGamesAsync(string steamId, CancellationToken ct)
     {
         var url = "IPlayerService/GetOwnedGames/v1/"
             + $"?key={Uri.EscapeDataString(_options.ApiKey!)}"
@@ -80,15 +83,15 @@ public sealed class SteamClient : ISteamClient
                 // Static key: a 401 has no refresh path, so fail soft and log
                 // the status WITHOUT the key (the URL carries the key).
                 _log.LogWarning("Steam GetOwnedGames returned {Status}", resp.StatusCode);
-                return [];
+                return new SteamGamesResult(SteamFetchStatus.Unavailable, []);
             }
             var body = await resp.Content.ReadFromJsonAsync<SteamOwnedGamesResponse>(cancellationToken: ct);
-            return body?.Response?.Games ?? [];
+            return new SteamGamesResult(SteamFetchStatus.Ok, body?.Response?.Games ?? []);
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Steam GetOwnedGames call failed");
-            return [];
+            return new SteamGamesResult(SteamFetchStatus.Unavailable, []);
         }
     }
 

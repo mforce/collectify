@@ -20,6 +20,13 @@ export interface SteamOwnedTitle {
   state: 'importable' | 'imported';
 }
 
+export interface SteamPreview {
+  /** 'notconnected' | 'ok' | 'unavailable' */
+  status: string;
+  titles: SteamOwnedTitle[];
+  truncated: boolean;
+}
+
 export interface SteamImportResult {
   imported: number;
   alreadyImported: number;
@@ -40,9 +47,9 @@ export function useSteamConnect() {
 }
 
 export function useSteamGames(enabled: boolean) {
-  return useQuery<SteamOwnedTitle[]>({
+  return useQuery<SteamPreview>({
     queryKey: ['steam', 'games'],
-    queryFn: () => api<SteamOwnedTitle[]>('/api/accounts/steam/games'),
+    queryFn: () => api<SteamPreview>('/api/accounts/steam/games'),
     enabled,
   });
 }
