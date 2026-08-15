@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import MoviesList from './pages/MoviesList';
 import MusicList from './pages/MusicList';
 import GamesList from './pages/GamesList';
+import ImportSteam from './pages/ImportSteam';
 import EditPage from './pages/EditPage';
 import AddPage from './pages/AddPage';
 import TagsPage from './pages/Tags';
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/music/new" element={<AddPage type="music" />} />
         <Route path="/music/:id" element={<EditPage type="music" />} />
         <Route path="/games" element={<GamesList />} />
+        <Route path="/import/steam" element={<ImportSteam />} />
         <Route path="/games/new" element={<AddPage type="games" />} />
         <Route path="/games/:id" element={<EditPage type="games" />} />
         <Route path="/tags" element={<TagsPage />} />

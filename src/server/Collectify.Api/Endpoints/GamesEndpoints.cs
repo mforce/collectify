@@ -142,6 +142,19 @@ public static class GamesEndpoints
             var ownerId = users.GetUserId(ctx.User)!;
             var g = await db.Games.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             if (g is null) return Results.NotFound();
+
+            // Imported games are linked from GameStoreOwnedTitle via an
+            // ownership-preserving composite FK with Restrict delete behavior.
+            // Clear the ledger link first (same owner-scoped transaction) so
+            // the delete never trips the FK constraint or a NOT NULL violation
+            // on OwnerId. Rows whose Game is deleted revert to "importable".
+            foreach (var link in db.GameStoreOwnedTitles.Where(l => l.GameId == id && l.OwnerId == ownerId))
+            {
+                link.GameId = null;
+                link.ImportedAt = null;
+                link.UpdatedAt = DateTime.UtcNow;
+            }
+
             db.Games.Remove(g);
             await db.SaveChangesAsync();
             return Results.NoContent();

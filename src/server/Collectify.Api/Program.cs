@@ -9,6 +9,7 @@ using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.MusicBrainz;
 using Collectify.Infrastructure.Lookup.Tmdb;
 using Collectify.Infrastructure.Lookup.Upc;
+using Collectify.Infrastructure.Store;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -68,6 +69,7 @@ builder.Services.AddTmdbMovieProvider(builder.Configuration);
 builder.Services.AddMusicBrainzMusicProvider(builder.Configuration);
 builder.Services.AddIgdbGameProvider(builder.Configuration);
 builder.Services.AddVisionClient(builder.Configuration);
+builder.Services.AddSteamStoreImport(builder.Configuration);
 
 // Cover-image cache. Bytes live in the CoverImages table alongside the
 // rest of the data so a backup of collectify.db is a complete snapshot.
@@ -104,6 +106,11 @@ using (var scope = app.Services.CreateScope())
     // Keeps the CoverImages table bounded as users re-scan / relookup
     // metadata over time.
     await scope.ServiceProvider.GetRequiredService<CoverImageGarbageCollector>().SweepAsync(db);
+    // Remove expired/consumed Steam OpenID auth requests so the table doesn't
+    // grow unbounded with abandoned connect attempts.
+    await db.SteamAuthRequests
+        .Where(r => r.Consumed || r.ExpiresAt <= DateTime.UtcNow)
+        .ExecuteDeleteAsync();
 }
 
 app.UseAuthentication();
@@ -118,6 +125,7 @@ app.MapLookupEndpoints();
 app.MapCoversEndpoints();
 app.MapDashboardEndpoints();
 app.MapHealthEndpoints();
+app.MapSteamStoreEndpoints();
 
 var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
 if (Directory.Exists(webRoot))
