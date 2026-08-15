@@ -57,10 +57,7 @@ See [`docs/testing.md`](testing.md) for the full TDD workflow, layered strategy,
 ## Git / GitHub
 
 - One branch per phase / feature: `claude/<short-slug>` for AI-generated work, `feat/<slug>` / `fix/<slug>` for human work.
-- **Conventional commits, and they feed the changelog.** Subjects are `type(scope): summary` — `feat`, `fix`, `perf`, `refactor`, `docs`, plus the hidden `ci` / `build` / `chore` / `test` / `style`. `feat` bumps the minor, `fix` the patch; below 1.0.0 both damp one digit down. release-please reads these to build `CHANGELOG.md` and pick the version — a non-conventional or typo'd prefix silently contributes **no** changelog line and **no** bump. Body explains *why*.
-- **The PR title is the release note.** PRs squash-merge, and for a multi-commit PR GitHub uses the **PR title** as the squashed commit subject — which is exactly what release-please parses. No local hook sees the PR title, so getting its prefix right is on the author and reviewer.
-- **Use the real type names — these look right but silently parse as nothing:** `feature:` (it's `feat:`), `bug:` (it's `fix:`), and any bare prefix like `update`, `wip`, or `Phase 2:`. release-please can't classify an unlisted type, so it contributes no changelog line and no bump — a release whose every commit is mis-typed ships with empty notes. When unsure, `chore:` is the safe hidden-but-parseable default.
-- **Enable the git hooks once per clone:** `git config core.hooksPath .githooks`. `commit-msg` rejects a subject that isn't a conventional header and a body line that would break release-please's parser (catches the single-commit case the PR-title rule can't); `pre-commit` is a fast build tripwire. Skip either with `--no-verify` or `SKIP_HOOKS=1`.
+- **Conventional commits, and they feed the changelog.** The type table, the "PR title is the release note" rule, and how to enable the git hooks live in one place — [README → Contributing](../README.md#contributing). Read it before opening a PR; a non-conventional or typo'd prefix silently costs a changelog line and a version bump.
 - Every PR links its issue with `Closes #<n>` (or `Refs #<n>` for partial work).
 - PR description includes: summary, what's deliberately out, verification steps, test plan checklist.
 
