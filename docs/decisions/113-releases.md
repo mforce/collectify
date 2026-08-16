@@ -140,6 +140,29 @@ The workflow **fails closed** until `RELEASE_APP_CLIENT_ID` and
 cut. The App serves only this workflow (nothing else here needs PR-write), so its
 setup cost lands on one consumer.
 
+## Known limitation: released images are amd64 only
+
+The old tag-triggered `release.yml` built `linux/amd64,linux/arm64`. The
+promotion model publishes **amd64 only**, and that is a deliberate trade, not an
+oversight.
+
+The pipeline's guarantee is that the bytes carrying a version are the exact bytes
+CI scanned and boot-tested. That rests on three single-platform operations on one
+local image: `docker buildx build --load` (single-platform by nature), the Trivy
+scan of the loaded image, the boot smoke test that actually *runs* it, and the
+`docker save`/`--load` handoff to the publish job verified by image Id. A manifest
+list can round-trip through none of those — `--load` and `docker save` are
+single-platform — and arm64 cannot be booted on an amd64 runner without emulation
+(too slow and flaky to gate on).
+
+So restoring arm64 is not a flag flip; it means: build multi-arch and push **by
+digest** (replacing the save/load tarball handoff), scan the native arch and
+trust buildx for the other, and either skip the arm64 boot test or run it under
+QEMU in a separate job. Worth doing when an arm64 self-hoster (Raspberry Pi,
+Apple Silicon) actually needs it; until then the scan-then-promote integrity is
+the higher-value property. State the drop in the release notes so an arm64 user
+isn't surprised by a `no matching manifest` pull error.
+
 ## Known limitation: the assembly version of a released image
 
 CI builds the commit image without passing the Dockerfile `VERSION` build-arg, so

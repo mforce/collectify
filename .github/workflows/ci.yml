@@ -265,6 +265,15 @@ jobs:
       # export a local cache); `--load` puts the result in the local daemon so
       # Trivy scans these freshly built bytes, not a re-pull. The rm/mv rotation
       # replaces the cache instead of accreting layers into it forever.
+      #
+      # AMD64 ONLY, deliberately (see docs/decisions/113-releases.md). `--load` is
+      # single-platform, and that is what lets the same bytes be scanned AND
+      # boot-tested AND handed to publish by image-Id — the guarantee this
+      # pipeline exists to provide. The previous tag-triggered release built
+      # linux/amd64+arm64; the promotion model drops arm64. Restoring it means
+      # building multi-arch and pushing by digest (the save/load handoff can't
+      # carry a manifest list) and boot-testing arm64 under emulation — tracked
+      # for when an arm64 self-hoster actually needs it.
       - name: Build runtime image
         run: |
           set -euo pipefail
@@ -492,7 +501,9 @@ jobs:
       # Provenance attestation (below) needs a registry that stores OCI referrers
       # — GHCR does; verify a custom target does before relying on it.
       - name: Log in to ${{ env.REGISTRY }}
-        uses: docker/login-action@v4
+        # SHA-pinned: docker/* is third-party, so the action-pinning rule requires
+        # a commit, not the mutable `v4` tag. Dependabot reads the trailing comment.
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REGISTRY_USER || 'x-access-token' }}
