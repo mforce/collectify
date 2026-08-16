@@ -164,37 +164,9 @@ Backend dispatch:
 
 ## Contributing
 
-### Enable the git hooks
-
-Once per clone:
-
-```bash
-git config core.hooksPath .githooks
-```
-
-- **`pre-commit`** — a fast build tripwire for the stacks a commit touches (skip with `--no-verify` or `SKIP_HOOKS=1`).
-- **`commit-msg`** — rejects a subject that isn't a conventional header, and a body line that would silently break the changelog (see below). It cannot see a PR title, so a multi-commit PR's title is still yours to get right.
-
-CI runs the full suite (build, xUnit, image build + Trivy, boot smoke) on every PR regardless — the hooks are a local convenience, not a substitute.
-
-### Writing a commit message
-
-Commits (and **PR titles**) are [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`. release-please reads them to build `CHANGELOG.md` and pick the next version.
-
-| type | changelog section | bump | example |
-|---|---|---|---|
-| `feat` | Features | minor | `feat(movies): add UHD Blu-ray format` |
-| `fix` | Bug fixes | patch | `fix(scan): reject empty barcode` |
-| `perf` | Performance | patch | `perf(lookup): cache TMDB responses` |
-| `refactor` | Refactoring | patch | `refactor(api): extract owner filter` |
-| `docs` | Documentation | patch | `docs: note the mkcert TLS option` |
-| `ci` `build` `chore` `test` `style` | *(hidden)* | patch | `chore(deps): bump react-router` |
-
-A `feat!:` subject or a `BREAKING CHANGE:` footer bumps the minor (below 1.0.0) or major (at/above). Hidden types stay out of the changelog *text* but still move the version.
-
-**A prefix that isn't on this list parses as nothing** — no changelog line, no bump, on a green run. The ones that look right but aren't: `feature:` (use `feat:`), `bug:` (use `fix:`), and bare subjects like `update` or `Phase 2:`. When unsure, `chore:` is the safe hidden-but-parseable default.
-
-**Why it matters that PR titles count:** PRs squash-merge, and GitHub uses the **PR title** as the squashed commit subject for a multi-commit PR — so the PR title *is* the release note. A body line that starts at column 1 with a nested-paren shape (`Assert.Single(AllMigrations())`) breaks release-please's parser and drops the **whole** commit from the changelog; the `commit-msg` hook catches that locally and prints the fix.
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the git-hooks setup, the
+conventional-commit rules that drive the changelog (and the two traps that
+silently cost a release entry), and the reviewing checklist.
 
 ### Releases & container images
 

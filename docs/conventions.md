@@ -57,7 +57,7 @@ See [`docs/testing.md`](testing.md) for the full TDD workflow, layered strategy,
 ## Git / GitHub
 
 - One branch per phase / feature: `claude/<short-slug>` for AI-generated work, `feat/<slug>` / `fix/<slug>` for human work.
-- **Conventional commits, and they feed the changelog.** The type table, the "PR title is the release note" rule, and how to enable the git hooks live in one place — [README → Contributing](../README.md#contributing). Read it before opening a PR; a non-conventional or typo'd prefix silently costs a changelog line and a version bump.
+- **Conventional commits, and they feed the changelog.** The type table, the "PR title is the release note" rule, and how to enable the git hooks live in one place — [`CONTRIBUTING.md`](../CONTRIBUTING.md). Read it before opening a PR; a non-conventional or typo'd prefix silently costs a changelog line and a version bump.
 - Every PR links its issue with `Closes #<n>` (or `Refs #<n>` for partial work).
 - PR description includes: summary, what's deliberately out, verification steps, test plan checklist.
 
