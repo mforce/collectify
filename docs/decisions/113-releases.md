@@ -140,28 +140,39 @@ The workflow **fails closed** until `RELEASE_APP_CLIENT_ID` and
 cut. The App serves only this workflow (nothing else here needs PR-write), so its
 setup cost lands on one consumer.
 
-## Known limitation: released images are amd64 only
+## Multi-arch, and where its integrity boundary sits
 
-The old tag-triggered `release.yml` built `linux/amd64,linux/arm64`. The
-promotion model publishes **amd64 only**, and that is a deliberate trade, not an
-oversight.
+Published images are `linux/amd64` **and** `linux/arm64` (Raspberry Pi, Apple
+Silicon, Graviton). This does not weaken the "what ships is what was scanned"
+guarantee to zero, but it does move the boundary, and the move is worth stating
+precisely because it is easy to overclaim.
 
-The pipeline's guarantee is that the bytes carrying a version are the exact bytes
-CI scanned and boot-tested. That rests on three single-platform operations on one
-local image: `docker buildx build --load` (single-platform by nature), the Trivy
-scan of the loaded image, the boot smoke test that actually *runs* it, and the
-`docker save`/`--load` handoff to the publish job verified by image Id. A manifest
-list can round-trip through none of those — `--load` and `docker save` are
-single-platform — and arm64 cannot be booted on an amd64 runner without emulation
-(too slow and flaky to gate on).
+The `image` job does two builds:
 
-So restoring arm64 is not a flag flip; it means: build multi-arch and push **by
-digest** (replacing the save/load tarball handoff), scan the native arch and
-trust buildx for the other, and either skip the arm64 boot test or run it under
-QEMU in a separate job. Worth doing when an arm64 self-hoster (Raspberry Pi,
-Apple Silicon) actually needs it; until then the scan-then-promote integrity is
-the higher-value property. State the drop in the release notes so an arm64 user
-isn't surprised by a `no matching manifest` pull error.
+1. **amd64, `--load`** into the local daemon — this is the one Trivy scans and the
+   smoke test actually *boots*. Native, no emulation.
+2. On a merge, **`linux/amd64,linux/arm64` pushed by digest** (`--output
+   type=image,push-by-digest=true`), reusing the cache warmed by build 1. A
+   manifest list can't round-trip through `docker save`/`--load`, so the two-job
+   handoff is the pushed digest, not a saved tarball; `publish` then tags that
+   exact digest (`docker buildx imagetools create --prefer-index=false`) and
+   attests it. It is **one build behind the gates, not a rebuild in publish.**
+
+So, stated at the strength the argument supports:
+
+- **amd64** is built, scanned, *and booted* — the full guarantee.
+- **arm64** rides the same source, Dockerfile, and warm cache, and Trivy sees its
+  OS/library layers, but it is **not boot-tested** — emulated boot of the .NET
+  runtime + Postgres is too slow and flaky to gate on. A Dockerfile change that
+  breaks *only* the arm64 boot would not be caught here.
+- The old single-arch save/load path could additionally prove
+  scanned==published by image Id. Multi-arch trades that byte-level proof for
+  arch coverage: same source, same cache, one build, digest-pinned.
+
+If arm64 boot coverage is ever wanted, add a separate QEMU smoke job — accepting
+its cost and flake — rather than folding it into this gate. The structural check
+in the `image` job (the pushed manifest must list both `amd64` and `arm64`) at
+least fails loudly if the build ever silently drops back to single-arch.
 
 ## Known limitation: the assembly version of a released image
 

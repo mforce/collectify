@@ -234,15 +234,28 @@ jobs:
     name: Image build + Trivy scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write # the gated multi-arch push-by-digest below (merge/dispatch only)
     outputs:
-      # Local image Id of the scanned image, so the publish job can verify the
-      # artifact handoff carried exactly these bytes.
-      image_id: ${{ steps.export.outputs.image_id }}
+      # The multi-arch MANIFEST-LIST digest pushed on a merge, for the publish
+      # job to tag and attest. Empty on a PR (nothing is pushed).
+      image: ${{ steps.push.outputs.image }}
+      digest: ${{ steps.push.outputs.digest }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || '' }}
+
+      # QEMU registers binfmt handlers so the arm64 layers build under emulation
+      # on this amd64 runner; buildx drives the multi-platform build.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+        with:
+          driver: docker-container # the default builder can't export a local cache
 
       # The key ends in the COMMIT — actions/cache never re-saves an exact-key
       # hit, so a dependency-content-only key would freeze the cache at the first
@@ -259,26 +272,17 @@ jobs:
             image-layers-${{ hashFiles('Dockerfile', 'src/server/**/packages.lock.json', 'src/client/package-lock.json', 'src/server/Directory.Packages.props', 'src/server/Directory.Build.props', '.dockerignore') }}-
             image-layers-
 
-      # Build the exact image the container ships: the multi-stage Dockerfile
-      # compiles the SPA, publishes the API, runs the entrypoint as the app user.
-      # buildx with a docker-container driver (the daemon's default builder can't
-      # export a local cache); `--load` puts the result in the local daemon so
-      # Trivy scans these freshly built bytes, not a re-pull. The rm/mv rotation
+      # Build the amd64 image and `--load` it into the local daemon so Trivy
+      # scans these freshly built bytes and the smoke test boots them — natively,
+      # no emulation. `--load` is single-platform by nature; the arm64 half is
+      # built and pushed later (merge only), reusing the cache warmed here so its
+      # amd64 layers are the exact ones scanned and booted. The rm/mv rotation
       # replaces the cache instead of accreting layers into it forever.
-      #
-      # AMD64 ONLY, deliberately (see docs/decisions/113-releases.md). `--load` is
-      # single-platform, and that is what lets the same bytes be scanned AND
-      # boot-tested AND handed to publish by image-Id — the guarantee this
-      # pipeline exists to provide. The previous tag-triggered release built
-      # linux/amd64+arm64; the promotion model drops arm64. Restoring it means
-      # building multi-arch and pushing by digest (the save/load handoff can't
-      # carry a manifest list) and boot-testing arm64 under emulation — tracked
-      # for when an arm64 self-hoster actually needs it.
-      - name: Build runtime image
+      - name: Build amd64 image for scan + smoke test
         run: |
           set -euo pipefail
-          docker buildx create --driver docker-container --name ci-builder --use
           docker buildx build \
+            --platform linux/amd64 \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             --load -t collectify-api:ci .
@@ -382,36 +386,73 @@ jobs:
           docker rm -f ci-app ci-db >/dev/null 2>&1 || true
           docker network rm collectify-ci >/dev/null 2>&1 || true
 
-      # Hand the VERIFIED image to the publish job. Jobs run on separate runners
-      # with separate Docker daemons, and `needs:` passes only strings, so the
-      # image built above dies with this runner unless carried across. NOT a
-      # rebuild in publish: a second build produces different bytes (fresh
-      # timestamps, layer metadata) and a different digest, so what got published
-      # would be an image this job's scan and smoke test never examined.
-      # Only on a merge to main / dispatch, so PR runs pay none of this.
-      - name: Export the verified image for publishing
-        id: export
+      # Only on a merge to main / dispatch: build the MULTI-ARCH image
+      # (linux/amd64 + linux/arm64) and push it to the registry BY DIGEST — no
+      # tag yet. A manifest list can't round-trip through `docker save`/`--load`
+      # (those are single-platform), so the two-job handoff is the pushed digest,
+      # not a saved tarball.
+      #
+      # THE INTEGRITY BOUNDARY, stated honestly. This is one build behind the same
+      # gates — not a rebuild in the publish job. It reuses the cache warmed by
+      # the scan/boot build above, so the amd64 layers are cache hits, not a
+      # recompile; arm64 builds fresh under emulation. But amd64 is the only arch
+      # the scan and boot test actually exercised — arm64 rides the same source
+      # and toolchain and is scanned by Trivy as layers, yet is NOT itself
+      # boot-tested (emulated boot of the .NET runtime is too slow and flaky to
+      # gate on). If arm64-specific boot coverage is ever needed, add a separate
+      # QEMU smoke job.
+      #
+      # `provenance=false`: the attestation is minted by the publish job
+      # (actions/attest-build-provenance) over this digest — buildx's own inline
+      # provenance would add a second, redundant claim and change the digest.
+      # PR runs never reach this step, so they touch no registry.
+      - name: Log in to ${{ env.REGISTRY }}
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER || 'x-access-token' }}
+          password: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the multi-arch image by digest
+        id: push
         if: |
           (github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'workflow_dispatch'
         run: |
           set -euo pipefail
-          docker save collectify-api:ci | gzip > image.tar.gz
-          printf 'image_id=%s\n' \
-            "$(docker image inspect -f '{{.Id}}' collectify-api:ci)" >> "$GITHUB_OUTPUT"
+          image="$(printf '%s/%s' "$REGISTRY" "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --provenance=false \
+            --output "type=image,name=$image,push-by-digest=true,push=true" \
+            --metadata-file /tmp/meta.json .
 
-      - name: Upload the verified image
-        if: |
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
-          || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v7
-        with:
-          name: runtime-image
-          path: image.tar.gz
-          # Already gzipped — re-zipping would burn a minute for nothing.
-          compression-level: 0
-          # Purely an intra-run handoff; the registry is the durable copy.
-          retention-days: 1
+          # The manifest-list digest the push produced — what image@sha256:… will
+          # resolve to once the publish job tags it.
+          digest="$(jq -r '."containerimage.digest" // empty' /tmp/meta.json)"
+          if ! printf '%s' "$digest" | grep -qE '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::buildx did not report a manifest digest (got '${digest:-empty}')"; exit 1
+          fi
+
+          # Structural check that both arches really shipped, so a silent drop
+          # back to single-platform fails here, not at an arm64 user's deploy.
+          for arch in amd64 arm64; do
+            docker buildx imagetools inspect "$image@$digest" \
+              --format '{{range .Manifest.Manifests}}{{.Platform.Architecture}} {{end}}' \
+              | grep -qw "$arch" \
+              || { echo "::error::pushed image is missing linux/$arch"; exit 1; }
+          done
+
+          printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Log out of the registry
+        if: always()
+        run: docker logout "$REGISTRY" >/dev/null 2>&1 || true
 
   # Publish the image this run verified, named by COMMIT. No version is decided
   # here and no git tag is cut — that is the release workflow's job (#113),
@@ -474,27 +515,6 @@ jobs:
           esac
           printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Download the verified image
-        uses: actions/download-artifact@v8
-        with:
-          name: runtime-image
-
-      # Assert the loaded bytes are the SCANNED bytes, by local image Id. The
-      # whole promise here is "what shipped is what CI gated", and a promise
-      # resting on an argument rather than a check is the one that quietly stops
-      # being true.
-      - name: Load and verify the image
-        env:
-          EXPECTED_ID: ${{ needs.image.outputs.image_id }}
-        run: |
-          set -euo pipefail
-          gunzip -c image.tar.gz | docker load
-          loaded="$(docker image inspect -f '{{.Id}}' collectify-api:ci)"
-          if [ -z "$EXPECTED_ID" ] || [ "$loaded" != "$EXPECTED_ID" ]; then
-            echo "::error::loaded image ${loaded} is not the scanned image ${EXPECTED_ID:-(unset)}"
-            exit 1
-          fi
-
       # Registry is configurable (default GHCR). REGISTRY_USER/REGISTRY_TOKEN
       # target a private registry (Gitea/Harbor); both fall back to the run's own
       # GHCR credentials so the out-of-the-box path needs no repo secrets.
@@ -509,40 +529,41 @@ jobs:
           username: ${{ secrets.REGISTRY_USER || 'x-access-token' }}
           password: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Publish the commit image
+      # The image job already pushed the verified multi-arch bytes BY DIGEST.
+      # Publishing is therefore a server-side name-add — give that exact digest
+      # the `:sha-<commit>` tag — never a rebuild and never a re-push of other
+      # bytes. `--prefer-index=false` copies the manifest list as-is; the default
+      # would wrap it in a new index with a different top-level digest, so the tag
+      # would no longer resolve to the digest that gets attested below.
+      - name: Tag the verified digest as the commit image
         id: publish
         env:
           SHA: ${{ steps.target.outputs.sha }}
+          IMAGE: ${{ needs.image.outputs.image }}
+          DIGEST: ${{ needs.image.outputs.digest }}
         run: |
           set -euo pipefail
-          # Registries reject uppercase; the owner/repo casing is not ours to assume.
-          image="$(printf '%s/%s' "$REGISTRY" "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+          if [ -z "$IMAGE" ] || ! printf '%s' "$DIGEST" | grep -qE '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::image job did not hand off a pushed digest (image='${IMAGE:-}', digest='${DIGEST:-}')"; exit 1
+          fi
+          docker buildx imagetools create --prefer-index=false \
+            --tag "$IMAGE:sha-$SHA" "$IMAGE@$DIGEST"
 
-          # Named by commit, so this can only ever be rewritten by a re-run of the
-          # same commit — with bytes that passed the same gates. No version tag to
-          # collide over, nothing to overwrite.
-          docker tag collectify-api:ci "$image:sha-$SHA"
-          docker push "$image:sha-$SHA"
-
-          # The MANIFEST digest — what `image@sha256:...` resolves to — exists
-          # only once the image is in a registry; before the push RepoDigests is
-          # empty. (The local image Id is a different hash: the config blob.)
-          # Filter to THIS repository's entry rather than taking the first line.
-          digest="$(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$image:sha-$SHA" \
-            | grep -F "$image@" | grep -oE 'sha256:[0-9a-f]{64}' | head -1 || true)"
-          if [ -z "$digest" ]; then
-            echo "::error::no manifest digest after push — refusing to report an unpinnable image"
-            exit 1
+          # Confirm the new tag resolves to exactly the digest we attest below.
+          after="$(docker buildx imagetools inspect "$IMAGE:sha-$SHA" \
+            --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          if [ "$after" != "$DIGEST" ]; then
+            echo "::error::$IMAGE:sha-$SHA resolves to $after, not the pushed $DIGEST"; exit 1
           fi
 
-          printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
-          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+          printf 'image=%s\n' "$IMAGE" >> "$GITHUB_OUTPUT"
+          printf 'digest=%s\n' "$DIGEST" >> "$GITHUB_OUTPUT"
 
           # Recorded as an artifact of THIS run, which is what the release
           # workflow promotes from. A registry tag is mutable by anyone holding
           # push rights; an artifact is bound to the run that produced it, so
           # promotion cannot be fed a digest this job did not publish.
-          printf '%s\n' "$digest" > published-digest.txt
+          printf '%s\n' "$DIGEST" > published-digest.txt
 
           {
             echo "### Published \`sha-$SHA\`"
@@ -550,7 +571,7 @@ jobs:
             echo "Not yet a release — merge the release PR to promote a version."
             echo
             echo '```'
-            echo "$image@$digest"
+            echo "$IMAGE@$DIGEST"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 

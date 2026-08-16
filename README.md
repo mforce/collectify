@@ -177,7 +177,7 @@ Two stages, deliberately separate — **CI publishes an image per merge; the rel
 
 The version tag therefore always points at bytes CI already gated. The release stays a draft until promotion succeeds, so a failed promotion leaves no tag pointing at nothing.
 
-> **Published images are `linux/amd64` only.** The scan-and-boot-test guarantee is single-platform; arm64 (Raspberry Pi, Apple Silicon) is not currently published. See [`docs/decisions/113-releases.md`](docs/decisions/113-releases.md) for the trade-off and what restoring it would take.
+> **Images are multi-arch (`linux/amd64` + `linux/arm64`)**, so they pull on Raspberry Pi, Apple Silicon, and Graviton as well as x86. amd64 is scanned *and* boot-tested; arm64 is built from the same source and scanned but not boot-tested — see [`docs/decisions/113-releases.md`](docs/decisions/113-releases.md) for exactly where that boundary sits.
 
 **Deploy by digest, never by tag** — a tag can be moved, a digest cannot. Every release carries an `image.json` asset with the exact reference:
 
