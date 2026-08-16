@@ -54,7 +54,7 @@ dispatch reports the branch tip as its `head_sha`, not the commit it built — a
 run-keyed lookup would miss exactly the case the repair path exists for.
 
 **Invariant, and it is load-bearing:** the artifact exists only if `publish` ran,
-and `publish` requires `build-and-test`, `client` and `image` to have passed — so
+and `publish` requires `build-and-test`, `client`, `entrypoint` and `image` to have passed — so
 its existence *is* the proof those gates passed. A CI job that should gate a
 release MUST be added to `publish.needs` in `ci.yml`, or it can be red while
 publish still records a digest. Nothing enforces this; the list is hand-kept.
@@ -161,10 +161,12 @@ The `image` job does two builds:
 So, stated at the strength the argument supports:
 
 - **amd64** is built, scanned, *and booted* — the full guarantee.
-- **arm64** rides the same source, Dockerfile, and warm cache, and Trivy sees its
-  OS/library layers, but it is **not boot-tested** — emulated boot of the .NET
-  runtime + Postgres is too slow and flaky to gate on. A Dockerfile change that
-  breaks *only* the arm64 boot would not be caught here.
+- **arm64** is built from the same source and cache and **is Trivy-scanned**
+  independently (the `image` job pulls the arm64 child of the pushed digest and
+  holds it to the same HIGH/CRITICAL fixable gate). What it does **not** get is
+  the boot test — emulated boot of the .NET runtime + Postgres is too slow and
+  flaky to gate on, so a Dockerfile change that breaks *only* the arm64 boot
+  would not be caught here.
 - The old single-arch save/load path could additionally prove
   scanned==published by image Id. Multi-arch trades that byte-level proof for
   arch coverage: same source, same cache, one build, digest-pinned.
@@ -174,16 +176,29 @@ its cost and flake — rather than folding it into this gate. The structural che
 in the `image` job (the pushed manifest must list both `amd64` and `arm64`) at
 least fails loudly if the build ever silently drops back to single-arch.
 
-## Known limitation: the assembly version of a released image
+## The version `/api/health` reports
 
-CI builds the commit image without passing the Dockerfile `VERSION` build-arg, so
-the published assembly's `InformationalVersion` is the `0.0.0` default and
-`/api/health` reports `0.0.0` regardless of the release tag. This is inherent to
-promotion — the version lives in the git tag, the release notes, and the
-`image.json` asset, not in the bytes (re-stamping the version would rebuild them
-and break the "what shipped is what was scanned" guarantee). If a self-reported
-version is wanted later, stamp the commit SHA at CI build time (already unique
-per commit) rather than the release version.
+Promotion never rebuilds, so the version can't be stamped *at release time* —
+the bytes are frozen before the version is decided. It is instead stamped **at
+build time from `version.txt`**, and that turns out to give the right answer for
+the case that matters:
+
+- release-please bumps `version.txt` **inside the release commit** (the "simple"
+  strategy owns that file). CI builds the image for that exact commit, and
+  promotion retags that exact image — so a **released** image's `/api/health`
+  reports the real release version (e.g. `0.0.8+<sha>`).
+- An **interim** commit image (between releases) reports `<last release>+<sha>`
+  (e.g. `0.0.7+abc1234`) — the last shipped version plus the build's short SHA as
+  SemVer build metadata, so every commit image is still individually identifiable.
+
+Mechanically: CI passes `VERSION=<version.txt>` (a bare `X.Y.Z`, because
+`AssemblyVersion` rejects build metadata) and
+`INFORMATIONAL_VERSION=<version.txt>+<short-sha>`; `HealthEndpoints` reads
+`InformationalVersion`. `IncludeSourceRevisionInInformationalVersion=false` keeps
+.NET from appending its own git-hash suffix on top. This is not release-tag
+identity in the strict sense — the authoritative pin is still the tag / digest /
+`image.json` asset — but `/api/health` is now traceable rather than a constant
+`0.0.0`.
 
 ## Bootstrap
 

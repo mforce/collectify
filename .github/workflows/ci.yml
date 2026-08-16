@@ -272,6 +272,22 @@ jobs:
             image-layers-${{ hashFiles('Dockerfile', 'src/server/**/packages.lock.json', 'src/client/package-lock.json', 'src/server/Directory.Packages.props', 'src/server/Directory.Build.props', '.dockerignore') }}-
             image-layers-
 
+      # Stamp the image with a version /api/health can report. The base is
+      # version.txt AT THIS COMMIT: release-please bumps it IN the release commit,
+      # which is the exact commit CI builds and promotion later retags — so the
+      # promoted release image reports the real release version (e.g. 0.0.8),
+      # while an interim commit image reports <last release>+<sha>. The +sha rides
+      # InformationalVersion only (what /api/health reads); VERSION stays a bare
+      # X.Y.Z because AssemblyVersion rejects build metadata.
+      - name: Compute image version stamp
+        id: ver
+        run: |
+          set -euo pipefail
+          ver="$(tr -d ' \n\r' < version.txt)"
+          short="$(git rev-parse --short HEAD)"
+          printf 'version=%s\n' "$ver" >> "$GITHUB_OUTPUT"
+          printf 'informational=%s+%s\n' "$ver" "$short" >> "$GITHUB_OUTPUT"
+
       # Build the amd64 image and `--load` it into the local daemon so Trivy
       # scans these freshly built bytes and the smoke test boots them — natively,
       # no emulation. `--load` is single-platform by nature; the arm64 half is
@@ -283,6 +299,8 @@ jobs:
           set -euo pipefail
           docker buildx build \
             --platform linux/amd64 \
+            --build-arg VERSION="${{ steps.ver.outputs.version }}" \
+            --build-arg INFORMATIONAL_VERSION="${{ steps.ver.outputs.informational }}" \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
             --load -t collectify-api:ci .
@@ -395,12 +413,12 @@ jobs:
       # THE INTEGRITY BOUNDARY, stated honestly. This is one build behind the same
       # gates — not a rebuild in the publish job. It reuses the cache warmed by
       # the scan/boot build above, so the amd64 layers are cache hits, not a
-      # recompile; arm64 builds fresh under emulation. But amd64 is the only arch
-      # the scan and boot test actually exercised — arm64 rides the same source
-      # and toolchain and is scanned by Trivy as layers, yet is NOT itself
-      # boot-tested (emulated boot of the .NET runtime is too slow and flaky to
-      # gate on). If arm64-specific boot coverage is ever needed, add a separate
-      # QEMU smoke job.
+      # recompile; arm64 builds fresh under emulation. BOTH arches are Trivy-
+      # scanned (amd64 above from the --load image, arm64 below from the pushed
+      # digest). What only amd64 gets is the BOOT test — arm64 rides the same
+      # source and toolchain but is not itself booted (emulated boot of the .NET
+      # runtime is too slow and flaky to gate on). If arm64-specific boot coverage
+      # is ever needed, add a separate QEMU smoke job.
       #
       # `provenance=false`: the attestation is minted by the publish job
       # (actions/attest-build-provenance) over this digest — buildx's own inline
@@ -426,6 +444,8 @@ jobs:
           image="$(printf '%s/%s' "$REGISTRY" "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
+            --build-arg VERSION="${{ steps.ver.outputs.version }}" \
+            --build-arg INFORMATIONAL_VERSION="${{ steps.ver.outputs.informational }}" \
             --cache-from type=local,src=/tmp/.buildx-cache \
             --provenance=false \
             --output "type=image,name=$image,push-by-digest=true,push=true" \
@@ -450,6 +470,31 @@ jobs:
           printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
           printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
 
+      # The amd64 scan above (`collectify-api:ci`) never saw the arm64 image's
+      # arch-specific base layers. Hold arm64 to the same HIGH/CRITICAL fixable
+      # gate: Trivy scans the arm64 child of the just-pushed manifest directly
+      # from the registry — `TRIVY_PLATFORM` makes it pull the arm64 variant, so
+      # this works on an amd64 runner (Trivy reads layers, never runs them).
+      # Scanning by `image@digest` (not a docker-loaded tag) avoids the amd64 host
+      # silently resolving a manifest list back to its amd64 child. Registry auth
+      # rides the docker login from the push step above. Merge/dispatch only.
+      - name: Scan arm64 image for HIGH/CRITICAL vulnerabilities
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'workflow_dispatch'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.push.outputs.image }}@${{ steps.push.outputs.digest }}
+          scan-type: image
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+        env:
+          TRIVY_PLATFORM: linux/arm64
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Log out of the registry
         if: always()
         run: docker logout "$REGISTRY" >/dev/null 2>&1 || true
@@ -461,8 +506,8 @@ jobs:
   # it idempotent per commit and impossible to race: two merges publish two
   # different names.
   #
-  # Gated on build-and-test, client AND image: those run in parallel, so only a
-  # job downstream of all three knows the run was green.
+  # Gated on build-and-test, client, entrypoint AND image: those run in parallel,
+  # so only a job downstream of all four knows the run was green.
   #
   # INVARIANT: this `needs` list is exactly what "the image passed CI" means to
   # the release workflow. A CI job that should gate a release MUST be added here,

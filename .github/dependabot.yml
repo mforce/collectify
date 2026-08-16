@@ -27,6 +27,15 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+        # Keep the high-privilege, bundled-`dist/` actions OUT of the group so
+        # their bumps arrive standalone and get read on their own — a retargeted
+        # bump buried in a routine grouped PR is the exact tj-actions/trivy shape.
+        # release-please-action holds the App token (contents+PR write);
+        # trivy-action and create-github-app-token are the other sensitive ones.
+        exclude-patterns:
+          - "googleapis/release-please-action"
+          - "aquasecurity/trivy-action"
+          - "actions/create-github-app-token"
 
   - package-ecosystem: "npm"
     directory: "/src/client"

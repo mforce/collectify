@@ -202,7 +202,7 @@ jobs:
           # that built and scanned those bytes. Found by ARTIFACT NAME (repo-wide),
           # so a repair dispatch is found too — a dispatched run reports the branch
           # tip as head_sha, not the commit it built. The artifact exists only if
-          # publish ran, and publish requires build-and-test, client and image to
+          # publish ran, and publish requires build-and-test, client, entrypoint and image to
           # have passed — so its existence proves those gates passed.
           artifact="published-digest-$RELEASE_SHA"
           run_id=""

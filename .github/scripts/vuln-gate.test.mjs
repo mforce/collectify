@@ -16,6 +16,7 @@ import {
   extractJson,
   gate,
   isGhsaId,
+  isKnownLevel,
   isValidException,
   parseArgs,
   parseNpm,
@@ -42,6 +43,29 @@ test("severity ranks follow the shared npm/NuGet ladder", () => {
   assert.ok(severityRank("high") > severityRank("moderate"));
   assert.ok(severityRank("moderate") > severityRank("low"));
   assert.equal(severityRank("HIGH"), severityRank("high")); // NuGet capitalises
+});
+
+test("isKnownLevel accepts the ladder and rejects a typo'd threshold", () => {
+  for (const l of ["info", "low", "moderate", "high", "critical", "HIGH"]) assert.ok(isKnownLevel(l));
+  // The exact fail-open landmine: a threshold typo must be caught, not gated on.
+  assert.ok(!isKnownLevel("hihg"));
+  assert.ok(!isKnownLevel("severe"));
+  assert.ok(!isKnownLevel(""));
+  assert.ok(!isKnownLevel(undefined));
+});
+
+test("a lapsed exception is reported stale regardless of ecosystem CASE", () => {
+  // inScope must match the case-insensitivity of validation/suppression, or an
+  // expired "ANY"/"NPM" entry never gets its "remove me" warning.
+  for (const ecosystem of ["ANY", "Npm"]) {
+    const result = gate({
+      findings: [finding()],
+      exceptions: [exception({ ecosystem, expires: "2026-07-23" })],
+      ecosystem: "npm",
+      now: NOW,
+    });
+    assert.equal(result.staleExceptions.length, 1, `stale "${ecosystem}" must still be reported`);
+  }
 });
 
 test("an unknown or missing severity fails CLOSED — ranks above critical", () => {

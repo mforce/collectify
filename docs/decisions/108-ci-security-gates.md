@@ -43,6 +43,22 @@ there is no point gating on an untested gate.
 - **security-audit.yml, scheduled** — the same gates on a Monday cron, because
   the CI gates only run when CI runs, so an advisory against a dependency nobody
   is touching would otherwise go unnoticed until the next PR.
+- **codeql.yml, advisory SAST** — CodeQL scans C# and TypeScript; findings show
+  as neutral PR annotations (the file itself carries the query/build-mode
+  rationale).
+
+### Required one-time repo setting: turn OFF CodeQL "default setup"
+
+`codeql.yml` is an **advanced** CodeQL configuration. GitHub refuses to ingest an
+advanced workflow's SARIF while **default setup** is enabled, so the `Analyze`
+jobs stay red — `"CodeQL analyses from advanced configurations cannot be
+processed when the default setup is enabled"` — until an owner switches it off:
+**Settings → Code security → Code scanning → CodeQL analysis → `…` → Switch to
+advanced** (which disables default setup). This is a repo-settings step no commit
+can perform, and the check is red on `main` too until it is done. Same shape as
+the Dependency-graph toggle the `dependency-review` job probes for — except
+CodeQL's upload can't self-skip, so this one must be flipped by hand before the
+gate is green.
 
 ### The exceptions file
 

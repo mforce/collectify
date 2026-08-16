@@ -43,6 +43,14 @@ export function severityRank(severity) {
   return i < 0 ? UNKNOWN_RANK : i;
 }
 
+// A gate THRESHOLD must be a known level. Unlike a finding's severity (which
+// fails closed by ranking an unknown value above critical), an unknown
+// threshold fails OPEN — nothing reaches an inflated floor — so `main` rejects
+// it outright rather than silently gating on nothing.
+export function isKnownLevel(level) {
+  return SEVERITIES.includes(String(level ?? "").toLowerCase());
+}
+
 // Both ecosystems point their advisory URLs at GitHub Security Advisories, so a
 // GHSA id is the one key that means the same thing on both sides — that is what
 // an exception is written against. Numeric npm ids / package coordinates are
@@ -187,7 +195,12 @@ export function gate({ findings, exceptions = [], ecosystem, level = "high", now
     .filter((e) => !isValidException(e))
     .map((e) => ({ raw: e, problem: exceptionProblem(e) }));
 
-  const inScope = (e) => e.ecosystem === "any" || e.ecosystem.toLowerCase() === ecosystem;
+  // Case-insensitive, matching how validation and suppression read `ecosystem`:
+  // a lapsed `"ANY"` / `"NPM"` entry must still get its "remove me" warning.
+  const inScope = (e) => {
+    const scope = String(e.ecosystem).toLowerCase();
+    return scope === "any" || scope === ecosystem;
+  };
 
   const suppressed = [];
   const blocking = [];
@@ -295,10 +308,20 @@ async function readStdin() {
 }
 
 function loadExceptions(path) {
+  let text;
   try {
-    return JSON.parse(readFileSync(path, "utf8")).exceptions ?? [];
+    text = readFileSync(path, "utf8");
   } catch {
-    return []; // no file → empty allowlist, the normal case
+    return []; // no file → empty allowlist, the normal (and most common) case
+  }
+  // The file EXISTS but doesn't parse. Returning [] is the safe direction (more
+  // blocking, never less), but do it loudly — a silently-ignored exceptions file
+  // means every entry someone thinks is muting an advisory is doing nothing.
+  try {
+    return JSON.parse(text).exceptions ?? [];
+  } catch (err) {
+    console.error(`::warning::[exceptions] ${path} exists but is not valid JSON (${err.message}); ignoring it — no exception is being applied.`);
+    return [];
   }
 }
 
@@ -314,6 +337,18 @@ async function main() {
 
   if (options.ecosystem !== "npm" && options.ecosystem !== "nuget") {
     console.error("usage: vuln-gate.mjs --ecosystem npm|nuget [--level high] [--warn-only]");
+    process.exitCode = 2;
+    return;
+  }
+
+  // Validate --level against the known ladder. severityRank() deliberately ranks
+  // an unknown *finding* severity ABOVE critical (fail closed) — but the same
+  // rule applied to the THRESHOLD fails OPEN: a typo like `--level hihg` sets a
+  // floor nothing can reach, so every advisory reads as "below threshold" and
+  // the gate exits 0. A gate that silently stops gating on a typo is the worst
+  // kind, so reject an unknown level outright.
+  if (!isKnownLevel(options.level)) {
+    console.error(`::error::[${options.ecosystem}] unknown --level '${options.level}' (expected one of: ${SEVERITIES.join(", ")})`);
     process.exitCode = 2;
     return;
   }

@@ -16,10 +16,16 @@ RUN npm run build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:e1fc6e423f543119c406d24e2e687d67c569f18f04a37a8b0005d80ad0dcee80 AS server-build
 WORKDIR /server
-# Stamped into the published assembly so /api/health reports the
-# release version. Defaults to 0.0.0 for local builds; the release
-# workflow passes --build-arg VERSION=<git tag without leading v>.
+# Stamped into the published assembly; /api/health reads the informational
+# version. Both default to 0.0.0 for a local build. CI passes version.txt's
+# content as VERSION and `<version>+<short-sha>` as INFORMATIONAL_VERSION.
+# Because release-please bumps version.txt IN the release commit — the exact
+# commit CI builds and promotion retags — the promoted release image reports the
+# real release version (e.g. 0.0.8+abc1234), while an interim commit image
+# reports <last release>+<sha>. VERSION stays a bare X.Y.Z so AssemblyVersion,
+# which rejects build metadata, is happy; the `+sha` rides InformationalVersion.
 ARG VERSION=0.0.0
+ARG INFORMATIONAL_VERSION=0.0.0
 COPY src/server/ ./
 # --locked-mode: restore must match the committed packages.lock.json exactly, so
 # the image cannot be built against a dependency graph that drifted from the one
@@ -30,7 +36,8 @@ COPY --from=client-build /client/dist ./Collectify.Api/wwwroot
 RUN dotnet publish Collectify.Api/Collectify.Api.csproj -c Release -o /app/publish \
     /p:UseAppHost=false \
     /p:Version=${VERSION} \
-    /p:InformationalVersion=${VERSION}
+    /p:InformationalVersion=${INFORMATIONAL_VERSION} \
+    /p:IncludeSourceRevisionInInformationalVersion=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:207cc51496778557731c81ff670333d8ade4a4fec22768fd1be8e78474a84ecf AS runtime
 WORKDIR /app
