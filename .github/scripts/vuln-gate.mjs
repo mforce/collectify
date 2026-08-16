@@ -186,7 +186,16 @@ function matches(exception, finding, ecosystem) {
 }
 
 export function gate({ findings, exceptions = [], ecosystem, level = "high", now = new Date() }) {
-  const floor = severityRank(level);
+  // Validate the THRESHOLD here too, not only in main(): gate() is the exported
+  // entry point, so a second caller (security-audit, a test, a future step) that
+  // skips main()'s check would otherwise silently reintroduce the fail-open bug.
+  // Throw rather than rank, and read the floor from SEVERITIES.indexOf directly —
+  // severityRank() ranks an unknown value ABOVE critical (right for a finding,
+  // wrong for a floor), which is exactly the trap that opened the gate.
+  if (!isKnownLevel(level)) {
+    throw new Error(`unknown severity level '${level}' (expected one of: ${SEVERITIES.join(", ")})`);
+  }
+  const floor = SEVERITIES.indexOf(String(level).toLowerCase());
   const atOrAbove = findings.filter((f) => severityRank(f.severity) >= floor);
 
   const valid = exceptions.filter(isValidException);
@@ -317,12 +326,23 @@ function loadExceptions(path) {
   // The file EXISTS but doesn't parse. Returning [] is the safe direction (more
   // blocking, never less), but do it loudly — a silently-ignored exceptions file
   // means every entry someone thinks is muting an advisory is doing nothing.
+  let parsed;
   try {
-    return JSON.parse(text).exceptions ?? [];
+    parsed = JSON.parse(text);
   } catch (err) {
     console.error(`::warning::[exceptions] ${path} exists but is not valid JSON (${err.message}); ignoring it — no exception is being applied.`);
     return [];
   }
+  // Parsed, but the wrong SHAPE: `exceptions` missing or not an array. Returning
+  // [] is still the safe direction, but say why — a raw `exceptions.filter is not
+  // a function` stack trace beside a file meant to be legible helps no operator.
+  const list = parsed?.exceptions;
+  if (list === undefined) return [];
+  if (!Array.isArray(list)) {
+    console.error(`::warning::[exceptions] ${path} has a non-array "exceptions" key (got ${typeof list}); ignoring it — no exception is being applied.`);
+    return [];
+  }
+  return list;
 }
 
 async function main() {

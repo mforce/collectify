@@ -9,6 +9,18 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// Spawn the REAL CLI. A pure-predicate test on isKnownLevel does not exercise
+// main(), which is where the fail-open lived — deleting main()'s guard must make
+// a test go red, so these drive the process end to end via stdin/exit code.
+const SCRIPT = fileURLToPath(new URL("./vuln-gate.mjs", import.meta.url));
+const runCli = (args, stdin) =>
+  spawnSync(process.execPath, [SCRIPT, ...args], { input: stdin, encoding: "utf8" });
 import {
   advisoryId,
   emitAllowlist,
@@ -52,6 +64,40 @@ test("isKnownLevel accepts the ladder and rejects a typo'd threshold", () => {
   assert.ok(!isKnownLevel("severe"));
   assert.ok(!isKnownLevel(""));
   assert.ok(!isKnownLevel(undefined));
+});
+
+test("CLI: a typo'd --level exits 2; a valid level still gates (exit 1)", () => {
+  const critical = JSON.stringify({
+    auditReportVersion: 2,
+    vulnerabilities: {
+      m: { name: "m", via: [{ source: 1, name: "m", severity: "critical", url: `https://github.com/advisories/${GHSA_ONE}` }] },
+    },
+  });
+  // Control: at a real level a critical advisory blocks (exit 1). Without this,
+  // the typo assertion below could pass by failing for an unrelated reason.
+  const ok = runCli(["--ecosystem", "npm", "--level", "high", "--exceptions", "/nonexistent"], critical);
+  assert.equal(ok.status, 1, `control expected exit 1, got ${ok.status}\n${ok.stdout}${ok.stderr}`);
+  // The regression itself: a threshold typo must be rejected (exit 2), never
+  // silently reported "below threshold" with exit 0. Delete main()'s guard and
+  // this goes red — which the isKnownLevel unit test alone did not.
+  const typo = runCli(["--ecosystem", "npm", "--level", "hihg", "--exceptions", "/nonexistent"], critical);
+  assert.equal(typo.status, 2, `typo'd level expected exit 2, got ${typo.status}\n${typo.stdout}${typo.stderr}`);
+});
+
+test("gate() itself throws on an unknown threshold — the exported API can't fail open", () => {
+  assert.throws(() => gate({ findings: [], ecosystem: "npm", level: "hihg" }), /unknown severity level/);
+  // A valid level still computes the right floor.
+  assert.equal(gate({ findings: [finding()], ecosystem: "npm", level: "high", now: NOW }).blocking.length, 1);
+});
+
+test("CLI: a non-array 'exceptions' key warns and does not crash", () => {
+  const path = join(tmpdir(), `vuln-gate-exceptions-${process.pid}.json`);
+  writeFileSync(path, '{"exceptions":{"id":"x"}}'); // object, not array
+  const clean = JSON.stringify({ auditReportVersion: 2, vulnerabilities: {} });
+  const r = runCli(["--ecosystem", "npm", "--exceptions", path], clean);
+  assert.equal(r.status, 0, `clean audit + ignored exceptions should pass, got ${r.status}`);
+  assert.match(r.stderr, /non-array/); // a reason, not a raw `exceptions.filter is not a function`
+  assert.doesNotMatch(r.stderr, /is not a function/);
 });
 
 test("a lapsed exception is reported stale regardless of ecosystem CASE", () => {
