@@ -1,5 +1,5 @@
 import CollectionList from '../components/CollectionList';
-import { MUSIC_FORMATS, type Album } from '../services/types';
+import { musicFormatLabel, type Album } from '../services/types';
 
 export default function MusicList() {
   return (
@@ -11,7 +11,7 @@ export default function MusicList() {
       renderItem={(a: Album) => ({
         primary: a.title,
         secondary: [a.artistName, a.year].filter(Boolean).join(' · '),
-        tertiary: MUSIC_FORMATS.find((f) => f.value === a.format)?.label,
+        tertiary: musicFormatLabel(a.format),
       })}
     />
   );

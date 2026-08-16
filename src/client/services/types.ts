@@ -136,15 +136,13 @@ export type GamePlatform =
   | 'Ps1' | 'Ps2' | 'Ps3' | 'Ps4' | 'Ps5' | 'Psp' | 'PsVita'
   | 'Nes' | 'Snes' | 'N64' | 'GameCube' | 'Wii' | 'WiiU' | 'Switch' | 'Switch2'
   | 'GameBoy' | 'GameBoyColor' | 'GameBoyAdvance' | 'NintendoDs' | 'Nintendo3Ds'
-  | 'SegaGenesis' | 'SegaSaturn' | 'SegaDreamcast'
-  | 'SteamDeck';
+  | 'SegaGenesis' | 'SegaSaturn' | 'SegaDreamcast';
 
 export const GAME_PLATFORMS: { value: GamePlatform; label: string; group?: string }[] = [
   { value: 'Pc',             label: 'PC',                       group: 'Computer' },
   { value: 'Mac',            label: 'Mac',                      group: 'Computer' },
   { value: 'Linux',          label: 'Linux',                    group: 'Computer' },
   { value: 'Mobile',         label: 'Mobile',                   group: 'Computer' },
-  { value: 'SteamDeck',      label: 'Steam Deck',               group: 'Computer' },
 
   { value: 'XboxOriginal',   label: 'Xbox (original)',          group: 'Xbox' },
   { value: 'Xbox360',        label: 'Xbox 360',                 group: 'Xbox' },
@@ -182,6 +180,30 @@ export const GAME_PLATFORMS: { value: GamePlatform; label: string; group?: strin
 
 export function gamePlatformLabel(value: GamePlatform): string {
   return GAME_PLATFORMS.find((p) => p.value === value)?.label ?? value;
+}
+
+// Shared label helpers so display code never open-codes `.find(...)?.label`
+// against these tables (acceptance criterion for #95). Each returns the
+// label for a member, or undefined when the member is unknown -- call sites
+// decide whether to fall back to the raw value or hide.
+export function collectionStatusLabel(value: CollectionStatus): string | undefined {
+  return COLLECTION_STATUSES.find((s) => s.value === value)?.label;
+}
+
+export function conditionLabel(value: Condition): string | undefined {
+  return CONDITIONS.find((c) => c.value === value)?.label;
+}
+
+export function watchStatusLabel(value: WatchStatus): string | undefined {
+  return WATCH_STATUSES.find((w) => w.value === value)?.label;
+}
+
+export function completionStatusLabel(value: CompletionStatus): string | undefined {
+  return COMPLETION_STATUSES.find((c) => c.value === value)?.label;
+}
+
+export function musicFormatLabel(value: MusicFormat): string | undefined {
+  return MUSIC_FORMATS.find((f) => f.value === value)?.label;
 }
 
 export interface Game extends CollectionItemBase {

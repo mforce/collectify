@@ -18,7 +18,10 @@ public static class GamePlatformMapping
 {
     private static readonly (GamePlatform Value, string[] Aliases)[] Aliases = new[]
     {
-        (GamePlatform.Pc, new[] { "pc", "windows", "microsoft windows" }),
+        // A Steam Deck runs SteamOS (Linux) / Windows and plays desktop-PC
+        // games, so it classifies as Pc. The "how you got it" dimension is
+        // IsDigital + DigitalStore (Steam), not the platform.
+        (GamePlatform.Pc, new[] { "pc", "windows", "microsoft windows", "steam deck", "steamdeck" }),
         (GamePlatform.Mac, new[] { "mac", "macos", "mac os", "macintosh", "osx" }),
         (GamePlatform.Linux, new[] { "linux" }),
         (GamePlatform.Mobile, new[] { "mobile", "ios", "iphone", "ipad", "android" }),
@@ -54,8 +57,6 @@ public static class GamePlatformMapping
         (GamePlatform.SegaGenesis, new[] { "genesis", "sega genesis", "mega drive", "sega mega drive" }),
         (GamePlatform.SegaSaturn, new[] { "saturn", "sega saturn" }),
         (GamePlatform.SegaDreamcast, new[] { "dreamcast", "sega dreamcast" }),
-
-        (GamePlatform.SteamDeck, new[] { "steam deck", "steamdeck" }),
     };
 
     private static readonly Dictionary<string, GamePlatform> Lookup = BuildLookup();

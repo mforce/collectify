@@ -56,6 +56,8 @@ public enum GamePlatform
     SegaSaturn = 51,
     SegaDreamcast = 52,
 
-    // PC handheld
-    SteamDeck = 60,
+    // 60 = retired (was SteamDeck, #103). DO NOT REUSE. GamePlatformBackfill
+    // rewrites any row still holding 60 to Pc on every startup; a new member
+    // assigned 60 would be silently clobbered back to Pc forever. The retired
+    // set is pinned in EnumParityTests.ReservedValues.
 }

@@ -25,7 +25,11 @@ public class GamePlatformMappingTests
     [InlineData("GBA", GamePlatform.GameBoyAdvance)]
     [InlineData("Mega Drive", GamePlatform.SegaGenesis)]
     [InlineData("Sega Genesis", GamePlatform.SegaGenesis)]
-    [InlineData("Steam Deck", GamePlatform.SteamDeck)]
+    // A Steam Deck is a PC (SteamOS/Linux or Windows); it classifies as Pc.
+    // The delivery dimension is IsDigital + DigitalStore (Steam), not the
+    // platform (see #103).
+    [InlineData("Steam Deck", GamePlatform.Pc)]
+    [InlineData("Steamdeck", GamePlatform.Pc)]
     public void TryParse_MapsKnownAliases_CaseAndPunctuationInsensitive(string raw, GamePlatform expected)
     {
         Assert.Equal(expected, GamePlatformMapping.TryParse(raw));

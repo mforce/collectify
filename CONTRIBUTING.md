@@ -14,8 +14,7 @@ people route around. See [`.githooks/README.md`](.githooks/README.md).
 ## Branches and PRs
 
 - `main` is protected. Branch, push, open a PR.
-- Branch names: `claude/…` for AI-generated work; `feat/…`, `fix/…`, `chore/…`,
-  `docs/…` for human work.
+- Branch names: `feat/…`, `fix/…`, `chore/…`, `docs/…`.
 - PRs squash-merge. Link the issue with `Closes #<n>` (or `Refs #<n>` for partial
   work).
 
