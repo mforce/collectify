@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine AS client-build
+# Base images are pinned to immutable digests, not floating tags, so a rebuild
+# reproduces the exact bytes CI's Trivy scan cleared. A pinned digest never moves
+# on its own, so Dependabot's `docker` ecosystem owns bumping these (see
+# .github/dependabot.yml) and the Trivy gate then confirms the new base is clean.
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS client-build
 WORKDIR /client
 # Silence npm's update-notifier "new version available" notice in
 # build logs. Real warnings (deprecations, audit findings) still surface.
@@ -10,21 +14,32 @@ RUN npm install --no-audit --no-fund
 COPY src/client/ ./
 RUN npm run build
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS server-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:e1fc6e423f543119c406d24e2e687d67c569f18f04a37a8b0005d80ad0dcee80 AS server-build
 WORKDIR /server
-# Stamped into the published assembly so /api/health reports the
-# release version. Defaults to 0.0.0 for local builds; the release
-# workflow passes --build-arg VERSION=<git tag without leading v>.
+# Stamped into the published assembly; /api/health reads the informational
+# version. Both default to 0.0.0 for a local build. CI passes version.txt's
+# content as VERSION and `<version>+<short-sha>` as INFORMATIONAL_VERSION.
+# Because release-please bumps version.txt IN the release commit — the exact
+# commit CI builds and promotion retags — the promoted release image reports the
+# real release version (e.g. 0.0.8+abc1234), while an interim commit image
+# reports <last release>+<sha>. VERSION stays a bare X.Y.Z so AssemblyVersion,
+# which rejects build metadata, is happy; the `+sha` rides InformationalVersion.
 ARG VERSION=0.0.0
+ARG INFORMATIONAL_VERSION=0.0.0
 COPY src/server/ ./
-RUN dotnet restore Collectify.slnx
+# --locked-mode: restore must match the committed packages.lock.json exactly, so
+# the image cannot be built against a dependency graph that drifted from the one
+# CI resolved and audited. Fails with NU1004 when a package was added or bumped
+# without regenerating the locks.
+RUN dotnet restore Collectify.slnx --locked-mode
 COPY --from=client-build /client/dist ./Collectify.Api/wwwroot
 RUN dotnet publish Collectify.Api/Collectify.Api.csproj -c Release -o /app/publish \
     /p:UseAppHost=false \
     /p:Version=${VERSION} \
-    /p:InformationalVersion=${VERSION}
+    /p:InformationalVersion=${INFORMATIONAL_VERSION} \
+    /p:IncludeSourceRevisionInInformationalVersion=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:207cc51496778557731c81ff670333d8ade4a4fec22768fd1be8e78474a84ecf AS runtime
 WORKDIR /app
 # curl isn't in the base image; install it so HEALTHCHECK below can use
 # it. Pulls in ~14 transitive deps for ~6 MiB of overhead, in exchange

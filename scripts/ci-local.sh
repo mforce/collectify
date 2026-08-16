@@ -21,15 +21,30 @@ grn()  { printf '\033[32m%s\033[0m\n' "$*"; }
 server_job() {
   bold "==> server (.NET 10)"
   cd "$REPO_ROOT/src/server"
-  dotnet restore Collectify.slnx
+  # --locked-mode mirrors CI: fails NU1004 if the committed lock files drifted.
+  dotnet restore Collectify.slnx --locked-mode
+  bold "    NuGet vulnerability gate (high+, blocking)"
+  dotnet list Collectify.slnx package --vulnerable --include-transitive \
+    --format json --output-version 1 \
+    | node "$REPO_ROOT/.github/scripts/vuln-gate.mjs" --ecosystem nuget --level high
   dotnet build  Collectify.slnx --no-restore --configuration Release
   dotnet test   --no-build --configuration Release --logger "console;verbosity=normal"
 }
 
 client_job() {
   bold "==> client (Vite/TS)"
+  # The gate's own self-tests, before trusting its verdict (pure Node).
+  node --test "$REPO_ROOT/.github/scripts/vuln-gate.test.mjs"
   cd "$REPO_ROOT/src/client"
   npm ci
+  bold "    npm prod vulnerability gate (high+, blocking)"
+  npm audit --omit=dev --json > npm-audit-prod.json || true
+  node "$REPO_ROOT/.github/scripts/vuln-gate.mjs" --ecosystem npm --level high \
+    --exceptions "$REPO_ROOT/.github/security-exceptions.json" < npm-audit-prod.json
+  bold "    npm full-tree audit (moderate+, advisory only)"
+  npm audit --json > npm-audit-all.json || true
+  node "$REPO_ROOT/.github/scripts/vuln-gate.mjs" --ecosystem npm --level moderate --warn-only \
+    --exceptions "$REPO_ROOT/.github/security-exceptions.json" < npm-audit-all.json
   npm test
   npm run build
 }

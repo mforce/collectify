@@ -1,0 +1,23 @@
+<Project>
+
+  <PropertyGroup>
+    <!--
+      Emit a packages.lock.json beside each project and commit it. CI restores in
+      locked mode, which fails with NU1004 if the resolved graph no longer matches
+      the committed lock - so a transitive dependency cannot float to a different
+      version between a green local run and a CI run.
+
+      Adding or bumping a package therefore means regenerating the locks and
+      committing them:
+
+        cd src/server
+        dotnet restore Collectify.slnx -p:RestoreForceEvaluate=true
+
+      (MSBuild .props files are XML, so the CLI switches those two operations
+      normally take cannot be written here - a double hyphen is illegal inside an
+      XML comment and fails the whole solution load.)
+    -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+</Project>

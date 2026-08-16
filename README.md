@@ -162,6 +162,45 @@ Backend dispatch:
   UPCitemdb is rate-limited (~100 lookups/day on the free tier); every
   result is cached in `LookupCache` so a re-scan is free.
 
+## Contributing
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the git-hooks setup, the
+conventional-commit rules that drive the changelog (and the two traps that
+silently cost a release entry), and the reviewing checklist.
+
+### Releases & container images
+
+Two stages, deliberately separate — **CI publishes an image per merge; the release PR turns one into a version:**
+
+1. **Every merge to `main`** runs [`ci.yml`](.github/workflows/ci.yml), which builds the image, Trivy-scans it, boot-tests it against a throwaway Postgres, and publishes it under the commit it came from: `ghcr.io/mforce/collectify:sha-<commit>` — plus a build-provenance attestation.
+2. **`release-please` opens a "Release vX.Y.Z" PR**, accumulating a changelog from the conventional commits since the last release. **Merging that PR** drafts the release, **promotes** that commit's already-scanned image to `:vX.Y.Z` (a server-side retag of the exact digest — never a rebuild), then publishes the release.
+
+The version tag therefore always points at bytes CI already gated. The release stays a draft until promotion succeeds, so a failed promotion leaves no tag pointing at nothing.
+
+> **Images are multi-arch (`linux/amd64` + `linux/arm64`)**, so they pull on Raspberry Pi, Apple Silicon, and Graviton as well as x86. amd64 is scanned *and* boot-tested; arm64 is built from the same source and scanned but not boot-tested — see [`docs/decisions/113-releases.md`](docs/decisions/113-releases.md) for exactly where that boundary sits.
+
+**Deploy by digest, never by tag** — a tag can be moved, a digest cannot. Every release carries an `image.json` asset with the exact reference:
+
+```bash
+gh release download vX.Y.Z -p image.json -R mforce/collectify
+# → {"reference": "ghcr.io/mforce/collectify@sha256:…", …}
+```
+
+**Verify the bytes came from this repo's CI before deploying.** The attestation is checkable without trusting the release notes:
+
+```bash
+# requires a prior `docker login ghcr.io` — an oci:// subject needs registry credentials
+gh attestation verify oci://ghcr.io/mforce/collectify@sha256:… \
+  --repo mforce/collectify \
+  --signer-workflow mforce/collectify/.github/workflows/ci.yml \
+  --source-ref refs/heads/main \
+  --bundle-from-oci
+```
+
+All three flags are load-bearing: `--signer-workflow` binds to the workflow (not just the repo), `--source-ref` binds to the branch it ran from, and `--bundle-from-oci` reads the attestation stored beside the image in the registry.
+
+> Publishing to a registry other than GHCR: set `REGISTRY` / `IMAGE_NAME` repository **variables** and `REGISTRY_USER` / `REGISTRY_TOKEN` **secrets**. Provenance attestation requires a registry that stores OCI referrers.
+
 ## Roadmap
 
 See [GitHub issues](https://github.com/mforce/collectify/issues) for the active roadmap. Phases:

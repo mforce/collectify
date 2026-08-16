@@ -1,63 +1,150 @@
 name: CI
 
+# Build, test, security-gate, and — on a merge to main — publish a scanned,
+# boot-tested container image named by commit (#109).
+#
+# The version is NOT decided here. Every merge publishes `:sha-<commit>`; the
+# release workflow later promotes one of those exact digests to `:vX.Y.Z`
+# (#113). So what carries a version is, by construction, bytes this workflow
+# built, scanned and booted — never a rebuild.
+
 on:
   push:
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
+  # Repair path: a commit whose CI run got skipped (a `[skip ci]` anywhere in a
+  # squashed release commit does this) has no image, so a release can never
+  # promote it. This rebuilds and republishes one explicit commit through the
+  # same gates. It is NOT a general "publish anything" button — the commit must
+  # already be an ancestor of main (checked in the publish job), so it can only
+  # republish merged history.
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit on main to build and publish, e.g. to repair a release whose CI run was skipped"
+        required: true
+        type: string
 
-# Cancel any in-flight run on the same ref when a new commit lands.
+# Cancel an in-flight run on the same ref when a new commit lands.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || github.repository }}
+
 jobs:
-  server:
+  build-and-test:
     name: Server (.NET 10)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: src/server
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+      - name: Check out repository
+        uses: actions/checkout@v7
         with:
-          dotnet-version: '10.0.x'
+          # On a repair dispatch, gate the commit that was asked for. Empty on
+          # push/PR, which actions/checkout treats as "use the default ref".
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || '' }}
 
-      - name: Restore
-        run: dotnet restore Collectify.slnx
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: "src/server/**/packages.lock.json"
+
+      # --locked-mode: restore must match the committed packages.lock.json
+      # exactly, so a dependency can't float to a different resolved version
+      # between a green local run and CI. Fails with NU1004 when a package was
+      # added/bumped without regenerating — run `dotnet restore` and commit the
+      # updated lock files.
+      - name: Restore dependencies
+        run: dotnet restore Collectify.slnx --locked-mode
+
+      # BLOCKING gate. `dotnet list package --vulnerable` always exits 0, so the
+      # script parses its JSON and fails on any advisory at high or above. After
+      # restore (it needs the resolved graph), before build, so a vulnerable
+      # dependency is caught even when compilation would fail later.
+      # `--output-version 1` pins the JSON schema so a future CLI bump can't
+      # silently change the shape the parser depends on.
+      - name: Audit NuGet dependencies (high+, blocking)
+        run: |
+          dotnet list package --vulnerable --include-transitive --format json --output-version 1 \
+            | node ../../.github/scripts/vuln-gate.mjs --ecosystem nuget --level high
 
       - name: Build
-        run: dotnet build Collectify.slnx --no-restore --configuration Release
+        run: dotnet build Collectify.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test --no-build --configuration Release --logger "console;verbosity=normal"
-
-  docker:
-    name: Docker entrypoint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Test entrypoint
-        run: ./scripts/test-docker-entrypoint.sh
+        run: dotnet test Collectify.slnx --configuration Release --no-build --logger "console;verbosity=normal"
 
   client:
     name: Client (Vite/TS)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: src/client
     steps:
-      - uses: actions/checkout@v6
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || '' }}
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: "24"
+          cache: npm
+          # Resolved from the repo root — setup-node ignores defaults.run.working-directory.
+          cache-dependency-path: src/client/package-lock.json
 
-      - name: Install
+      # The gate ships with its own node:test self-tests; run them before
+      # trusting its verdict. Pure Node, no app toolchain — so it runs before
+      # npm ci. Referenced via ../../ from the job's src/client working directory.
+      - name: Test the vulnerability gate
+        run: node --test ../../.github/scripts/vuln-gate.test.mjs
+
+      - name: Install dependencies
         run: npm ci
+
+      # BLOCKING gate on PRODUCTION dependencies: shipped code carries no known
+      # high+ advisory. `--omit=dev` scopes it to what reaches the browser.
+      #
+      # `npm audit` exits non-zero on ANY vulnerability at any severity. Under
+      # Actions' default pipefail, piping it straight into the gate would let
+      # npm's exit — not the gate's threshold — decide the step, so a below-high
+      # advisory would wrongly fail it. Capture to a file (`|| true` drops npm's
+      # exit) and let the gate be the sole arbiter.
+      # `--exceptions ../../…`: this job runs from src/client, so the gate's
+      # default (repo-root) exceptions path would resolve to a nonexistent
+      # src/client/.github/… and silently drop every npm exception. Point it at
+      # the real file.
+      - name: Audit prod npm dependencies (high+, blocking)
+        run: |
+          npm audit --omit=dev --json > npm-audit-prod.json || true
+          node ../../.github/scripts/vuln-gate.mjs --ecosystem npm --level high \
+            --exceptions ../../.github/security-exceptions.json < npm-audit-prod.json
+
+      # ADVISORY only (never blocks) on the full tree, dev dependencies included.
+      # A build-tooling advisory (vite, postcss, undici…) does not ship to users,
+      # so it surfaces in the log without wedging unrelated PRs. Bump the dep, or
+      # promote this to a blocking step, when one actually reaches production.
+      - name: Audit all npm dependencies (moderate+, advisory only)
+        run: |
+          npm audit --json > npm-audit-all.json || true
+          node ../../.github/scripts/vuln-gate.mjs --ecosystem npm --level moderate --warn-only \
+            --exceptions ../../.github/security-exceptions.json < npm-audit-all.json
 
       - name: Test
         run: npm test
@@ -65,47 +152,508 @@ jobs:
       - name: Build
         run: npm run build
 
-  postgres:
-    name: Postgres smoke test
+  # Pure-shell unit test of docker/entrypoint.sh (PUID/PGID remap, data-dir
+  # chown, gosu drop). Needs no image build, so it stays a fast standalone job —
+  # the image smoke test below covers booting, this covers the privilege logic
+  # the smoke test runs as a fixed user and never exercises.
+  entrypoint:
+    name: Docker entrypoint
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || '' }}
+
+      - name: Test entrypoint
+        run: ./scripts/test-docker-entrypoint.sh
+
+  # PR-only: fails when a PR ADDS a dependency with a known vulnerability, before
+  # it lands on main. Complements the audit gates (which score the whole tree) by
+  # scoring the DIFF, so a newly introduced bad dep is named in the PR itself.
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # dependency-review needs the repo's Dependency graph, a one-time owner
+      # toggle (Settings → Advanced Security → Dependency graph) with no API to
+      # flip it. Probe for it and branch on the HTTP status: only a definitive
+      # graph-disabled response (403/404) skips the review — with a loud warning
+      # naming the setting, so the gate self-activates on the next PR once the
+      # toggle is on. A transient/unexpected status does NOT skip; the review
+      # runs and surfaces the real error rather than silently disabling the gate.
+      - name: Check the Dependency graph is enabled
+        id: graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          code="$(gh api "repos/$REPO/dependency-graph/sbom" --silent -i 2>/dev/null \
+            | awk 'toupper($1) ~ /^HTTP/ {print $2; exit}')"
+          case "$code" in
+            200)
+              echo "available=true" >> "$GITHUB_OUTPUT" ;;
+            403|404)
+              echo "available=false" >> "$GITHUB_OUTPUT"
+              echo "::warning title=Dependency review inactive::Enable the Dependency graph at Settings → Advanced Security → Dependency graph; this gate activates automatically once it is on." ;;
+            *)
+              echo "available=true" >> "$GITHUB_OUTPUT"
+              echo "::warning title=Dependency graph probe inconclusive::sbom probe returned '${code:-no response}'; running dependency-review anyway so a real error is not masked." ;;
+          esac
+
+      # Same source of truth as the audit gates: the live (unexpired) GHSA ids in
+      # security-exceptions.json become this action's allowlist, so the two gates
+      # can never disagree about what is currently excepted. --emit-allowlist
+      # yields only bare, canonical GHSA ids; `tr -d` strips any stray newline as
+      # defence-in-depth so a single value can never forge a second output record.
+      - name: Compute allowlist from security exceptions
+        if: steps.graph.outputs.available == 'true'
+        id: allow
+        run: |
+          ghsas="$(node .github/scripts/vuln-gate.mjs --emit-allowlist | tr -d '\r\n')"
+          printf 'ghsas=%s\n' "$ghsas" >> "$GITHUB_OUTPUT"
+
+      - name: Review dependency changes
+        if: steps.graph.outputs.available == 'true'
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
+          allow-ghsas: ${{ steps.allow.outputs.ghsas }}
+
+  # Build the container image and scan it with Trivy, then prove it BOOTS and
+  # SERVES against a throwaway Postgres. The dependency gates above score the
+  # source tree (NuGet/npm); this scores the assembled image — the OS packages
+  # of the base plus the published binaries — which nothing else covers.
+  image:
+    name: Image build + Trivy scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: collectify
-          POSTGRES_USER: collectify
-          POSTGRES_PASSWORD: secret
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    env:
-      Collectify__Database__Provider: postgres
-      Collectify__Database__ConnectionString: >-
-        Host=localhost;Port=5432;Database=collectify;Username=collectify;Password=secret
-      ASPNETCORE_URLS: http://+:5041
+      packages: write # the gated multi-arch push-by-digest below (merge/dispatch only)
+    outputs:
+      # The multi-arch MANIFEST-LIST digest pushed on a merge, for the publish
+      # job to tag and attest. Empty on a PR (nothing is pushed).
+      image: ${{ steps.push.outputs.image }}
+      digest: ${{ steps.push.outputs.digest }}
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+      - name: Check out repository
+        uses: actions/checkout@v7
         with:
-          dotnet-version: '10.0.x'
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || '' }}
 
-      - name: Build
-        run: dotnet build src/server/Collectify.slnx --configuration Release
+      # QEMU registers binfmt handlers so the arm64 layers build under emulation
+      # on this amd64 runner; buildx drives the multi-platform build.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+        with:
+          driver: docker-container # the default builder can't export a local cache
 
-      - name: Run app (background)
+      # The key ends in the COMMIT — actions/cache never re-saves an exact-key
+      # hit, so a dependency-content-only key would freeze the cache at the first
+      # commit's source layers and every later source change would recompile
+      # against a stale cache forever. Per-commit keys make a re-run a full hit;
+      # the restore-keys ladder gives a fresh commit the newest same-dependency
+      # cache (base images + restore layers), then anything.
+      - name: Restore image layer cache
+        uses: actions/cache@v6
+        with:
+          path: /tmp/.buildx-cache
+          key: image-layers-${{ hashFiles('Dockerfile', 'src/server/**/packages.lock.json', 'src/client/package-lock.json', 'src/server/Directory.Packages.props', 'src/server/Directory.Build.props', '.dockerignore') }}-${{ github.sha }}
+          restore-keys: |
+            image-layers-${{ hashFiles('Dockerfile', 'src/server/**/packages.lock.json', 'src/client/package-lock.json', 'src/server/Directory.Packages.props', 'src/server/Directory.Build.props', '.dockerignore') }}-
+            image-layers-
+
+      # Stamp the image with a version /api/health can report. The base is
+      # version.txt AT THIS COMMIT: release-please bumps it IN the release commit,
+      # which is the exact commit CI builds and promotion later retags — so the
+      # promoted release image reports the real release version (e.g. 0.0.8),
+      # while an interim commit image reports <last release>+<sha>. The +sha rides
+      # InformationalVersion only (what /api/health reads); VERSION stays a bare
+      # X.Y.Z because AssemblyVersion rejects build metadata.
+      - name: Compute image version stamp
+        id: ver
         run: |
-          dotnet run --project src/server/Collectify.Api --no-build --configuration Release &
-          sleep 10
+          set -euo pipefail
+          ver="$(tr -d ' \n\r' < version.txt)"
+          short="$(git rev-parse --short HEAD)"
+          printf 'version=%s\n' "$ver" >> "$GITHUB_OUTPUT"
+          printf 'informational=%s+%s\n' "$ver" "$short" >> "$GITHUB_OUTPUT"
 
-      - name: Smoke test
+      # Build the amd64 image and `--load` it into the local daemon so Trivy
+      # scans these freshly built bytes and the smoke test boots them — natively,
+      # no emulation. `--load` is single-platform by nature; the arm64 half is
+      # built and pushed later (merge only), reusing the cache warmed here so its
+      # amd64 layers are the exact ones scanned and booted. The rm/mv rotation
+      # replaces the cache instead of accreting layers into it forever.
+      - name: Build amd64 image for scan + smoke test
         run: |
-          curl -fsS http://localhost:5041/api/health
-          echo "\nPostgres smoke passed"
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64 \
+            --build-arg VERSION="${{ steps.ver.outputs.version }}" \
+            --build-arg INFORMATIONAL_VERSION="${{ steps.ver.outputs.informational }}" \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --load -t collectify-api:ci .
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # BLOCKING gate: fail on a HIGH or CRITICAL CVE — but only one that HAS a
+      # fix (`ignore-unfixed: true`). Same philosophy as the dependency gates:
+      # the actionable response to an advisory is "move to a fixed version", so a
+      # base-OS CVE with no upstream fix yet must not wedge every unrelated PR.
+      # When a fix ships, Dependabot's `docker` ecosystem bumps the pinned base
+      # digest and this gate confirms it cleared.
+      - name: Scan image for HIGH/CRITICAL vulnerabilities
+        # Supply-chain: pin the immutable commit, not the re-pointable tag —
+        # trivy-action was compromised in 2026-03, so a tag could be re-pointed
+        # to malicious code. Dependabot's github-actions ecosystem reads the
+        # trailing `# v0.36.0` to bump both SHA and comment.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: collectify-api:ci
+          scan-type: image
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+        env:
+          # Trivy reads GITHUB_TOKEN to authenticate its vuln-DB pull from GHCR,
+          # lifting the anonymous rate limit that would otherwise TOOMANYREQUESTS
+          # a cache miss.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Prove the freshly built image actually BOOTS and SERVES, not merely that
+      # it builds and scans clean. Collectify has no separate migrate verb: the
+      # app creates/migrates the schema at startup, BEFORE it serves, so reaching
+      # a 200 on /api/health against a real Postgres proves the image booted,
+      # connected, provisioned the schema, and is serving. A Dockerfile/runtime
+      # regression that ships an unbootable image fails CI here instead of at
+      # deploy time.
+      - name: Smoke test — boot the image and probe health
+        run: |
+          set -euo pipefail
+          PGPW="$(openssl rand -hex 16)"
+          CONN="Host=ci-db;Port=5432;Database=collectify;Username=collectify;Password=$PGPW"
+
+          docker network create collectify-ci
+          docker run -d --name ci-db --network collectify-ci \
+            -e POSTGRES_USER=collectify -e POSTGRES_PASSWORD="$PGPW" -e POSTGRES_DB=collectify \
+            postgres:17-alpine@sha256:d4bb0a8c1b7bb2e29f976d099e7bfb9a5d8858cffe9e46b35cd302cd1f1f8168
+
+          # Wait for Postgres to accept connections before booting the app. Probe
+          # over TCP (`-h 127.0.0.1`), NOT the default unix socket: the postgres
+          # image runs a socket-only temporary server during initdb, and a
+          # socket-based pg_isready can go green against THAT while cross-container
+          # TCP (what the app below uses) isn't listening yet.
+          for i in $(seq 1 30); do
+            if docker exec ci-db pg_isready -h 127.0.0.1 -U collectify -d collectify >/dev/null 2>&1; then break; fi
+            if [ "$i" = 30 ]; then echo "Postgres never became ready"; exit 1; fi
+            sleep 2
+          done
+
+          # Boot the serving container with a FAST health cadence (override the
+          # image's 30s timing) so Docker evaluates the image's own HEALTHCHECK
+          # within the job — see the health-status assertion below.
+          docker run -d --name ci-app --network collectify-ci -p 127.0.0.1:8080:8080 \
+            --health-start-period=5s --health-interval=3s --health-timeout=5s --health-retries=5 \
+            -e Collectify__Database__Provider=postgres \
+            -e "Collectify__Database__ConnectionString=$CONN" \
+            collectify-api:ci
+
+          # Poll /api/health until it returns exactly HTTP 200. Assert the status
+          # code explicitly — `curl -f` alone would also accept a 3xx.
+          ready=""
+          for i in $(seq 1 40); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health || true)"
+            if [ "$code" = "200" ]; then ready=1; break; fi
+            sleep 3
+          done
+          if [ -z "$ready" ]; then echo "app /api/health never returned 200 (last code: ${code:-none})"; exit 1; fi
+
+          # Exercise Docker's OWN HEALTHCHECK directive (not just the endpoint):
+          # wait for the container to report `healthy`. A deleted/misspelled
+          # HEALTHCHECK line surfaces HERE — `.State.Health` is then nil and the
+          # inspect prints "none", which we fail on.
+          healthy=""
+          for i in $(seq 1 20); do
+            status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' ci-app 2>/dev/null || echo none)"
+            if [ "$status" = "healthy" ]; then healthy=1; break; fi
+            if [ "$status" = "none" ]; then echo "image declares no HEALTHCHECK"; exit 1; fi
+            sleep 3
+          done
+          if [ -z "$healthy" ]; then echo "container never reported healthy (last: ${status:-none})"; exit 1; fi
+
+      - name: Dump app logs on smoke-test failure
+        if: failure()
+        run: docker logs ci-app 2>&1 | tail -100 || true
+
+      - name: Tear down smoke-test containers
+        if: always()
+        run: |
+          docker rm -f ci-app ci-db >/dev/null 2>&1 || true
+          docker network rm collectify-ci >/dev/null 2>&1 || true
+
+      # Only on a merge to main / dispatch: build the MULTI-ARCH image
+      # (linux/amd64 + linux/arm64) and push it to the registry BY DIGEST — no
+      # tag yet. A manifest list can't round-trip through `docker save`/`--load`
+      # (those are single-platform), so the two-job handoff is the pushed digest,
+      # not a saved tarball.
+      #
+      # THE INTEGRITY BOUNDARY, stated honestly. This is one build behind the same
+      # gates — not a rebuild in the publish job. It reuses the cache warmed by
+      # the scan/boot build above, so the amd64 layers are cache hits, not a
+      # recompile; arm64 builds fresh under emulation. BOTH arches are Trivy-
+      # scanned (amd64 above from the --load image, arm64 below from the pushed
+      # digest). What only amd64 gets is the BOOT test — arm64 rides the same
+      # source and toolchain but is not itself booted (emulated boot of the .NET
+      # runtime is too slow and flaky to gate on). If arm64-specific boot coverage
+      # is ever needed, add a separate QEMU smoke job.
+      #
+      # `provenance=false`: the attestation is minted by the publish job
+      # (actions/attest-build-provenance) over this digest — buildx's own inline
+      # provenance would add a second, redundant claim and change the digest.
+      # PR runs never reach this step, so they touch no registry.
+      - name: Log in to ${{ env.REGISTRY }}
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER || 'x-access-token' }}
+          password: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the multi-arch image by digest
+        id: push
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          image="$(printf '%s/%s' "$REGISTRY" "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg VERSION="${{ steps.ver.outputs.version }}" \
+            --build-arg INFORMATIONAL_VERSION="${{ steps.ver.outputs.informational }}" \
+            --cache-from type=local,src=/tmp/.buildx-cache \
+            --provenance=false \
+            --output "type=image,name=$image,push-by-digest=true,push=true" \
+            --metadata-file /tmp/meta.json .
+
+          # The manifest-list digest the push produced — what image@sha256:… will
+          # resolve to once the publish job tags it.
+          digest="$(jq -r '."containerimage.digest" // empty' /tmp/meta.json)"
+          if ! printf '%s' "$digest" | grep -qE '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::buildx did not report a manifest digest (got '${digest:-empty}')"; exit 1
+          fi
+
+          # Structural check that both arches really shipped, so a silent drop
+          # back to single-platform fails here, not at an arm64 user's deploy.
+          for arch in amd64 arm64; do
+            docker buildx imagetools inspect "$image@$digest" \
+              --format '{{range .Manifest.Manifests}}{{.Platform.Architecture}} {{end}}' \
+              | grep -qw "$arch" \
+              || { echo "::error::pushed image is missing linux/$arch"; exit 1; }
+          done
+
+          printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+
+      # The amd64 scan above (`collectify-api:ci`) never saw the arm64 image's
+      # arch-specific base layers. Hold arm64 to the same HIGH/CRITICAL fixable
+      # gate: Trivy scans the arm64 child of the just-pushed manifest directly
+      # from the registry — `TRIVY_PLATFORM` makes it pull the arm64 variant, so
+      # this works on an amd64 runner (Trivy reads layers, never runs them).
+      # Scanning by `image@digest` (not a docker-loaded tag) avoids the amd64 host
+      # silently resolving a manifest list back to its amd64 child. Registry auth
+      # rides the docker login from the push step above. Merge/dispatch only.
+      - name: Scan arm64 image for HIGH/CRITICAL vulnerabilities
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'workflow_dispatch'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.push.outputs.image }}@${{ steps.push.outputs.digest }}
+          scan-type: image
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+        env:
+          TRIVY_PLATFORM: linux/arm64
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log out of the registry
+        if: always()
+        run: docker logout "$REGISTRY" >/dev/null 2>&1 || true
+
+  # Publish the image this run verified, named by COMMIT. No version is decided
+  # here and no git tag is cut — that is the release workflow's job (#113),
+  # behind a human merging the release PR. This job's only claim is "the image
+  # for commit X is these exact bytes, and they passed every gate", which makes
+  # it idempotent per commit and impossible to race: two merges publish two
+  # different names.
+  #
+  # Gated on build-and-test, client, entrypoint AND image: those run in parallel,
+  # so only a job downstream of all four knows the run was green.
+  #
+  # INVARIANT: this `needs` list is exactly what "the image passed CI" means to
+  # the release workflow. A CI job that should gate a release MUST be added here,
+  # or it can be red while publish still records a digest. Nothing enforces it.
+  publish:
+    name: Publish the commit image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-and-test, client, entrypoint, image]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      || github.event_name == 'workflow_dispatch'
+    permissions:
+      # Job-level permissions REPLACE the workflow-level `contents: read`.
+      contents: read
+      packages: write # push the image (GHCR default)
+      id-token: write # mint the OIDC token the provenance signer needs
+      attestations: write # record the attestation against this repo
+    outputs:
+      image: ${{ steps.publish.outputs.image }}
+      digest: ${{ steps.publish.outputs.digest }}
+    steps:
+      # A dispatch names its own commit; a push is its own. Either way the commit
+      # must ALREADY be on main's history — the compare API answers `identical`
+      # or `behind` only when the head is an ancestor of the base. Without that,
+      # this job would publish arbitrary branch content under a `:sha-` name the
+      # release workflow is willing to promote.
+      - name: Resolve and authorise the commit to publish
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            sha="$INPUT_SHA"
+          else
+            sha="$GITHUB_SHA"
+          fi
+          if ! printf '%s' "$sha" | grep -qE '^[0-9a-f]{40}$'; then
+            echo "::error::'${sha:-(empty)}' is not a full commit sha"
+            exit 1
+          fi
+          status="$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$sha" --jq '.status')"
+          case "$status" in
+            identical|behind) ;;
+            *)
+              echo "::error::$sha is not an ancestor of main (compare status: $status) — refusing to publish it"
+              exit 1 ;;
+          esac
+          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
+
+      # Registry is configurable (default GHCR). REGISTRY_USER/REGISTRY_TOKEN
+      # target a private registry (Gitea/Harbor); both fall back to the run's own
+      # GHCR credentials so the out-of-the-box path needs no repo secrets.
+      # Provenance attestation (below) needs a registry that stores OCI referrers
+      # — GHCR does; verify a custom target does before relying on it.
+      - name: Log in to ${{ env.REGISTRY }}
+        # SHA-pinned: docker/* is third-party, so the action-pinning rule requires
+        # a commit, not the mutable `v4` tag. Dependabot reads the trailing comment.
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER || 'x-access-token' }}
+          password: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # The image job already pushed the verified multi-arch bytes BY DIGEST.
+      # Publishing is therefore a server-side name-add — give that exact digest
+      # the `:sha-<commit>` tag — never a rebuild and never a re-push of other
+      # bytes. `--prefer-index=false` copies the manifest list as-is; the default
+      # would wrap it in a new index with a different top-level digest, so the tag
+      # would no longer resolve to the digest that gets attested below.
+      - name: Tag the verified digest as the commit image
+        id: publish
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+          IMAGE: ${{ needs.image.outputs.image }}
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [ -z "$IMAGE" ] || ! printf '%s' "$DIGEST" | grep -qE '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::image job did not hand off a pushed digest (image='${IMAGE:-}', digest='${DIGEST:-}')"; exit 1
+          fi
+          docker buildx imagetools create --prefer-index=false \
+            --tag "$IMAGE:sha-$SHA" "$IMAGE@$DIGEST"
+
+          # Confirm the new tag resolves to exactly the digest we attest below.
+          after="$(docker buildx imagetools inspect "$IMAGE:sha-$SHA" \
+            --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          if [ "$after" != "$DIGEST" ]; then
+            echo "::error::$IMAGE:sha-$SHA resolves to $after, not the pushed $DIGEST"; exit 1
+          fi
+
+          printf 'image=%s\n' "$IMAGE" >> "$GITHUB_OUTPUT"
+          printf 'digest=%s\n' "$DIGEST" >> "$GITHUB_OUTPUT"
+
+          # Recorded as an artifact of THIS run, which is what the release
+          # workflow promotes from. A registry tag is mutable by anyone holding
+          # push rights; an artifact is bound to the run that produced it, so
+          # promotion cannot be fed a digest this job did not publish.
+          printf '%s\n' "$DIGEST" > published-digest.txt
+
+          {
+            echo "### Published \`sha-$SHA\`"
+            echo
+            echo "Not yet a release — merge the release PR to promote a version."
+            echo
+            echo '```'
+            echo "$IMAGE@$DIGEST"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Cryptographically bind the pushed digest to THIS workflow run. A run
+      # artifact and a release note establish "which digest CI published" only by
+      # evidence the deploy side must trust us about; a provenance attestation is
+      # checkable without trusting us:
+      #   gh attestation verify oci://<image>@<digest> \
+      #     --repo <owner>/<repo> \
+      #     --signer-workflow <owner>/<repo>/.github/workflows/ci.yml \
+      #     --source-ref refs/heads/main \
+      #     --bundle-from-oci
+      # succeeds only for bytes this workflow signed a provenance claim over.
+      # Placed BEFORE the digest artifact so a failed attestation in THIS run
+      # leaves no artifact behind. `push-to-registry` stores the attestation as
+      # an OCI referrer beside the image, which is what makes `--bundle-from-oci`
+      # possible. Not `continue-on-error`: an attestation nobody checks is worse
+      # than none, because it looks like coverage.
+      - name: Attest the published image's build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ steps.publish.outputs.image }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+
+      # The release workflow reads this to learn which digest CI actually
+      # published for this commit, instead of trusting whatever the registry tag
+      # resolves to at promotion time. Named by COMMIT, not by run: a run
+      # dispatched to repair a commit reports the branch tip as head_sha, not the
+      # commit it built, so a run-keyed lookup would miss exactly the repair case.
+      - name: Record the published digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: published-digest-${{ steps.target.outputs.sha }}
+          path: published-digest.txt
+          retention-days: 90
+
+      - name: Log out of the registry
+        if: always()
+        run: docker logout "$REGISTRY" >/dev/null 2>&1 || true

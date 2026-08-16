@@ -164,6 +164,25 @@ See [`docs/architecture.md`](docs/architecture.md) for the full CLEAN-layered de
 
 See [`docs/security.md`](docs/security.md) for the full OWASP Top 10 mitigation checklist (server) and frontend hardening (XSS, CSRF, dependency hygiene, etc.).
 
+## CI / CD & releases
+
+Invariants — what not to break. The how-to for releases is in [README → Releases & container images](README.md#releases--container-images); the full rationale is in [`docs/decisions/`](docs/decisions/).
+
+- **The vulnerability gates fail closed, and the only mute is a dated exception.** `.github/scripts/vuln-gate.mjs` (self-tested; CI runs `vuln-gate.test.mjs` before trusting it) blocks a PR on a **high+** advisory — NuGet and npm **prod** deps; the full npm tree is advisory-only. The one escape hatch is a `.github/security-exceptions.json` entry with an exact GHSA and a required `expires`. Prefer bump → pin → exception. → [`docs/decisions/108-ci-security-gates.md`](docs/decisions/108-ci-security-gates.md)
+- **NuGet lock files + `--locked-mode`.** Every project commits `packages.lock.json`; CI and the Docker build restore locked. **Bump a package → regenerate the locks and commit them in the same change**, or CI fails `NU1004`. Never write `--` inside a `.props` XML comment — it fails the whole solution load.
+- **Pin third-party Actions to a full commit SHA** with a trailing `# vX.Y.Z` comment — never a mutable tag (the 2026-03 `aquasecurity/trivy-action` and 2025-03 `tj-actions/changed-files` compromises retargeted tags). `actions/*` and `github/*` may keep major-version tags. Base images are pinned to `@sha256`; Dependabot bumps both.
+- **CI publishes an image per merge; the release PR turns one into a version.** Every merge to `main` publishes `:sha-<commit>` (Trivy-scanned, boot-tested) with a provenance attestation. Merging the "Release vX.Y.Z" PR **promotes** that commit's existing digest to `:vX.Y.Z` — a server-side retag, **never a rebuild** (a rebuild yields bytes no scan examined). → [`docs/decisions/113-releases.md`](docs/decisions/113-releases.md)
+- **Adding a CI job that should gate a release? Add it to `publish.needs` in `ci.yml`.** That list is exactly what the digest artifact proves to the release workflow, and nothing enforces it.
+- **Promotion reads the digest from CI's run artifact and verifies its attestation**, never by resolving the mutable `:sha-<commit>` tag. **Deploy by digest, never by tag** — every release carries an `image.json` asset; verify with the `gh attestation verify` recipe (all three flags load-bearing). The provenance boundary and what it does *not* close (a change merged to `main`) is in the decision record — the canonical statement lives there, don't re-derive it.
+- **Never hand-edit `.release-please-manifest.json` or `version.txt`** — release-please owns them.
+- **The release PR opens with a GitHub App token, not `GITHUB_TOKEN`.** Every App consumer keeps `permission-*` downscoping — omitting it mints the union of every grant the App holds, silently. Needs `RELEASE_APP_CLIENT_ID`/`RELEASE_APP_PRIVATE_KEY` (fails closed without them); use `client-id`, not the deprecated `app-id`.
+
+## Secrets — never commit
+
+- `.env` is gitignored (real values); `.env.example` holds placeholders only.
+- No hardcoded passwords/keys/tokens in source. Generate test credentials at runtime.
+- **Host-agnostic:** the app reads every environment-specific value from config (connection string, registry, API keys) and **never names or branches on a hosting provider** in code or committed config. Reviewers: treat a hardcoded provider name like a missing test.
+
 ## Conventions
 
 See [`docs/conventions.md`](docs/conventions.md). Key points:
@@ -194,6 +213,7 @@ See [`docs/conventions.md`](docs/conventions.md). Key points:
 | Add a frontend page | `src/client/pages/` + register in `src/client/App.tsx` |
 | Wire an API call | `src/client/api/` (one file per resource) |
 | Configure deployment | `Dockerfile`, `docker-compose.yml`, `.env.example` |
-| Touch CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs server build + xUnit suite and client build on every push / PR. Run the same jobs locally with [`./scripts/ci-local.sh`](scripts/ci-local.sh) (optionally `server` or `client` to scope). |
+| Touch CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — build + test, vuln gates, image build + Trivy + boot smoke, and the commit-image publish. Invariants in [AGENTS → CI / CD](#ci--cd--releases); rationale in [`docs/decisions/`](docs/decisions/). Run the build/test locally with [`./scripts/ci-local.sh`](scripts/ci-local.sh). |
+| Cut a release | Merge the release-please PR — see [README → Releases](README.md#releases--container-images) and [`docs/decisions/113-releases.md`](docs/decisions/113-releases.md). Never hand-edit `version.txt` / `.release-please-manifest.json`. |
 | Read project specs | `docs/` |
 | Write a test | [`docs/testing.md`](docs/testing.md) — TDD workflow, layers, required coverage |

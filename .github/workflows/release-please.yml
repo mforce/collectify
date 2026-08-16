@@ -1,0 +1,448 @@
+name: Release
+
+# The release half of the pipeline (#113).
+#
+# CI (ci.yml) publishes an image for EVERY merge into main, named by commit
+# (`:sha-<commit>`). Nothing there decides a version. This workflow decides
+# versions, through a human gate:
+#
+#   merge a PR     -> release-please updates a "Release vX.Y.Z" PR, accumulating
+#                     a CHANGELOG from conventional commits
+#   merge that PR  -> a DRAFT release is created, the image already published for
+#                     that commit is PROMOTED to `:vX.Y.Z`, and only then is the
+#                     release published
+#
+# Promotion is a server-side retag of an existing DIGEST — not a rebuild. The
+# bytes carrying a version are therefore, by construction, bytes CI already
+# built, Trivy-scanned and boot-tested. A rebuild here would produce a different
+# digest and break exactly that guarantee.
+#
+# The release is a DRAFT until promotion succeeds, and GitHub does not create the
+# git tag for a draft. So a run that cannot find a verified image leaves NO tag
+# and NO public release, rather than a version pointing at nothing. Draft is safe
+# for release-please's own bookkeeping because manifest mode reads the current
+# version from `.release-please-manifest.json` — a committed file — not from tags.
+
+on:
+  push:
+    branches:
+      - main
+  # Repair path. If promotion fails after the draft release exists (registry
+  # unavailable, CI for that commit still red), a re-run of the push event is no
+  # help: release-please reports `release_created: false` for an already-created
+  # release and promotion is skipped forever. Dispatch by tag instead — same
+  # promotion, same checks, addressed explicitly.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to promote and publish, e.g. v0.0.8"
+        required: true
+        type: string
+      sha:
+        description: "Commit to promote the image from (defaults to the release's target commit)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+# One release conversation at a time. Two overlapping runs would race to groom
+# the same release PR.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ${{ vars.REGISTRY || 'ghcr.io' }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || github.repository }}
+
+jobs:
+  release-please:
+    name: Cut the release
+    # On a dispatch there is nothing to cut — go straight to promotion.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read # every write goes through the App token minted below
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      # A GitHub App token, not GITHUB_TOKEN, for two reasons: GITHUB_TOKEN
+      # cannot open a PR unless a repo-wide setting is on (and that setting is
+      # coarser — it frees the ambient token repo-wide), and GitHub does not
+      # trigger workflows for a GITHUB_TOKEN-opened PR, so the release PR would
+      # carry no CI checks. See README → "Releases & container images" and
+      # AGENTS.md for the full reasoning.
+      #
+      # Downscoped per-permission: omitting `permission-*` mints the union of
+      # every grant the App holds, silently. FAILS CLOSED — absent secrets fail
+      # this step, so no release is cut until RELEASE_APP_* are configured.
+      - name: Mint a short-lived GitHub App token
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          # Release-creation pass ONLY. The next release PR is computed by
+          # `groom` below, after promotion has published this release and
+          # therefore created its git tag. See that job for the failure this
+          # avoids.
+          skip-github-pull-request: true
+
+  # Either the release PR was just merged (a draft release now exists), or
+  # someone dispatched a repair. `always()` is required so a skipped
+  # release-please job on a dispatch does not skip this one too.
+  promote:
+    name: Promote the released image
+    needs: release-please
+    if: |
+      always() && (
+        needs.release-please.outputs.release_created == 'true'
+        || github.event_name == 'workflow_dispatch'
+      )
+    runs-on: ubuntu-latest
+    # Headroom over the wait loop (up to 40 min) plus the retag and release edit.
+    timeout-minutes: 50
+    permissions:
+      contents: write # publish the release, append the digest to its notes
+      packages: write # add the version tag in the registry
+      actions: read # read the digest CI recorded for the released commit
+    # `gh` infers the repo from the git remote, but this job does no checkout, so
+    # GH_REPO supplies it out of band. Every bare `gh release`/`gh run` call
+    # relies on this being set.
+    env:
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Log in to ${{ env.REGISTRY }}
+        env:
+          REG_USER: ${{ secrets.REGISTRY_USER || 'x-access-token' }}
+          REG_TOKEN: ${{ secrets.REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+        run: echo "$REG_TOKEN" | docker login "$REGISTRY" -u "$REG_USER" --password-stdin
+
+      # A dispatch supplies only the tag, so resolve the commit from the release
+      # itself. `target_commitish` may legitimately be a BRANCH name rather than
+      # a commit — resolving that would promote whatever main points at now — so
+      # require a real 40-hex sha and fail asking for one explicitly.
+      - name: Resolve the release to promote
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUSH_TAG: ${{ needs.release-please.outputs.tag_name }}
+          PUSH_SHA: ${{ needs.release-please.outputs.sha }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            tag="$INPUT_TAG"; supplied="$INPUT_SHA"
+          else
+            tag="$PUSH_TAG"; supplied="$PUSH_SHA"
+          fi
+          if [ -z "$tag" ]; then
+            echo "::error::no release tag to promote"; exit 1
+          fi
+
+          # The release must still be a DRAFT. Promotion retags `:$tag` and
+          # rewrites the notes, so running it against a published version would
+          # repoint a live release at other bytes. This also fails loudly if
+          # `"draft": true` is ever dropped from release-please-config.json.
+          info="$(gh release view "$tag" --json isDraft,targetCommitish \
+            --jq '[.isDraft, .targetCommitish] | @tsv')"
+          is_draft="$(printf '%s' "$info" | cut -f1)"
+          target="$(printf '%s' "$info" | cut -f2)"
+          if [ "$is_draft" != "true" ]; then
+            echo "::error::release $tag is already published — refusing to repoint a live version"; exit 1
+          fi
+
+          # Bind the commit to the draft rather than trusting what was typed.
+          if printf '%s' "$target" | grep -qE '^[0-9a-f]{40}$'; then
+            if [ -n "$supplied" ] && [ "$supplied" != "$target" ]; then
+              echo "::error::$tag was cut at $target, not $supplied — refusing to promote a different commit"; exit 1
+            fi
+            sha="$target"
+          else
+            sha="$supplied"
+            echo "::warning::$tag records '$target' rather than a commit; promoting the supplied $sha, which cannot be cross-checked against the draft."
+          fi
+          if ! printf '%s' "$sha" | grep -qE '^[0-9a-f]{40}$'; then
+            echo "::error::'${sha:-(empty)}' is not a commit sha — pass the exact commit with the 'sha' input"; exit 1
+          fi
+          printf 'tag=%s\n' "$tag" >> "$GITHUB_OUTPUT"
+          printf 'sha=%s\n' "$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Promote the commit image to the version tag
+        id: promote
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.target.outputs.tag }}
+          RELEASE_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          image="$(printf '%s/%s' "$REGISTRY" "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')"
+
+          # Take the digest from CI'S OWN RUN, not by resolving `:sha-$RELEASE_SHA`.
+          # That tag is mutable by anyone holding push rights, and the release
+          # PR's merge commit is public seconds after the merge while CI needs
+          # minutes to build and push — so resolving the tag could accept a forged
+          # manifest placed in that window. The run artifact is bound to the run
+          # that built and scanned those bytes. Found by ARTIFACT NAME (repo-wide),
+          # so a repair dispatch is found too — a dispatched run reports the branch
+          # tip as head_sha, not the commit it built. The artifact exists only if
+          # publish ran, and publish requires build-and-test, client, entrypoint and image to
+          # have passed — so its existence proves those gates passed.
+          artifact="published-digest-$RELEASE_SHA"
+          run_id=""
+          for attempt in $(seq 1 80); do
+            run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$artifact&per_page=100" \
+              --jq '[.artifacts[] | select(.expired == false)] | first | .workflow_run.id // empty')"
+            [ -n "$run_id" ] && break
+            echo "Waiting for CI to record a digest for $RELEASE_SHA (attempt $attempt/80)…"
+            sleep 30
+          done
+          if [ -z "$run_id" ]; then
+            echo "::error::no CI-recorded digest for $RELEASE_SHA — refusing to promote a version with nothing verified behind it."
+            echo "::error::If that commit's CI run was skipped (a '[skip ci]' anywhere in its message does this), dispatch the CI workflow for the exact sha first."
+            exit 1
+          fi
+
+          # Confirm the artifact came from THIS repo's CI workflow, not some other
+          # workflow that happened to upload the same name.
+          run_workflow="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.name')"
+          if [ "$run_workflow" != "CI" ]; then
+            echo "::error::$artifact came from workflow '$run_workflow', not CI — refusing it"; exit 1
+          fi
+
+          gh run download "$run_id" --name "$artifact" --dir "$RUNNER_TEMP/digest"
+          digest="$(tr -d '\r\n' < "$RUNNER_TEMP/digest/published-digest.txt")"
+          if ! printf '%s' "$digest" | grep -qE '^sha256:[0-9a-f]{64}$'; then
+            echo "::error::CI run $run_id recorded '${digest:-(empty)}', which is not a manifest digest"; exit 1
+          fi
+          echo "Released commit was published as $digest"
+
+          # VERIFY PROVENANCE BEFORE RETAGGING. The artifact proves CI's gates
+          # passed for these bytes, but the lookup takes the first unexpired
+          # artifact of that NAME — so an artifact from an earlier run of the same
+          # commit satisfies it. Checking the attestation closes that: promotion
+          # refuses unless the bytes carry provenance from THIS repo's ci.yml.
+          # All three flags are load-bearing and none is the default —
+          # `--source-ref` pins the ref (so a CI repair dispatch must run from
+          # main), `--signer-workflow` pins the workflow path, `--bundle-from-oci`
+          # reads the registry copy (proving the referrer the deploy side needs
+          # exists). The login above satisfies the registry auth an oci:// subject
+          # requires.
+          if ! gh attestation verify "oci://$image@$digest" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/ci.yml" \
+            --source-ref refs/heads/main \
+            --bundle-from-oci; then
+            echo "::error::no valid CI provenance for $image@$digest — refusing to promote bytes whose origin cannot be established"
+            echo "::error::(if this was a CI repair dispatch, it must be run from main — a branch-run definition is not promotable)"
+            exit 1
+          fi
+
+          # Server-side retag: adds a name to an EXISTING manifest, nothing pulled
+          # or rebuilt. `--prefer-index=false` is load-bearing: it defaults to
+          # TRUE, which wraps a single manifest in a NEW image index with a
+          # different top-level digest — defeating the whole point that the
+          # version tag resolves to the digest CI scanned.
+          docker buildx imagetools create --prefer-index=false \
+            --tag "$image:$TAG" "$image@$digest"
+
+          # Confirm the new tag really resolves to the promoted digest.
+          # `{{json .Manifest.Digest}}`, not `{{.Manifest.Digest}}`: older buildx
+          # mis-detects the plain form and prints the whole manifest dump.
+          after="$(docker buildx imagetools inspect "$image:$TAG" \
+            --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          if [ "$after" != "$digest" ]; then
+            echo "::error::$image:$TAG resolves to $after, not the promoted $digest"; exit 1
+          fi
+          printf 'image=%s\n' "$image" >> "$GITHUB_OUTPUT"
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+
+      # Last: record the digest and PUBLISH. Until this step the release is a
+      # draft with no git tag, so every failure above leaves nothing public.
+      - name: Record the digest and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.target.outputs.tag }}
+          RELEASE_SHA: ${{ steps.target.outputs.sha }}
+          IMAGE: ${{ steps.promote.outputs.image }}
+          DIGEST: ${{ steps.promote.outputs.digest }}
+        run: |
+          set -euo pipefail
+          notes="$(mktemp)"
+          gh release view "$TAG" --json body --jq '.body' > "$notes"
+
+          # REPLACE any existing block rather than appending — a repaired release
+          # must not list two conflicting digests. Drop everything from the marker
+          # onward, then write the current block.
+          trimmed="$(mktemp)"
+          awk '/^### Container image$/ { exit } { print }' "$notes" > "$trimmed"
+          {
+            echo
+            echo '### Container image'
+            echo
+            echo 'Deploy by digest — a tag can be moved, a digest cannot:'
+            echo
+            echo '```'
+            echo "$IMAGE@$DIGEST"
+            echo '```'
+            echo
+            echo 'Machine-readable: the `image.json` asset on this release.'
+            echo "Verify the bytes came from this repo's CI before deploying:"
+            echo
+            echo '```'
+            echo '# requires a prior `docker login` — an oci:// subject needs registry credentials.'
+            echo "gh attestation verify oci://$IMAGE@$DIGEST \\"
+            echo "  --repo $GITHUB_REPOSITORY \\"
+            echo "  --signer-workflow $GITHUB_REPOSITORY/.github/workflows/ci.yml \\"
+            echo '  --source-ref refs/heads/main \'
+            echo '  --bundle-from-oci'
+            echo '```'
+          } >> "$trimmed"
+          notes="$trimmed"
+
+          # Attach the same facts as a release ASSET (never expires, needs no
+          # actions:read, stable URL). `jq -n --arg`, not printf: TAG is the one
+          # field not pattern-checked upstream, and a tag can legally contain a
+          # quote, so this is the file another consumer parses.
+          jq -n \
+            --arg image "$IMAGE" --arg digest "$DIGEST" --arg tag "$TAG" \
+            --arg commit "$RELEASE_SHA" --arg repository "$GITHUB_REPOSITORY" \
+            '{image: $image, digest: $digest, reference: ($image + "@" + $digest),
+              tag: $tag, commit: $commit, repository: $repository}' \
+            > "$RUNNER_TEMP/image.json"
+
+          # Attached BEFORE publishing, so there is never a moment where the
+          # release is public but its machine-readable pin is missing.
+          gh release upload "$TAG" "$RUNNER_TEMP/image.json" --clobber
+
+          # `--draft=false` is what creates the git tag: GitHub withholds the tag
+          # until a draft is published.
+          gh release edit "$TAG" --notes-file "$notes" --draft=false
+
+          {
+            echo "### Released \`$TAG\`"
+            echo
+            echo '```'
+            echo "$IMAGE@$DIGEST"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Log out of the registry
+        if: always()
+        run: docker logout "$REGISTRY" >/dev/null 2>&1 || true
+
+  # The second release-please pass: maintain the NEXT release PR, and nothing
+  # else. It runs after `promote` on purpose.
+  #
+  # WHY SEPARATE. release-please derives "commits since the last release" by
+  # resolving that release to a commit through its git TAG. This workflow leaves
+  # a release a DRAFT until its image is promoted, and GitHub withholds the tag
+  # for a draft. So a single invocation that both cuts vX.Y.Z and computes the
+  # next PR computes it at the one moment vX.Y.Z has no tag — the boundary is
+  # unresolvable and it restates every earlier release's changelog in the new PR.
+  # Splitting the passes fixes it by construction: `promote` publishes the
+  # release (creating the tag) before this job asks where the last release was.
+  groom:
+    name: Maintain the release PR
+    needs: [release-please, promote]
+    if: |
+      always() && !cancelled()
+      && needs.release-please.result == 'success'
+      && needs.promote.result != 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read # every write goes through the App token
+    steps:
+      # Minted FIRST, and used by the guard below as well as by release-please:
+      # GitHub returns draft releases only to a caller with PUSH access, and this
+      # job's own GITHUB_TOKEN is contents:read, so probing with it would list no
+      # drafts and the guard would silently never fire.
+      - name: Mint a short-lived GitHub App token
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
+      # The actual guarantee: a DRAFT release was cut but never published, so it
+      # has no git tag, so release-please cannot resolve the changelog boundary
+      # through it — grooming would then restate every earlier release. Probing
+      # for that (not inferring from job results) is what makes this correct in
+      # EVERY run: `needs.promote.result != 'failure'` is not sufficient, because
+      # on the next ordinary push `promote` is SKIPPED (not failed) and the stuck
+      # draft still has no tag. Scoped to the ONE release that can be the boundary
+      # — `v<manifest version>` — so a hand-made draft under another tag doesn't
+      # wedge grooming shut.
+      - name: Refuse to groom while the boundary release has no tag
+        id: guard
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # A 404 and a rate-limit are not the same answer: swallowing every
+          # failure into an empty version would make a transient API error read
+          # as "never released" and groom with no boundary check — failing open.
+          err=$(mktemp)
+          if version=$(gh api "repos/$GH_REPO/contents/.release-please-manifest.json" \
+                -H "Accept: application/vnd.github.raw" --jq '."."' 2>"$err"); then
+            :
+          elif grep -q 'HTTP 404' "$err"; then
+            version=""
+          else
+            cat "$err" >&2; rm -f "$err"
+            echo "::error::Could not read .release-please-manifest.json — refusing to groom without a boundary check."; exit 1
+          fi
+          rm -f "$err"
+
+          if [ -z "$version" ] || [ "$version" = "null" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No version in .release-please-manifest.json — grooming without a boundary check (expected before the first release)."
+            exit 0
+          fi
+
+          blocked=$(TAG="v$version" gh api --paginate "repos/$GH_REPO/releases" \
+            --jq '.[] | select(.draft and .tag_name == $ENV.TAG) | .tag_name' | paste -sd' ' -)
+          if [ -n "$blocked" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Release PR not groomed — ${blocked} is still an unpublished draft, so it has no git tag and release-please cannot resolve the changelog boundary. Promote it (Release workflow, dispatch by tag) and the next push will groom correctly."
+            {
+              echo "### Release PR not groomed"
+              echo
+              echo "\`${blocked}\` was cut but never published, so it has no git tag."
+              echo
+              echo "Promote the draft, then any push grooms correctly."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run release-please
+        if: steps.guard.outputs.skip != 'true'
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          # PR-maintenance pass ONLY — the release was already cut above.
+          skip-github-release: true

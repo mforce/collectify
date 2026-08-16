@@ -1,0 +1,120 @@
+#!/bin/sh
+# commit-msg: keep a commit parseable by release-please.
+#
+# Enable once per clone:   git config core.hooksPath .githooks
+# Skip once:               git commit --no-verify   (or SKIP_HOOKS=1)
+#
+# WHY THIS EXISTS. release-please runs @conventional-commits/parser over the
+# WHOLE message, subject and body. A parse error is caught, logged as "commit
+# could not be parsed", and the commit is then dropped entirely — no changelog
+# entry, no bump contribution — while the workflow still reports success. So a
+# broken message costs a changelog line silently, on a green run.
+#
+# SCOPE OF THE CLAIM — read this before trusting it. This is NOT a conventional-
+# commits parser and does not attempt to be one. It matches exactly the two
+# shapes observed to break release-please, verified against the real parser. A
+# message it passes can still be unparseable in some way nobody has hit yet.
+#
+# WHAT IT COVERS, AND THE ONE GAP. With squash merging the squash BODY is every
+# branch commit message concatenated, so the messages this hook checks are what
+# lands on main. The gap is the SUBJECT of a MULTI-commit PR: GitHub takes the
+# PR TITLE for it, which no local hook can see. Reviewers own that half, via the
+# "PR title is the release note" rule (see AGENTS.md / docs/conventions.md).
+#
+# POSIX sh on purpose: git invokes the shebang directly.
+set -eu
+
+[ "${SKIP_HOOKS:-0}" = "1" ] && exit 0
+
+msg=$1
+fail=0
+
+# WHAT GIT ACTUALLY STORES. Git's message-cleanup mode decides what survives,
+# and a hook is never told which mode is in effect. Measured with `git commit -F`:
+#
+#   cleanup                # lines   scissors line   content BELOW scissors
+#   default (whitespace)   kept      kept            KEPT
+#   --cleanup=scissors     kept      kept            KEPT
+#   --cleanup=strip        removed   removed         KEPT
+#
+# So a parser-breaking shape survives in all three modes — stripping comment
+# lines would be a false negative, the direction that lets the bug ship. Judge
+# the whole message instead.
+#
+# The one part git always drops is the `git commit -v` diff. Identifying it by a
+# bare `diff --git ` line is NOT enough — that discards an AUTHORED patch excerpt,
+# which git stores and the parser then chokes on. What distinguishes git's own
+# section is its framing: `commit -v` emits the scissors marker, then its notes,
+# then the diff, with no blank line among them. So the tail is dropped only when
+# a `diff --git ` line is reached WITHOUT a blank line since a scissors marker.
+# The marker text is a fixed ASCII constant, so this survives a non-English
+# locale; only the structural part (dashes, >8, dashes) is matched, WITHOUT
+# hardcoding '#', since core.commentChar can change the prefix.
+body=$(awk '
+  scissors_line { if ($0 ~ /^diff --git /) { exit }; if ($0 !~ /^[^[:space:]]/) { scissors_line = 0 }; print; next }
+  /^[^[:space:]]+[[:space:]]+-+[[:space:]]+>8[[:space:]]+-+[[:space:]]*$/ { scissors_line = 1; print; next }
+  { print }
+' "$msg")
+
+# The subject is the first non-blank line of the message AS WRITTEN, comment or
+# not: under `whitespace` cleanup a leading comment IS the stored subject, so an
+# untouched editor template would otherwise sail through as the commit subject.
+subject=$(printf '%s\n' "$body" | awk 'NF { print; exit }')
+
+# --- 1. Subject must be a conventional header. -------------------------------
+# The type list is deliberately open (any lowercase word): release-please's
+# config decides which types are CHANGELOG-visible, and an unknown type still
+# parses and still bumps the patch digit. What does NOT parse is a missing or
+# malformed "type: " prefix (e.g. a space before the colon, so the word before
+# it is not a type). A revert or fixup is git's own shape; leave it alone.
+case $subject in
+  'Revert "'*|fixup!*|squash!*|amend!*) ;;
+  *)
+    if ! printf '%s\n' "$subject" | grep -qE '^[a-z][a-z0-9]*(\([^()]+\))?!?: .'; then
+      echo "commit-msg: subject is not a conventional header." >&2
+      echo "  got:    $subject" >&2
+      echo "  want:   type(scope): summary     e.g. fix(movies): reject fractional quantities" >&2
+      echo "  note:   no space before the colon; scope may not contain parens." >&2
+      fail=1
+    fi
+    ;;
+esac
+
+# --- 2. No body line that lexes as a nested type(scope) header. --------------
+# Trigger: a line starting at column 1 with non-whitespace, non-paren
+# characters, then '(', then another '(' before the closing ')'. Ordinary code
+# prose:
+#   `Assert.Single(AllMigrations())`   <- breaks
+#   f(g(h))  a(())  a.b(c(d))          <- breaks
+# Defused by any of: leading whitespace (space OR TAB), a list marker, or a
+# preceding word —
+#       Assert.Single(AllMigrations())
+#   - Assert.Single(AllMigrations())
+#   see Assert.Single(AllMigrations())
+# and these were never a problem: foo(bar)  x() y()  (a(b))
+offenders=$(printf '%s\n' "$body" | grep -nE '^[^[:space:]()]+\([^)]*\(' || true)
+if [ -n "$offenders" ]; then
+  echo "commit-msg: release-please cannot parse this message, so the WHOLE commit" >&2
+  echo "            would be dropped from the changelog — silently, on a green run." >&2
+  # Show the fix applied to the author's OWN line — generic advice reads as
+  # boilerplate; the same sentence with their text in it gets acted on.
+  printf '%s\n' "$offenders" | while IFS= read -r offender; do
+    n=${offender%%:*}
+    text=${offender#*:}
+    echo >&2
+    printf '  line %s\n' "$n" >&2
+    printf '     got:  %s\n' "$text" >&2
+    printf '     any of these is fine instead:\n' >&2
+    printf '           %s        (indent it)\n' "$text" >&2
+    printf '         - %s        (make it a list item)\n' "$text" >&2
+    printf '         see %s      (put a word in front)\n' "$text" >&2
+  done
+  fail=1
+fi
+
+[ "$fail" -eq 0 ] || {
+  echo "commit-msg: FAILED — fix, or use --no-verify to override." >&2
+  exit 1
+}
+
+exit 0
