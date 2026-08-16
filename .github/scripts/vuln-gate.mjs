@@ -18,7 +18,8 @@
 //   dotnet list package --vulnerable --include-transitive --format json --output-version 1 \
 //     | node .github/scripts/vuln-gate.mjs --ecosystem nuget
 //
-// Flags: --level <low|moderate|high|critical>  (default high — blocks at or above)
+// Flags: --level <info|low|moderate|high|critical>  (default high — blocks at or
+//                                              above; an unknown value exits 2)
 //        --warn-only                           (report, always exit 0)
 //        --exceptions <path>                   (default .github/security-exceptions.json)
 //        --emit-allowlist                      (print live GHSA ids for dependency-review)
@@ -179,9 +180,19 @@ function isLive(exception, now) {
   return Number.isFinite(dayStart) && now.getTime() < dayStart + ONE_DAY_MS;
 }
 
+// One definition of "which ecosystem is this exception scoped to", so
+// suppression and the lapsed-entry warning can never disagree about it. They did
+// once: suppression lower-cased, the warning compared `=== "any"` raw, so a
+// lapsed `"ANY"` entry stopped suppressing without ever being reported lapsed.
+const scopeOf = (exception) => String(exception.ecosystem).toLowerCase();
+
+function inScope(exception, ecosystem) {
+  const scope = scopeOf(exception);
+  return scope === "any" || scope === ecosystem;
+}
+
 function matches(exception, finding, ecosystem) {
-  const scope = String(exception.ecosystem).toLowerCase();
-  if (scope !== "any" && scope !== ecosystem) return false;
+  if (!inScope(exception, ecosystem)) return false;
   return canonicalGhsa(exception.id) === finding.id;
 }
 
@@ -204,13 +215,6 @@ export function gate({ findings, exceptions = [], ecosystem, level = "high", now
     .filter((e) => !isValidException(e))
     .map((e) => ({ raw: e, problem: exceptionProblem(e) }));
 
-  // Case-insensitive, matching how validation and suppression read `ecosystem`:
-  // a lapsed `"ANY"` / `"NPM"` entry must still get its "remove me" warning.
-  const inScope = (e) => {
-    const scope = String(e.ecosystem).toLowerCase();
-    return scope === "any" || scope === ecosystem;
-  };
-
   const suppressed = [];
   const blocking = [];
   for (const finding of atOrAbove) {
@@ -221,7 +225,7 @@ export function gate({ findings, exceptions = [], ecosystem, level = "high", now
 
   // Valid, in-scope, but past its window — surfaced so a lapsed entry gets
   // deleted instead of lingering as dead config.
-  const staleExceptions = valid.filter((e) => inScope(e) && !isLive(e, now));
+  const staleExceptions = valid.filter((e) => inScope(e, ecosystem) && !isLive(e, now));
 
   return {
     blocking,
@@ -316,30 +320,33 @@ async function readStdin() {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-function loadExceptions(path) {
-  let text;
+// A missing file is the normal case and stays quiet. Anything else — corrupt
+// JSON, an `exceptions` key that is not an array, an unreadable file — silently
+// suppresses NOTHING (the safe direction) but must be said out loud, or the
+// exceptions someone wrote are gone with no sign of it. `warn` is injectable so
+// a test can assert exactly which paths warn. (Exported for the same reason.)
+export function loadExceptions(path, warn = console.error) {
+  let raw;
   try {
-    text = readFileSync(path, "utf8");
-  } catch {
-    return []; // no file → empty allowlist, the normal (and most common) case
-  }
-  // The file EXISTS but doesn't parse. Returning [] is the safe direction (more
-  // blocking, never less), but do it loudly — a silently-ignored exceptions file
-  // means every entry someone thinks is muting an advisory is doing nothing.
-  let parsed;
-  try {
-    parsed = JSON.parse(text);
+    raw = readFileSync(path, "utf8");
   } catch (err) {
-    console.error(`::warning::[exceptions] ${path} exists but is not valid JSON (${err.message}); ignoring it — no exception is being applied.`);
+    if (err.code === "ENOENT") return []; // no file → the normal, quiet case
+    warn(`::warning::could not read ${path} (${err.code ?? err.message}) — no advisory is excepted`);
     return [];
   }
-  // Parsed, but the wrong SHAPE: `exceptions` missing or not an array. Returning
-  // [] is still the safe direction, but say why — a raw `exceptions.filter is not
-  // a function` stack trace beside a file meant to be legible helps no operator.
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    warn(`::warning::${path} is not valid JSON (${err.message}) — no advisory is excepted`);
+    return [];
+  }
+
   const list = parsed?.exceptions;
-  if (list === undefined) return [];
+  if (list === undefined || list === null) return [];
   if (!Array.isArray(list)) {
-    console.error(`::warning::[exceptions] ${path} has a non-array "exceptions" key (got ${typeof list}); ignoring it — no exception is being applied.`);
+    warn(`::warning::${path} has an "exceptions" key that is not an array — no advisory is excepted`);
     return [];
   }
   return list;

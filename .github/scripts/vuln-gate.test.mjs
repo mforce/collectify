@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -30,6 +30,7 @@ import {
   isGhsaId,
   isKnownLevel,
   isValidException,
+  loadExceptions,
   parseArgs,
   parseNpm,
   parseNuget,
@@ -90,14 +91,39 @@ test("gate() itself throws on an unknown threshold — the exported API can't fa
   assert.equal(gate({ findings: [finding()], ecosystem: "npm", level: "high", now: NOW }).blocking.length, 1);
 });
 
-test("CLI: a non-array 'exceptions' key warns and does not crash", () => {
-  const path = join(tmpdir(), `vuln-gate-exceptions-${process.pid}.json`);
-  writeFileSync(path, '{"exceptions":{"id":"x"}}'); // object, not array
-  const clean = JSON.stringify({ auditReportVersion: 2, vulnerabilities: {} });
-  const r = runCli(["--ecosystem", "npm", "--exceptions", path], clean);
-  assert.equal(r.status, 0, `clean audit + ignored exceptions should pass, got ${r.status}`);
-  assert.match(r.stderr, /non-array/); // a reason, not a raw `exceptions.filter is not a function`
-  assert.doesNotMatch(r.stderr, /is not a function/);
+test("loadExceptions: a missing file is quiet; corrupt / wrong-shape warn, never crash", () => {
+  const dir = mkdtempSync(join(tmpdir(), "vuln-gate-"));
+  try {
+    const warnings = [];
+    const warn = (m) => warnings.push(m);
+
+    // Missing file → the normal case → [] and NO warning.
+    assert.deepEqual(loadExceptions(join(dir, "absent.json"), warn), []);
+    assert.deepEqual(warnings, [], "a missing file must stay quiet");
+
+    // Corrupt JSON → [] but warned.
+    const corrupt = join(dir, "corrupt.json");
+    writeFileSync(corrupt, '{"exceptions": [');
+    assert.deepEqual(loadExceptions(corrupt, warn), []);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /corrupt\.json/);
+
+    // Parses but the wrong SHAPE (object, not array) → [] but warned, never the
+    // raw `exceptions.filter is not a function` stack trace.
+    const wrongShape = join(dir, "wrong-shape.json");
+    writeFileSync(wrongShape, '{"exceptions": {"id": "x"}}');
+    assert.deepEqual(loadExceptions(wrongShape, warn), []);
+    assert.equal(warnings.length, 2);
+    assert.match(warnings[1], /array/i);
+
+    // A good file adds no warning.
+    const good = join(dir, "good.json");
+    writeFileSync(good, JSON.stringify({ exceptions: [exception()] }));
+    assert.equal(loadExceptions(good, warn).length, 1);
+    assert.equal(warnings.length, 2, "a valid file adds no warning");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("a lapsed exception is reported stale regardless of ecosystem CASE", () => {

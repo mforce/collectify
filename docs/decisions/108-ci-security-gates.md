@@ -22,9 +22,32 @@ severity, or a malformed exception all err toward blocking. The specific trap
 that motivates this: `npm audit` is network-backed and on a registry failure
 prints `{ "error": … }` with a non-zero exit — which the workflow's `|| true`
 swallows. Without a shape check that parses as "clean" and passes the gate (fail
-**open**). `reportProblem` rejects it. The gate ships with `vuln-gate.test.mjs`
-(26 `node:test` cases), which CI runs **before** trusting the gate's verdict —
-there is no point gating on an untested gate.
+**open**). `reportProblem` rejects it. The gate ships with `vuln-gate.test.mjs`,
+which CI runs **before** trusting the gate's verdict — there is no point gating
+on an untested gate — and every guarantee is mutation-checked: the line is broken
+and the run confirmed red on that test's own assertion.
+
+Two fail-open holes were caught reviewing this script's copy in another repo
+(2026-08), and are worth recording because both look like the fail-*closed* rule
+and are its opposite:
+
+- **An unknown `--level` is exit 2, not a threshold.** `severityRank()` ranks an
+  unknown value *above* `critical` — correct for a *finding's* severity (an
+  unrecognised severity should block), but backwards for the *threshold*: a typo
+  like `--level hihg` puts the floor out of every advisory's reach, so a real
+  critical reports "below threshold" and the gate exits 0. `isKnownLevel` gates
+  it, enforced in `main()` (clean exit 2) **and** in `gate()` (throws), so no
+  caller of the exported API can reintroduce it. Pinned **end-to-end through the
+  CLI** — every unit behaved correctly alone; only the assembled exit code showed
+  the hole, which a pure-predicate test missed.
+- **A corrupt exceptions file warns.** It already suppressed nothing (safe), but
+  silently — so exceptions someone wrote could vanish with no sign. `loadExceptions`
+  now warns on unparseable JSON, a non-array `exceptions` key (previously a raw
+  `exceptions.filter is not a function` crash), or an unreadable file; only a
+  *missing* file stays quiet, because that is the normal case.
+
+These fixes are shared lineage with the repo-template copy this script came from;
+keep the two aligned when either changes.
 
 ## Where each gate runs, and the postures
 
