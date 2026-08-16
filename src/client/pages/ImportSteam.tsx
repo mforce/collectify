@@ -65,25 +65,37 @@ export default function ImportSteam() {
     setSelected(allImportableSelected ? new Set() : new Set(importable.map((g) => g.externalGameId)));
 
   const handleConnect = async () => {
-    const res = await connect.mutateAsync();
-    if (!res.configured || !res.redirectUrl) {
-      toast.error('Steam import is not configured on this server.');
-      return;
+    try {
+      const res = await connect.mutateAsync();
+      if (!res.configured || !res.redirectUrl) {
+        toast.error('Steam import is not configured on this server.');
+        return;
+      }
+      // Whole-page navigation to Steam; we come back to
+      // /import/steam?steam=connected|error via the OpenID callback.
+      window.location.href = res.redirectUrl;
+    } catch {
+      toast.error('Could not start the Steam connection. Please try again.');
     }
-    // Whole-page navigation to Steam; we come back to
-    // /import/steam?steam=connected|error via the OpenID callback.
-    window.location.href = res.redirectUrl;
   };
 
   const handleDisconnect = async () => {
-    await disconnect.mutateAsync();
-    toast.info('Steam disconnected. Your imported games stay in your collection.');
+    try {
+      await disconnect.mutateAsync();
+      toast.info('Steam disconnected. Your imported games stay in your collection.');
+    } catch {
+      toast.error('Could not disconnect Steam. Please try again.');
+    }
   };
 
   const handleImport = async () => {
-    const res = await doImport.mutateAsync([...selected]);
-    if (res.imported > 0) toast.success(`Imported ${res.imported} game${res.imported === 1 ? '' : 's'}`);
-    if (res.alreadyImported > 0) toast.info(`${res.alreadyImported} were already in your collection`);
+    try {
+      const res = await doImport.mutateAsync([...selected]);
+      if (res.imported > 0) toast.success(`Imported ${res.imported} game${res.imported === 1 ? '' : 's'}`);
+      if (res.alreadyImported > 0) toast.info(`${res.alreadyImported} were already in your collection`);
+    } catch {
+      toast.error('Import failed. Please try again.');
+    }
   };
 
   const connected = connection.data?.connected === true;

@@ -42,7 +42,7 @@ export function useSteamConnection() {
 
 export function useSteamConnect() {
   return useMutation({
-    mutationFn: () => api<SteamConnect>('/api/accounts/steam/connect'),
+    mutationFn: () => api<SteamConnect>('/api/accounts/steam/connect', { method: 'POST' }),
   });
 }
 

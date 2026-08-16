@@ -40,8 +40,6 @@ public sealed class SteamStoreImportService
         _log = log;
     }
 
-    public bool IsSteamConfigured => _steam.IsConfigured;
-
     /// <summary>Hex SHA-256 of a plaintext token (what we store).</summary>
     public static string HashState(string state) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(state))).ToLowerInvariant();
@@ -55,6 +53,25 @@ public sealed class SteamStoreImportService
     }
 
     /// <summary>
+    /// Heuristic: is this EF update a UNIQUE constraint violation (the only
+    /// race we treat as "another importer won") rather than some other DB
+    /// failure we should surface? Covers both SQLite ("UNIQUE constraint
+    /// failed") and PostgreSQL ("duplicate key value violates unique
+    /// constraint", SQLSTATE 23505), walking the inner-exception chain so
+    /// provider exceptions nested under DbUpdateException are seen.
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        for (Exception? inner = ex; inner is not null; inner = inner.InnerException)
+        {
+            if (inner.Message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)) return true;
+            if (inner.Message.Contains("duplicate key value violates unique constraint", StringComparison.OrdinalIgnoreCase)) return true;
+            if (inner.Message.Contains("23505", StringComparison.Ordinal)) return true; // PostgreSQL unique_violation SQLSTATE
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Persist a fresh one-time auth request for an owner and return the
     /// (state, cookieHalf) pair. The stored hash binds BOTH halves together:
     /// hash(state + ":" + cookieHalf). At the callback we require the cookie
@@ -63,7 +80,7 @@ public sealed class SteamStoreImportService
     /// The plaintext state travels in return_to; the cookie half in an
     /// HttpOnly Secure cookie.
     /// </summary>
-    public (string State, string CookieHalf) CreateAuthRequest(string ownerId, TimeSpan lifetime)
+    public async Task<(string State, string CookieHalf)> CreateAuthRequestAsync(string ownerId, TimeSpan lifetime, CancellationToken ct = default)
     {
         // CSPRNG-backed tokens, not Guid (which is random-ish but not a
         // contractual crypto RNG); these are the security tokens for the
@@ -78,24 +95,8 @@ public sealed class SteamStoreImportService
             ExpiresAt = DateTime.UtcNow.Add(lifetime),
             Consumed = false,
         });
-        _db.SaveChanges();
+        await _db.SaveChangesAsync(ct);
         return (state, cookieHalf);
-    }
-
-    /// <summary>
-    /// Consumes the one-time auth request bound to (state, cookieHalf) and
-    /// returns the owner it was minted for, or null if unknown/expired/
-    /// already-consumed/cookie-mismatch. MUST be called only after the OpenID
-    /// assertion has been verified by SteamOpenIdVerifier.
-    /// </summary>
-    public string? ConsumeAuthRequest(string state, string? cookieHalf, CancellationToken ct = default)
-    {
-        var combined = HashState(state + ":" + (cookieHalf ?? string.Empty));
-        var row = _db.SteamAuthRequests.FirstOrDefault(r => r.StateHash == combined);
-        if (row is null || row.Consumed || row.ExpiresAt <= DateTime.UtcNow) return null;
-        row.Consumed = true;
-        _db.SaveChanges();
-        return row.OwnerId;
     }
 
     /// <summary>
@@ -204,7 +205,11 @@ public sealed class SteamStoreImportService
             .Select(g => new SteamOwnedTitle(
                 g.AppId.ToString(),
                 g.Name ?? string.Empty,
-                g.PlaytimeForever / 60,
+                // Steam's playtime_forever is already MINUTES (same unit the
+                // preview field claims). The client formats it directly, so no
+                // /60 here — that conversion belongs to the import path, which
+                // sets HoursPlayed = PlaytimeForever / 60.
+                g.PlaytimeForever,
                 IconUrl(g.AppId, g.ImgIconUrl),
                 imported.Contains(g.AppId.ToString()) ? SteamTitleImportState.Imported : SteamTitleImportState.Importable))
             .OrderByDescending(t => t.PlaytimeMinutes)
@@ -271,13 +276,16 @@ public sealed class SteamStoreImportService
             }
 
             // Guard against a concurrent importer winning the (OwnerId, Store,
-            // ExternalGameId) unique race. If the ledger insert collides, the
-            // failed SaveChanges aborts this transaction — catch it, clear
-            // tracking, and report the winner as already-imported rather than
-            // surfacing a 500. This is a tiny single-user race window; the
-            // important contract is "idempotent, never a crash".
+            // ExternalGameId) unique race. Each item runs on its own savepoint:
+            // a conflict rolls back both the ledger insert AND the Game row saved
+            // just before it (no orphaned duplicate Game), and we report the
+            // winner as already-imported. Works on SQLite and Postgres alike — no
+            // reliance on a provider-specific "transaction stays aborted" rule.
+            var savepoint = $"import_{appIdStr}";
             try
             {
+                await tx.CreateSavepointAsync(savepoint, ct);
+
                 var existing = await _db.GameStoreOwnedTitles
                     .FirstOrDefaultAsync(t => t.OwnerId == ownerId && t.Store == SteamStore && t.ExternalGameId == appIdStr, ct);
 
@@ -332,12 +340,14 @@ public sealed class SteamStoreImportService
                 if (createdGame && newGame is not null) created.Add(newGame);
                 results.Add(new SteamImportResultItem(appIdStr, createdGame, !createdGame && existing is { GameId: not null }));
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
             {
                 // Unique-constraint race: another import created this ledger row
-                // between our read and write. The failed save aborts the
-                // transaction; clear tracking and report the winner as
-                // already-imported instead of a 500.
+                // between our read and write. Roll back this item's savepoint —
+                // this also undoes the Game row saved moments ago, so SQLite
+                // won't commit an orphaned duplicate Game — then re-read the
+                // winner and report it as already-imported.
+                await tx.RollbackToSavepointAsync(savepoint, ct);
                 _db.ChangeTracker.Clear();
 
                 var winner = await _db.GameStoreOwnedTitles

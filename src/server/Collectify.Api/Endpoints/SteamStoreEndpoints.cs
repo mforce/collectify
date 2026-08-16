@@ -82,19 +82,20 @@ public static class SteamStoreEndpoints
         // ------------------------------------------------------------------
         var group = app.MapGroup("/api/accounts/steam").RequireAuthorization();
 
-        group.MapGet("/connect", (
+        group.MapPost("/connect", async (
             HttpContext ctx,
             UserManager<AppUser> users,
             SteamStoreImportService service,
             ISteamOpenIdVerifier verifier,
-            Microsoft.Extensions.Configuration.IConfiguration config) =>
+            Microsoft.Extensions.Configuration.IConfiguration config,
+            CancellationToken ct) =>
         {
             var publicBase = SteamStoreServiceCollectionExtensions.ResolvePublicBaseUrl(config);
             if (publicBase is null || !verifier.IsConfigured)
                 return Results.Ok(new SteamConnectDto(false, null));
 
             var ownerId = users.GetUserId(ctx.User)!;
-            var (state, cookieHalf) = service.CreateAuthRequest(ownerId, AuthRequestLifetime);
+            var (state, cookieHalf) = await service.CreateAuthRequestAsync(ownerId, AuthRequestLifetime, ct);
 
             ctx.Response.Cookies.Append(SteamAuthCookie, cookieHalf, new CookieOptions
             {

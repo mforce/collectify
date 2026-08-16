@@ -30,7 +30,8 @@ public class SteamEndpointsTests
         };
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
 
-        var dto = await alice.Client.GetJsonAsync<SteamConnectDto>("/api/accounts/steam/connect");
+        var connectResponse = await alice.Client.PostAsync("/api/accounts/steam/connect", null);
+        var dto = await connectResponse.ReadJsonAsync<SteamConnectDto>();
 
         Assert.NotNull(dto);
         Assert.False(dto.Configured);
@@ -64,7 +65,7 @@ public class SteamEndpointsTests
         };
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
 
-        var response = await alice.Client.GetAsync("/api/accounts/steam/connect");
+        var response = await alice.Client.PostAsync("/api/accounts/steam/connect", null);
         var dto = await response.ReadJsonAsync<SteamConnectDto>();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -88,7 +89,7 @@ public class SteamEndpointsTests
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
 
         // 1. Begin connect, capture cookie + the return_to (which carries state).
-        var connectResponse = await alice.Client.GetAsync("/api/accounts/steam/connect");
+        var connectResponse = await alice.Client.PostAsync("/api/accounts/steam/connect", null);
         var connect = await connectResponse.ReadJsonAsync<SteamConnectDto>();
         var cookie = connectResponse.Headers.GetValues("Set-Cookie")
             .Select(s => s.Split(';')[0]).FirstOrDefault(c => c.StartsWith("collectify.steam.state="));
@@ -122,7 +123,7 @@ public class SteamEndpointsTests
         };
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
 
-        var connectResponse = await alice.Client.GetAsync("/api/accounts/steam/connect");
+        var connectResponse = await alice.Client.PostAsync("/api/accounts/steam/connect", null);
         var connect = await connectResponse.ReadJsonAsync<SteamConnectDto>();
         var cookie = connectResponse.Headers.GetValues("Set-Cookie")
             .Select(s => s.Split(';')[0]).FirstOrDefault(c => c.StartsWith("collectify.steam.state="));
@@ -354,11 +355,121 @@ public class SteamEndpointsTests
         Assert.True(restored);
     }
 
-    // -------- Helpers ----------
+    [Fact]
+    public async Task Import_EmptySelection_ReturnsBadRequest()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient(),
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
 
+        var response = await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new { ExternalGameIds = Array.Empty<string>() });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Import_OverCap_ReturnsBadRequest()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient(),
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        // ImportCap defaults to 500; build a 501-element selection.
+        var ids = Enumerable.Range(0, 501).Select(i => i.ToString()).ToArray();
+        var response = await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new { ExternalGameIds = ids });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Callback_MissingCookieHalf_DoesNotConnect()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient(),
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier { VerifiedSteamId = "76561198000000000" },
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        // Begin connect to mint an auth request, capture the return_to (state).
+        var connectResponse = await alice.Client.PostAsync("/api/accounts/steam/connect", null);
+        var connect = await connectResponse.ReadJsonAsync<SteamConnectDto>();
+        var redirectUri = new Uri(connect!.RedirectUrl!);
+        var returnTo = System.Web.HttpUtility.ParseQueryString(redirectUri.Query)["openid.return_to"]!;
+
+        // Callback WITHOUT the cookie half -> rejected, no connection.
+        var (status, location) = await CallbackClientAsync(factory, alice, returnTo, null);
+        Assert.Equal(HttpStatusCode.Found, status);
+        Assert.Contains("steam=error", location!.ToString());
+
+        var connected = await factory.WithDbAsync(db =>
+            db.GameStoreConnections.AsNoTracking().AnyAsync(c => c.OwnerId == alice.Id));
+        Assert.False(connected);
+    }
+
+    [Fact]
+    public async Task Callback_Replay_SameStateAndCookie_SecondAttemptRejected()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient(),
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier { VerifiedSteamId = "76561198000000000" },
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var connectResponse = await alice.Client.PostAsync("/api/accounts/steam/connect", null);
+        var connect = await connectResponse.ReadJsonAsync<SteamConnectDto>();
+        var redirectUri = new Uri(connect!.RedirectUrl!);
+        var returnTo = System.Web.HttpUtility.ParseQueryString(redirectUri.Query)["openid.return_to"]!;
+        var cookie = connectResponse.Headers.GetValues("Set-Cookie")
+            .Select(s => s.Split(';')[0]).FirstOrDefault(c => c.StartsWith("collectify.steam.state="));
+
+        // First callback with valid cookie connects.
+        var (status1, _) = await CallbackClientAsync(factory, alice, returnTo, cookie);
+        Assert.Equal(HttpStatusCode.Found, status1);
+
+        // Replay same state+cookie — atomic consume means the second is rejected.
+        var (status2, location2) = await CallbackClientAsync(factory, alice, returnTo, cookie);
+        Assert.Equal(HttpStatusCode.Found, status2);
+        Assert.Contains("steam=error", location2!.ToString());
+    }
+
+    [Fact]
+    public async Task Games_AndImport_AreOwnerScoped()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades" }],
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        var bob = await factory.CreateAuthenticatedUserAsync("bob");
+
+        await LinkSteamAsync(factory, alice);
+        await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new { ExternalGameIds = new[] { "1" } });
+
+        // Bob is not connected and must not see Alice's ledger/import state.
+        var games = await bob.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
+        Assert.Equal("notconnected", games!.Status);
+
+        var aliceGames = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
+        Assert.Equal("ok", aliceGames!.Status);
+        Assert.Single(aliceGames.Titles.Where(t => t.State == "imported"));
+    }
+
+    // -------- Helpers ----------
     private static async Task LinkSteamAsync(CollectifyApiFactory factory, TestExtensions.TestUser user)
     {
-        var connectResponse = await user.Client.GetAsync("/api/accounts/steam/connect");
+        var connectResponse = await user.Client.PostAsync("/api/accounts/steam/connect", null);
         var connect = await connectResponse.ReadJsonAsync<SteamConnectDto>();
         var cookie = connectResponse.Headers.GetValues("Set-Cookie")
             .Select(s => s.Split(';')[0]).FirstOrDefault(c => c.StartsWith("collectify.steam.state="));

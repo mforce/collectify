@@ -60,13 +60,17 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
             // unique key that exists to anchor the FK.
             e.HasAlternateKey(g => new { g.Id, g.OwnerId });
             // DLC -> base game self-reference (provider-agnostic). OwnerId
-            // scoping is enforced in the relationship: a game can only be
-            // DLC of a base game owned by the same user. Restrict so deleting
-            // a base game with DLC children is an explicit call, not a silent
-            // cascade or nulling of the DLC's parent.
+            // scoping is enforced by the relationship: the composite FK
+            // (ParentGameId, OwnerId) references the parent's (Id, OwnerId)
+            // alternate key, so a DLC child can only point at a base game
+            // owned by the SAME user — Alice's DLC can never reference Bob's
+            // base game, even if the field is populated later. Restrict so
+            // deleting a base game with DLC children is an explicit call, not
+            // a silent cascade or nulling of the DLC's parent.
             e.HasOne(g => g.ParentGame)
              .WithMany(g => g.Dlc)
-             .HasForeignKey(g => g.ParentGameId)
+             .HasForeignKey(g => new { g.ParentGameId, g.OwnerId })
+             .HasPrincipalKey(g => new { g.Id, g.OwnerId })
              .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(g => g.ParentGameId);
         });
