@@ -17,17 +17,12 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter
-        future={{
-          // Opt into React Router v7's behaviour now to silence the
-          // "Future Flag Warning" pair printed at startup. v7_startTransition
-          // wraps state updates in React.startTransition so route changes
-          // can be interrupted; v7_relativeSplatPath fixes how relative
-          // links resolve inside splat ("*") routes.
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      >
+      {/*
+        React Router v7 makes the former v7_startTransition and
+        v7_relativeSplatPath behaviours the default and removes the `future`
+        prop, so there is nothing left to opt into here.
+      */}
+      <BrowserRouter>
         <App />
       </BrowserRouter>
     </QueryClientProvider>
