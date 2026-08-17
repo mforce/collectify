@@ -276,6 +276,14 @@ public sealed class SteamStoreImportService
             .Where(g => g.AppId > 0)
             .ToDictionary(g => g.AppId.ToString(), g => g, StringComparer.Ordinal);
 
+        // Rich metadata (developer/publisher/year/description) from Steam's
+        // keyless storefront endpoint, fetched in bulk BEFORE the loop so the
+        // import request maps it onto new games as they're created (no page
+        // refresh needed — the data is committed with the game). Best-effort:
+        // a metadata outage returns an empty lookup and import still proceeds
+        // with just what GetOwnedGames gave (cover/playtime/last-played).
+        var metadataByAppId = await FetchMetadataAsync(requested, ct);
+
         var results = new List<SteamImportResultItem>();
         var created = new List<Game>();
 
@@ -312,7 +320,12 @@ public sealed class SteamStoreImportService
                     // Save the Game FIRST so its Id is real before the ledger row
                     // references it (the ledger's composite FK needs a genuine
                     // Games.Id). Inside the same transaction as the ledger insert.
-                    newGame = NewImportedGame(ownerId, game, appIdStr, await LocalizeCoverAsync(game, ct));
+                    newGame = NewImportedGame(
+                        ownerId,
+                        game,
+                        appIdStr,
+                        await LocalizeCoverAsync(game, ct),
+                        metadataByAppId.GetValueOrDefault(appIdStr));
                     _db.Games.Add(newGame);
                     await _db.SaveChangesAsync(ct);
 
@@ -339,7 +352,12 @@ public sealed class SteamStoreImportService
                     {
                         // Ledger row present but its Game was deleted — re-import:
                         // save the Game first, then relink the existing ledger row.
-                        newGame = NewImportedGame(ownerId, game, appIdStr, await LocalizeCoverAsync(game, ct));
+                        newGame = NewImportedGame(
+                        ownerId,
+                        game,
+                        appIdStr,
+                        await LocalizeCoverAsync(game, ct),
+                        metadataByAppId.GetValueOrDefault(appIdStr));
                         _db.Games.Add(newGame);
                         await _db.SaveChangesAsync(ct);
 
@@ -405,10 +423,10 @@ public sealed class SteamStoreImportService
     private static string? LibraryCoverUrl(uint appId)
         => appId == 0 ? null : $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/library_600x900_2x.jpg";
 
-    private static Game NewImportedGame(string ownerId, SteamOwnedGame game, string appIdStr, string? coverPath) => new()
+    private static Game NewImportedGame(string ownerId, SteamOwnedGame game, string appIdStr, string? coverPath, SteamStoreBrowseItem? meta) => new()
     {
         OwnerId = ownerId,
-        Title = Truncate(game.Name ?? appIdStr, 500),
+        Title = FirstNonEmpty(meta?.Name, game.Name, appIdStr),
         Platform = GamePlatform.Pc,
         IsDigital = true,
         DigitalStore = SteamStore,
@@ -416,8 +434,55 @@ public sealed class SteamStoreImportService
         HoursPlayed = (int)Math.Min(int.MaxValue, game.PlaytimeForever / 60),
         ImagePath = coverPath,
         LastPlayedOn = ToDateOnly(game.RtimeLastPlayed),
+        Developer = FirstOrNull(meta?.BasicInfo?.Developers?.FirstOrDefault()?.Name, 500),
+        Publisher = FirstOrNull(meta?.BasicInfo?.Publishers?.FirstOrDefault()?.Name, 500),
+        Year = ToYear(meta?.Release?.SteamReleaseDate ?? 0),
+        Description = FirstOrNull(meta?.BasicInfo?.ShortDescription, 2000),
         AcquisitionSource = "Steam Import",
     };
+
+    /// <summary>Value truncated to <paramref name="max"/>, or null when null/empty.</summary>
+    private static string? FirstOrNull(string? s, int max)
+        => string.IsNullOrWhiteSpace(s) ? null : Truncate(s, max);
+
+    /// <summary>Unix release timestamp to the release year, or null when unknown.</summary>
+    private static int? ToYear(long unixSeconds)
+        => unixSeconds > 0 ? DateTimeOffset.FromUnixTimeSeconds(unixSeconds).UtcDateTime.Year : null;
+
+    /// <summary>
+    /// Bulk-rich-metadata lookup keyed by appid string. Chunks the requested
+    /// ids (GetItems supports up to ~40 appids per request), fail-soft: any
+    /// error returns an empty lookup and import proceeds without rich metadata.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, SteamStoreBrowseItem>> FetchMetadataAsync(IEnumerable<string> requested, CancellationToken ct)
+    {
+        // Only request ids the user actually asked to import (already bounded
+        // by ImportCap), skipping the bookkeeping/0 appids.
+        var ids = requested
+            .Select(id => (uint.TryParse(id, out var a) ? a : 0u))
+            .Where(a => a > 0)
+            .Distinct()
+            .ToList();
+        if (ids.Count == 0) return new Dictionary<string, SteamStoreBrowseItem>();
+
+        const int batchSize = SteamClient.BatchSize;
+        var items = new List<SteamStoreBrowseItem>();
+        foreach (var chunk in Chunk(ids, batchSize))
+        {
+            var batch = await _steam.GetItemsAsync(chunk, ct);
+            items.AddRange(batch);
+        }
+
+        return items
+            .Where(i => i.AppId > 0)
+            .ToDictionary(i => i.AppId.ToString(), i => i, StringComparer.Ordinal);
+    }
+
+    private static IEnumerable<List<T>> Chunk<T>(List<T> source, int size)
+    {
+        for (var i = 0; i < source.Count; i += size)
+            yield return source.GetRange(i, Math.Min(size, source.Count - i));
+    }
 
     /// <summary>Steam's unix-epoch last-played to a UTC date, or null when never played.</summary>
     private static DateOnly? ToDateOnly(long unixSeconds)
@@ -436,4 +501,8 @@ public sealed class SteamStoreImportService
 
     internal static string Truncate(string? s, int max)
         => string.IsNullOrEmpty(s) ? string.Empty : (s.Length <= max ? s : s[..max]);
+
+    /// <summary>First non-null, non-empty value, truncated to 500 chars.</summary>
+    private static string FirstNonEmpty(params string?[] values)
+        => values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) is { } hit ? Truncate(hit, 500) : string.Empty;
 }

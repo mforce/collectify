@@ -118,4 +118,56 @@ public sealed class SteamClient : ISteamClient
             return null;
         }
     }
+
+    /// <summary>
+    /// Bulk rich-metadata lookup through the keyless storefront endpoint
+    /// <c>IStoreBrowseService/GetItems</c>. No API key required (unlike the
+    /// Web API calls above); the request JSON rides in the <c>input_json</c>
+    /// query parameter. Returns the matched items (empty if none match or on
+    /// any failure) and is never allowed to throw.
+    /// </summary>
+    public async Task<IReadOnlyList<SteamStoreBrowseItem>> GetItemsAsync(IReadOnlyCollection<uint> appIds, CancellationToken ct = default)
+    {
+        if (appIds.Count == 0) return [];
+        if (appIds.Count > BatchSize)
+            throw new ArgumentOutOfRangeException(nameof(appIds), $"GetItems supports at most {BatchSize} appids per request.");
+
+        var payload = new SteamStoreBrowseRequestEnvelope
+        {
+            Ids = appIds.Select(a => new SteamStoreBrowseId { AppId = a }).ToList(),
+            DataRequest = new SteamStoreBrowseDataRequest
+            {
+                IncludeBasicInfo = true,
+                IncludeRelease = true,
+                IncludeReviews = true,
+                IncludeAllPurchaseOptions = true,
+            },
+        };
+
+        // The JSON goes in the query string (Steam expects it URL-encoded as
+        // a single input_json parameter), so the URL length caps batch size.
+        var json = System.Text.Json.JsonSerializer.Serialize(payload);
+        var url = "IStoreBrowseService/GetItems/v1/?input_json=" + Uri.EscapeDataString(json);
+
+        try
+        {
+            using var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                _log.LogWarning("Steam GetItems returned {Status}", resp.StatusCode);
+                return [];
+            }
+            var body = await resp.Content.ReadFromJsonAsync<SteamStoreBrowseResponseEnvelope>(cancellationToken: ct);
+            return body?.Response?.StoreItems ?? [];
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Steam GetItems call failed");
+            return [];
+        }
+    }
+
+    /// <summary>Max appids per GetItems request (kept conservative to stay
+    /// under the query-string length limit for the embedded JSON).</summary>
+    internal const int BatchSize = 40;
 }

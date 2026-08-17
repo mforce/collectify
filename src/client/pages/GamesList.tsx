@@ -8,8 +8,14 @@ export default function GamesList() {
       <div className="mb-2 flex justify-end">
         <Link
           to="/import/steam"
-          className="text-xs font-semibold text-brand underline transition-colors hover:text-brand-hover"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand underline transition-colors hover:text-brand-hover"
         >
+          <img
+            src="/brand/steam-logo.svg"
+            alt=""
+            className="inline h-3.5 w-3.5"
+            aria-hidden
+          />
           Import from Steam ↗
         </Link>
       </div>

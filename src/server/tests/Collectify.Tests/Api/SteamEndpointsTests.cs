@@ -227,6 +227,75 @@ public class SteamEndpointsTests
     }
 
     [Fact]
+    public async Task Import_CapturesRichMetadataFromStoreBrowse()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades", PlaytimeForever = 3600 }],
+                StoreItems = new Dictionary<uint, SteamStoreBrowseItem>
+                {
+                    [1] = new()
+                    {
+                        AppId = 1,
+                        Name = "Hades",
+                        BasicInfo = new SteamStoreBasicInfo
+                        {
+                            ShortDescription = "Defy the god of the dead.",
+                            Developers = [new SteamStoreOwner { Name = "Supergiant Games" }],
+                            Publishers = [new SteamStoreOwner { Name = "Supergiant Games" }],
+                        },
+                        Release = new SteamStoreRelease { SteamReleaseDate = 1609459200 }, // 2021-01-01
+                    },
+                },
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = new[] { "1" } })).ReadJsonAsync<SteamImportResultDto>();
+
+        var game = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id));
+        Assert.Equal("Hades", game.Title);
+        Assert.Equal("Supergiant Games", game.Developer);
+        Assert.Equal("Supergiant Games", game.Publisher);
+        Assert.Equal(2021, game.Year);
+        Assert.Equal("Defy the god of the dead.", game.Description);
+    }
+
+    [Fact]
+    public async Task Import_ProceedsWhenStoreBrowseMetadataUnavailable()
+    {
+        // No metadata configured + no StoreItems -> the import must still
+        // succeed with the basics (cover/title/playtime) and null rich fields.
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades", PlaytimeForever = 3600 }],
+                StoreItems = new Dictionary<uint, SteamStoreBrowseItem>(),
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        var body = await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = new[] { "1" } })).ReadJsonAsync<SteamImportResultDto>();
+
+        Assert.Equal(1, body!.Imported);
+        var game = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id));
+        Assert.Equal("Hades", game.Title);
+        Assert.Null(game.Developer);
+        Assert.Null(game.Publisher);
+        Assert.Null(game.Year);
+        Assert.Null(game.Description);
+    }
+
+    [Fact]
     public async Task Import_IsIdempotent()
     {
         await using var factory = new CollectifyApiFactory
