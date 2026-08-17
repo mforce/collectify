@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button, Card, SectionHeading } from '../components/ui';
 import { toast } from '../components/toaster';
 import {
@@ -18,6 +18,7 @@ function formatPlaytime(minutes: number): string {
 
 export default function ImportSteam() {
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('');
 
@@ -93,6 +94,8 @@ export default function ImportSteam() {
       const res = await doImport.mutateAsync([...selected]);
       if (res.imported > 0) toast.success(`Imported ${res.imported} game${res.imported === 1 ? '' : 's'}`);
       if (res.alreadyImported > 0) toast.info(`${res.alreadyImported} were already in your collection`);
+      // Show the imported games in the collection (spec: import → toast → /games).
+      if (res.imported > 0) navigate('/games');
     } catch {
       toast.error('Import failed. Please try again.');
     }
