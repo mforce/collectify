@@ -211,15 +211,19 @@ public class SteamEndpointsTests
             new { ExternalGameIds = new[] { "1", "2" } })).ReadJsonAsync<SteamImportResultDto>();
 
         var withCover = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hades"));
-        // Logo URL preferred over icon; localized through the (fake) cover store
-        // into /covers/<hash> — never the raw remote URL.
+        // Library cover (600x900 portrait) preferred over logo/icon; localized
+        // through the (fake) cover store into /covers/<hash> — never the raw
+        // remote URL.
         Assert.StartsWith("/covers/", withCover.ImagePath);
         Assert.DoesNotContain("steampowered.com", withCover.ImagePath);
         Assert.Equal(new DateOnly(2025, 1, 1), withCover.LastPlayedOn);
 
-        var noCover = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hollow Knight"));
-        Assert.Null(noCover.ImagePath);
-        Assert.Null(noCover.LastPlayedOn);
+        // A real owned Steam app always has library art, so Hollow Knight (appid
+        // 2) also gets a localized cover — but it was never played, so
+        // LastPlayedOn stays null.
+        var noPlay = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hollow Knight"));
+        Assert.StartsWith("/covers/", noPlay.ImagePath);
+        Assert.Null(noPlay.LastPlayedOn);
     }
 
     [Fact]

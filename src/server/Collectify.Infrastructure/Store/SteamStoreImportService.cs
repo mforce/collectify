@@ -382,15 +382,28 @@ public sealed class SteamStoreImportService
 
     /// <summary>
     /// Localize a Steam cover to the app's /covers/ store. Prefers the
-    /// higher-res logo banner, falls back to the small icon, then downloads
-    /// it through <see cref="ICoverImageStore"/> (same path the edit flow
-    /// uses). Fail-soft: no cover or a download failure leaves ImagePath null.
+    /// high-res 600x900 library cover (real portrait box art, correct 2:3
+    /// aspect for the app's cover boxes), then the logo banner, then the small
+    /// icon, and downloads it through <see cref="ICoverImageStore"/> (same
+    /// path the edit flow uses). Fail-soft: no cover or a download failure
+    /// leaves ImagePath null.
     /// </summary>
     private async Task<string?> LocalizeCoverAsync(SteamOwnedGame game, CancellationToken ct)
     {
-        var coverUrl = LogoUrl(game.AppId, game.ImgLogoUrl) ?? IconUrl(game.AppId, game.ImgIconUrl);
+        var coverUrl = LibraryCoverUrl(game.AppId)
+            ?? LogoUrl(game.AppId, game.ImgLogoUrl)
+            ?? IconUrl(game.AppId, game.ImgIconUrl);
         return await _covers.EnsureLocalAsync(coverUrl, ct);
     }
+
+    /// <summary>
+    /// Steam's canonical library cover for an app: a 600x900 portrait used by
+    /// the Steam client library (the same URL that powers the 2:3 cover art on
+    /// the app's own detail page). Deterministic from the appid, no extra API
+    /// call. Returns null for invalid appids.
+    /// </summary>
+    private static string? LibraryCoverUrl(uint appId)
+        => appId == 0 ? null : $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/library_600x900_2x.jpg";
 
     private static Game NewImportedGame(string ownerId, SteamOwnedGame game, string appIdStr, string? coverPath) => new()
     {
