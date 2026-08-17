@@ -29,6 +29,18 @@ public class Game
     public string? Description { get; set; }
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// If this game is downloadable content (DLC / add-on), the base game it
+    /// belongs to. Provider-agnostic: Steam/Xbox/PSN all model DLC as a
+    /// separate product linked back to a base game, so a single self-ref is
+    /// enough for every storefront. Null for standalone/base games. Populated
+    /// once DLC-parent resolution lands (per-provider); today's imports leave
+    /// it null (they stay flat, user-managed).
+    /// </summary>
+    public int? ParentGameId { get; set; }
+    public Game? ParentGame { get; set; }
+    public ICollection<Game> Dlc { get; set; } = new List<Game>();
+
     public int? PersonalRating { get; set; }
     public CollectionStatus Status { get; set; } = CollectionStatus.Owned;
     public Condition? Condition { get; set; }

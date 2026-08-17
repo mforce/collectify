@@ -3,6 +3,7 @@ using System;
 using Collectify.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,12 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Collectify.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(CollectifyDbContext))]
-    partial class CollectifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815075456_AddGameDlcParent")]
+    partial class AddGameDlcParent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
 
             modelBuilder.Entity("Collectify.Domain.Entities.CoverImage", b =>
                 {
@@ -140,8 +143,6 @@ namespace Collectify.Infrastructure.Data.Migrations
                     b.HasIndex("ParentGameId");
 
                     b.HasIndex("Title");
-
-                    b.HasIndex("ParentGameId", "OwnerId");
 
                     b.ToTable("Games");
                 });
@@ -750,8 +751,7 @@ namespace Collectify.Infrastructure.Data.Migrations
                 {
                     b.HasOne("Collectify.Domain.Entities.Game", "ParentGame")
                         .WithMany("Dlc")
-                        .HasForeignKey("ParentGameId", "OwnerId")
-                        .HasPrincipalKey("Id", "OwnerId")
+                        .HasForeignKey("ParentGameId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ParentGame");

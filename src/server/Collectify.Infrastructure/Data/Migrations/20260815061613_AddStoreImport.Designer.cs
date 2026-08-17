@@ -3,6 +3,7 @@ using System;
 using Collectify.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,12 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Collectify.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(CollectifyDbContext))]
-    partial class CollectifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815061613_AddStoreImport")]
+    partial class AddStoreImport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
 
             modelBuilder.Entity("Collectify.Domain.Entities.CoverImage", b =>
                 {
@@ -102,9 +105,6 @@ namespace Collectify.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("ParentGameId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int?>("PersonalRating")
                         .HasColumnType("INTEGER");
 
@@ -137,11 +137,7 @@ namespace Collectify.Infrastructure.Data.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.HasIndex("ParentGameId");
-
                     b.HasIndex("Title");
-
-                    b.HasIndex("ParentGameId", "OwnerId");
 
                     b.ToTable("Games");
                 });
@@ -205,10 +201,6 @@ namespace Collectify.Infrastructure.Data.Migrations
 
                     b.Property<string>("OwnerId")
                         .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ParentExternalGameId")
-                        .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Store")
@@ -746,17 +738,6 @@ namespace Collectify.Infrastructure.Data.Migrations
                     b.ToTable("MusicAlbumTag");
                 });
 
-            modelBuilder.Entity("Collectify.Domain.Entities.Game", b =>
-                {
-                    b.HasOne("Collectify.Domain.Entities.Game", "ParentGame")
-                        .WithMany("Dlc")
-                        .HasForeignKey("ParentGameId", "OwnerId")
-                        .HasPrincipalKey("Id", "OwnerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ParentGame");
-                });
-
             modelBuilder.Entity("Collectify.Domain.Entities.GameStoreOwnedTitle", b =>
                 {
                     b.HasOne("Collectify.Domain.Entities.Game", null)
@@ -860,11 +841,6 @@ namespace Collectify.Infrastructure.Data.Migrations
                         .HasForeignKey("TagsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Collectify.Domain.Entities.Game", b =>
-                {
-                    b.Navigation("Dlc");
                 });
 #pragma warning restore 612, 618
         }

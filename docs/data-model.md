@@ -104,6 +104,75 @@ Three EF-Core-managed join tables (auto-created via `HasMany(x => x.Tags).WithMa
 
 API: `GET/POST/DELETE /api/tags`, plus `tags: string[]` on each item DTO that resolves on save (create-or-find by name).
 
+## Store imports / provenance (in code — Steam first)
+
+Backing tables for the "connect a digital store & import owned games" feature
+(see `docs/platform-import.md`). Owner-scoped; sessions and connections are
+per-user now, and the design is store-generic so Xbox / PlayStation can reuse
+the same shape later.
+
+`GameStoreConnection` — one linked store account per `(OwnerId, Store)`:
+
+| Field | Type | Notes |
+|---|---|---|
+| `Id` | int (PK) | |
+| `OwnerId` | string → AspNetUsers | |
+| `Store` | `DigitalStore` | `Steam` today |
+| `ExternalAccountId` | string | e.g. SteamID64 |
+| `ExternalDisplayName` | string? | persona name |
+| `LinkedAt` | DateTime | UTC |
+
+`GameStoreOwnedTitle` — the import ledger / provenance. **This is the
+idempotency source of truth:** one row per `(OwnerId, Store, ExternalGameId)`.
+A row whose `GameId` is null means "was imported, then the user deleted the
+Game from their collection" — it stays so a re-import (or reconnect) can't
+duplicate the title.
+
+| Field | Type | Notes |
+|---|---|---|
+| `Id` | int (PK) | |
+| `OwnerId` | string → AspNetUsers | |
+| `Store` | `DigitalStore` | |
+| `ExternalGameId` | string | Steam appid |
+| `ExternalAccountId` | string | account it came from |
+| `Title` | string | snapshot at import time |
+| `GameId` | int? → `Games` | composite FK `(GameId, OwnerId)` → `Games(Id, OwnerId)` with **Restrict** delete; nulled (not deleted) when the user deletes the game |
+| `ImportedAt` / `UpdatedAt` | DateTime? | UTC |
+
+`SteamAuthRequest` — one-time OpenID auth attempts (state + owner). The stored
+`StateHash` is the SHA-256 of `state + ":" + cookieHalf` so a leaked
+`return_to` alone can't complete a link.
+
+| Field | Type | Notes |
+|---|---|---|
+| `Id` | int (PK) | |
+| `StateHash` | string (unique) | combined OIDC state + cookie hash |
+| `OwnerId` | string | the user beginning the link |
+| `CreatedAt` / `ExpiresAt` | DateTime | |
+| `Consumed` | bool | single-use |
+
+Imported `Game` rows default to `Platform = Pc`, `IsDigital = true`,
+`DigitalStore = Store`, `Status = Owned`, `HoursPlayed` from playtime, and
+`AcquisitionSource = "Steam Import"`.
+
+### DLC / add-on (schema hook, provider-agnostic)
+
+Steam, Xbox and PSN all model DLC as a **separate product linked back to a base
+game**, so one self-reference covers every storefront:
+
+- `Game.ParentGameId` (int?, self FK → `Games.Id`, `Restrict`) — a DLC game
+  points at its base game. Same-owner semantics are enforced by the
+  ownership-preserving composite FK pattern applied to the ledger.
+- `GameStoreOwnedTitle.ParentExternalGameId` (string?, e.g. Steam parent appid)
+  — recorded at import time so a later DLC→parent backfill can populate
+  `Game.ParentGameId` **without re-importing or re-fetching** per app.
+
+This iteration keeps imports **flat**: no auto-linking of DLC to parents.
+`ParentGameId` is null for today's imports, and the DLC-grouping "auto-link +
+manual link" UI is a separate follow-up (needs the per-provider parent metadata
+Steam serves under `/appdetails`, which is rate-limited and not available for
+whole libraries in v1).
+
 ## Enums (planned)
 
 ```csharp

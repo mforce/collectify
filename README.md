@@ -65,6 +65,12 @@ All provider keys are optional — lookups degrade gracefully when unconfigured.
 | **IGDB** (games) | `Collectify__Metadata__Igdb__TwitchClientId`<br>`Collectify__Metadata__Igdb__TwitchClientSecret` | Both | Game title search and cover images. Create a Twitch app at [dev.twitch.tv](https://dev.twitch.tv/console/apps). |
 | **UPCitemdb** (barcode fallback) | *(none)* | No | Free trial endpoint, IP rate-limited (~100/day). Used for movies/games when TMDB/IGDB don't recognize a UPC. Override `Collectify__Metadata__Upc__BaseUrl` only for tests or paid-tier swaps. |
 
+#### Platform import providers
+
+| Provider | Variable(s) | Required? | Purpose |
+|---|---|---|---|
+| **Steam** (games) | `Collectify__Platforms__Steam__ApiKey` | Yes (to enable) | Connect a Steam account and import the owned games you list. Get a Steam Web API key at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey). Fail-soft: leave it empty and the import page shows a "set the Steam API key to enable" hint. If you run behind a reverse proxy, also set `Collectify__PublicBaseUrl` so the OpenID callback URL matches your external host, and set `Collectify__ReverseProxy__KnownProxies` to your proxy's IP/CIDR so the Steam callback rate limiter can key on the real client address (otherwise every public caller shares the proxy's bucket and can exhaust the 30/min allowance). |
+
 #### Other settings
 
 | Variable | Default | Purpose |

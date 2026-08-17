@@ -1,4 +1,7 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
@@ -9,6 +12,7 @@ using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.MusicBrainz;
 using Collectify.Infrastructure.Lookup.Tmdb;
 using Collectify.Infrastructure.Lookup.Upc;
+using Collectify.Infrastructure.Store;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,6 +59,31 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(rate =>
+{
+    // Per-client fixed-window guard for the public Steam OpenID callback so a
+    // stream of forged requests can't spam the outbound Steam verify step.
+    //
+    // Partition keyed on HttpContext.Connection.RemoteIpAddress. When the app
+    // sits behind a reverse proxy, UseForwardedHeaders (configured below with
+    // the trusted proxy networks) rewrites RemoteIpAddress to the real client
+    // BEFORE rate limiting runs, so we always partition on the true client even
+    // behind a proxy — and never touch a spoofable forwarded header by hand.
+    // If no proxy is trusted (directly-reachable install), RemoteIpAddress is
+    // the honest peer address, so the rate limit can't be bypassed by sending a
+    // fake X-Forwarded-For.
+    rate.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    rate.AddPolicy("steam-callback", httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
+    });
+});
 builder.Services.ConfigureHttpJsonOptions(opt =>
 {
     opt.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -68,14 +97,53 @@ builder.Services.AddTmdbMovieProvider(builder.Configuration);
 builder.Services.AddMusicBrainzMusicProvider(builder.Configuration);
 builder.Services.AddIgdbGameProvider(builder.Configuration);
 builder.Services.AddVisionClient(builder.Configuration);
+builder.Services.AddSteamStoreImport(builder.Configuration);
 
 // Cover-image cache. Bytes live in the CoverImages table alongside the
 // rest of the data so a backup of collectify.db is a complete snapshot.
-builder.Services.AddHttpClient(CoverImageStore.HttpClientName);
+// The handler caps automatic redirects (defense against a hostile/looping
+// URL chain) and the client bounds the download size; see CoverImageStore.
+builder.Services.AddHttpClient(CoverImageStore.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    MaxAutomaticRedirections = CoverImageStore.MaxRedirects,
+    AllowAutoRedirect = true,
+});
 builder.Services.AddScoped<ICoverImageStore, CoverImageStore>();
 builder.Services.AddScoped<CoverImageGarbageCollector>();
 
 var app = builder.Build();
+
+// Honour X-Forwarded-* headers ONLY from trusted reverse proxies. This is the
+// secure way to recover the real client address (and scheme) behind Cloudflare
+// / Traefik: the middleware drops forwarded values from any address that isn't
+// in KnownProxies/KnownNetworks, so an external client can't spoof a caller IP
+// to defeat per-client rate limiting. Configure Collectify:ReverseProxy:
+// KnownProxies (e.g. "10.0.0.0/8") for your deployment. When unset, all
+// forwarded headers are ignored and RemoteIpAddress is the direct peer — the
+// correct, honest behaviour for a directly-reachable install.
+//
+// Both configuration forms are accepted: a scalar comma-separated value
+// (Collectify__ReverseProxy__KnownProxies="10.0.0.0/8,192.168.1.5") and the
+// indexed-array form (…KnownProxies__0, …KnownProxies__1). The environment
+// provider stores a scalar as a single entry, so we split each bound value on
+// commas rather than assuming Get<string[]>() yields one item per address.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+var proxyCandidates = (builder.Configuration.GetSection("Collectify:ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+    .SelectMany(s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+foreach (var ip in proxyCandidates)
+{
+    if (System.Net.IPAddress.TryParse(ip, out var address))
+        forwardedOptions.KnownProxies.Add(address);
+    else if (System.Net.IPNetwork.TryParse(ip, out var network)) // CIDR prefix, e.g. "10.0.0.0/8"
+        forwardedOptions.KnownIPNetworks.Add(network);
+}
+app.UseForwardedHeaders(forwardedOptions);
 
 using (var scope = app.Services.CreateScope())
 {
@@ -96,6 +164,22 @@ using (var scope = app.Services.CreateScope())
     {
         await db.Database.MigrateAsync();
     }
+
+    // Record whether the Steam store-import tables exist. On Postgres an upgrade
+    // of an existing install leaves them absent (EnsureCreated is a no-op); the
+    // guard lets the Steam endpoints fail soft to "not configured" instead of
+    // crashing with an undefined-table 500. Best-effort: never let a failed
+    // detection take down app boot, and always allow the sweep below to try.
+    var steamSchema = scope.ServiceProvider.GetRequiredService<SteamSchemaGuard>();
+    try
+    {
+        steamSchema.MarkReady(await SteamSchemaGuard.DetectAsync(db, app.Lifetime.ApplicationStopping));
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not determine Steam schema presence; treating store import as unavailable");
+        steamSchema.MarkReady(false);
+    }
     // Resolve any free-text Game.Platform values that the
     // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
     // No-ops on a fresh DB or once everything's resolved.
@@ -104,10 +188,27 @@ using (var scope = app.Services.CreateScope())
     // Keeps the CoverImages table bounded as users re-scan / relookup
     // metadata over time.
     await scope.ServiceProvider.GetRequiredService<CoverImageGarbageCollector>().SweepAsync(db);
+    // Remove expired/consumed Steam OpenID auth requests so the table doesn't
+    // grow unbounded with abandoned connect attempts. Best-effort: on an
+    // existing Postgres install EnsureCreated is a no-op, so the table may not
+    // exist yet — never let that take down app boot for users who don't use
+    // Steam. Fail soft like every other startup step.
+    try
+    {
+        await db.SteamAuthRequests
+            .Where(r => r.Consumed || r.ExpiresAt <= DateTime.UtcNow)
+            .ExecuteDeleteAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex,
+            "Skipped SteamAuthRequest sweep (table missing on existing Postgres; a DB reset is required to enable store import).");
+    }
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapAuthEndpoints();
 app.MapMoviesEndpoints();
@@ -118,6 +219,7 @@ app.MapLookupEndpoints();
 app.MapCoversEndpoints();
 app.MapDashboardEndpoints();
 app.MapHealthEndpoints();
+app.MapSteamStoreEndpoints();
 
 var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
 if (Directory.Exists(webRoot))

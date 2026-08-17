@@ -2,6 +2,7 @@ using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Images;
 using Collectify.Infrastructure.Lookup.Vision;
+using Collectify.Infrastructure.Store;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -32,6 +33,12 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
 
     /// <summary>Optional override for tests that want a scripted vision client.</summary>
     public IVisionClient? VisionClient { get; init; }
+
+    /// <summary>Optional override for tests that want a scripted Steam import client.</summary>
+    public ISteamClient? SteamClient { get; init; }
+
+    /// <summary>Optional override for tests that want a scripted Steam OpenID verifier.</summary>
+    public ISteamOpenIdVerifier? SteamOpenIdVerifier { get; init; }
 
     /// <summary>
     /// Toggles the <c>Collectify:Auth:AllowRegistration</c> flag. Defaults
@@ -106,6 +113,16 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             {
                 services.RemoveAll<IVisionClient>();
                 services.AddSingleton(VisionClient);
+            }
+            if (SteamClient is not null)
+            {
+                services.RemoveAll<ISteamClient>();
+                services.AddSingleton(SteamClient);
+            }
+            if (SteamOpenIdVerifier is not null)
+            {
+                services.RemoveAll<ISteamOpenIdVerifier>();
+                services.AddSingleton(SteamOpenIdVerifier);
             }
         });
     }
