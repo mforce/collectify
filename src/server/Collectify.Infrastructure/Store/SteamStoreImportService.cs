@@ -366,6 +366,15 @@ public sealed class SteamStoreImportService
                         existing.UpdatedAt = DateTime.UtcNow;
                         createdGame = true;
                     }
+                    else if (await HealMissingSteamCoverAsync(newGame, metadataByAppId.GetValueOrDefault(appIdStr), game, ct))
+                    {
+                        // Game already imported but its cover is missing or still
+                        // a raw remote URL (e.g. imported before the 600x900 /
+                        // hash-path fix). Re-derive the local cover now — we only
+                        // ever fill a MISSING cover, never overwrite one the user
+                        // set manually.
+                        await _db.SaveChangesAsync(ct);
+                    }
                 }
 
                 await _db.SaveChangesAsync(ct);
@@ -414,6 +423,28 @@ public sealed class SteamStoreImportService
             ?? LogoUrl(game.AppId, game.ImgLogoUrl)
             ?? IconUrl(game.AppId, game.ImgIconUrl);
         return await _covers.EnsureLocalAsync(coverUrl, ct);
+    }
+
+    /// <summary>
+    /// Re-sync a Steam game's cover when it is missing or still a raw remote
+    /// URL (e.g. imported before the 600x900 / hash-path cover fix). This only
+    /// ever FILLS a missing or non-local cover — a local /covers/ image (set
+    /// by the user via IGDB or otherwise) is never overwritten. Returns true
+    /// when ImagePath was (re)set and should be saved.
+    /// </summary>
+    private async Task<bool> HealMissingSteamCoverAsync(Game game, SteamStoreBrowseItem? meta, SteamOwnedGame owned, CancellationToken ct)
+    {
+        // A good cover is stored locally under /covers/; if it's anything else
+        // (null, empty, or a stale remote URL) it's repairable.
+        if (!string.IsNullOrEmpty(game.ImagePath) && game.ImagePath.StartsWith("/covers/", StringComparison.Ordinal))
+            return false;
+
+        var coverPath = await LocalizeCoverAsync(meta, owned, ct);
+        if (string.IsNullOrEmpty(coverPath)) return false;
+
+        game.ImagePath = coverPath;
+        game.UpdatedAt = DateTime.UtcNow;
+        return true;
     }
 
     /// <summary>

@@ -303,6 +303,101 @@ public class SteamEndpointsTests
     }
 
     [Fact]
+    public async Task Import_HealsStaleRemoteCover_OnReImport()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades", PlaytimeForever = 3600 }],
+                StoreItems = new Dictionary<uint, SteamStoreBrowseItem>
+                {
+                    [1] = new()
+                    {
+                        AppId = 1,
+                        Name = "Hades",
+                        Assets = new SteamStoreAssets
+                        {
+                            AssetUrlFormat = "steam/apps/1/${FILENAME}?t=1",
+                            LibraryCapsule2x = "aabbcc/library_600x900_2x.jpg",
+                        },
+                    },
+                },
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        // First import creates the game (cover becomes a local /covers/<hash>).
+        await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = new[] { "1" } })).ReadJsonAsync<SteamImportResultDto>();
+
+        // Simulate a game imported before the cover fix: stale raw remote URL.
+        await factory.WithDbAsync(db =>
+        {
+            var g = db.Games.First(g => g.OwnerId == alice.Id && g.Title == "Hades");
+            g.ImagePath = "https://cdn.akamai.steamstatic.com/steam/apps/1/library_600x900_2x.jpg";
+            return db.SaveChangesAsync();
+        });
+
+        // Re-import: same id, already in ledger -> skips create but heals cover.
+        var body = await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = new[] { "1" } })).ReadJsonAsync<SteamImportResultDto>();
+        Assert.Equal(0, body!.Imported);
+
+        var game = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hades"));
+        Assert.StartsWith("/covers/", game.ImagePath);
+        Assert.DoesNotContain("steampowered.com", game.ImagePath);
+    }
+
+    [Fact]
+    public async Task Import_DoesNotOverwriteGoodLocalCover_OnReImport()
+    {
+        // A user-set local cover (e.g. via IGDB) must survive a re-import.
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades", PlaytimeForever = 3600 }],
+                StoreItems = new Dictionary<uint, SteamStoreBrowseItem>
+                {
+                    [1] = new()
+                    {
+                        AppId = 1,
+                        Name = "Hades",
+                        Assets = new SteamStoreAssets
+                        {
+                            AssetUrlFormat = "steam/apps/1/${FILENAME}?t=1",
+                            LibraryCapsule2x = "aabbcc/library_600x900_2x.jpg",
+                        },
+                    },
+                },
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = new[] { "1" } })).ReadJsonAsync<SteamImportResultDto>();
+
+        // User picks a different (manual) local cover.
+        await factory.WithDbAsync(db =>
+        {
+            var g = db.Games.First(g => g.OwnerId == alice.Id && g.Title == "Hades");
+            g.ImagePath = "/covers/manual-pick.jpg";
+            return db.SaveChangesAsync();
+        });
+
+        await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = new[] { "1" } })).ReadJsonAsync<SteamImportResultDto>();
+
+        var game = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hades"));
+        Assert.Equal("/covers/manual-pick.jpg", game.ImagePath); // untouched
+    }
+
+    [Fact]
     public async Task Import_IsIdempotent()
     {
         await using var factory = new CollectifyApiFactory
