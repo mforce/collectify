@@ -146,6 +146,9 @@ jobs:
           node ../../.github/scripts/vuln-gate.mjs --ecosystem npm --level moderate --warn-only \
             --exceptions ../../.github/security-exceptions.json < npm-audit-all.json
 
+      - name: Enum parity (server enums vs client tables)
+        run: npm run check:enums
+
       - name: Test
         run: npm test
 

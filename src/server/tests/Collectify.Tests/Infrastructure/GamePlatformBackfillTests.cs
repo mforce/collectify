@@ -76,6 +76,35 @@ public class GamePlatformBackfillTests : IDisposable
     }
 
     [Fact]
+    public async Task RunAsync_RetiresRemovedEnumValues_SteamDeckBecomesPc()
+    {
+        // #103: SteamDeck (60) was removed from GamePlatform; rows still
+        // holding 60 reclassify to Pc. This is the Postgres path, since
+        // that provider builds via EnsureCreated and never runs the
+        // ConvertSteamDeckToPc migration's SQL. Seed 60 by raw int
+        // (the enum member no longer exists, so there is no named value).
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "Deck game" });
+            await seed.SaveChangesAsync();
+            seed.Database.ExecuteSqlRaw("UPDATE \"Games\" SET \"Platform\" = 60 WHERE \"Title\" = 'Deck game';");
+        }
+
+        await using var db = new CollectifyDbContext(_options);
+        Assert.Equal(1, await GamePlatformBackfill.RunAsync(db));
+
+        await using (var assert = new CollectifyDbContext(_options))
+        {
+            var g = assert.Games.Single();
+            Assert.Equal(GamePlatform.Pc, g.Platform);
+        }
+
+        // Idempotent: a second run finds no retired rows left and returns 0.
+        await using var db2 = new CollectifyDbContext(_options);
+        Assert.Equal(0, await GamePlatformBackfill.RunAsync(db2));
+    }
+
+    [Fact]
     public async Task RunAsync_OnDbWithNoPendingRows_IsANoOp()
     {
         await using (var seed = new CollectifyDbContext(_options))

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { Card, CoverPreview, StatusPill, TagChip } from './ui';
 import type { Album, Game, MediaType, Movie } from '../services/types';
-import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, COMPLETION_STATUSES, gamePlatformLabel } from '../services/types';
+import { completionStatusLabel, gamePlatformLabel, MOVIE_FORMAT_FLAGS, watchStatusLabel } from '../services/types';
 import MediaIcon from './MediaIcon';
 
 interface Props<T> {
@@ -81,7 +81,7 @@ function HeroTitle({ type, title, subtitle }: { type: MediaType; title: string; 
 
 function MovieDetail({ item }: { item: Movie }) {
   const formats = MOVIE_FORMAT_FLAGS.filter((f) => (item.formats & f.value) !== 0);
-  const watchLabel = WATCH_STATUSES.find((w) => w.value === item.watchStatus)?.label;
+  const watchLabel = watchStatusLabel(item.watchStatus);
 
   return (
     <div className="space-y-6">
@@ -310,7 +310,7 @@ function MusicDetail({ item }: { item: Album }) {
 // ─── Game detail ─────────────────────────────────────────────────
 
 function GameDetail({ item }: { item: Game }) {
-  const completionLabel = COMPLETION_STATUSES.find((c) => c.value === item.completionStatus)?.label;
+  const completionLabel = completionStatusLabel(item.completionStatus);
 
   return (
     <div className="space-y-6">

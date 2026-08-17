@@ -45,6 +45,8 @@ client_job() {
   npm audit --json > npm-audit-all.json || true
   node "$REPO_ROOT/.github/scripts/vuln-gate.mjs" --ecosystem npm --level moderate --warn-only \
     --exceptions "$REPO_ROOT/.github/security-exceptions.json" < npm-audit-all.json
+  bold "    enum parity (server enums vs client tables)"
+  npm run check:enums
   npm test
   npm run build
 }

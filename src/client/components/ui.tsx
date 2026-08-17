@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import {
-  COLLECTION_STATUSES,
-  CONDITIONS,
+  collectionStatusLabel,
+  conditionLabel,
   type CollectionStatus,
   type Condition,
 } from '../services/types';
@@ -343,7 +343,7 @@ const CAT_STATUS_STYLE: Record<string, Record<CollectionStatus, string>> = {
 };
 
 export function StatusPill({ status, category }: { status: CollectionStatus; category?: string }) {
-  const label = COLLECTION_STATUSES.find((s) => s.value === status)?.label ?? status;
+  const label = collectionStatusLabel(status) ?? status;
   const style = category && CAT_STATUS_STYLE[category] ? CAT_STATUS_STYLE[category][status] : STATUS_STYLE[status];
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${style}`}>
@@ -353,7 +353,7 @@ export function StatusPill({ status, category }: { status: CollectionStatus; cat
 }
 
 export function ConditionPill({ condition }: { condition: Condition }) {
-  const label = CONDITIONS.find((c) => c.value === condition)?.label ?? condition;
+  const label = conditionLabel(condition) ?? condition;
   return (
     <span className="inline-flex items-center rounded-full border border-border bg-pill-bg px-2 py-0.5 text-xs font-semibold text-text-secondary">
       {label}

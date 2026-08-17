@@ -25,3 +25,9 @@ data/
 *.db-shm
 *.db-wal
 
+
+# Graphify query cache (regenerated locally)
+graphify-out/cache/last_query_stamp
+
+# Ad-hoc review artifacts
+architecture-review-collectify.html
