@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Collectify.Api.Endpoints;
 using Collectify.Infrastructure.Data;
@@ -63,28 +64,18 @@ builder.Services.AddRateLimiter(rate =>
     // Per-client fixed-window guard for the public Steam OpenID callback so a
     // stream of forged requests can't spam the outbound Steam verify step.
     //
-    // Partition keyed on the effective client address. By default that's the
-    // direct peer (Connection.RemoteIpAddress) — the honest, unspoofable signal,
-    // correct for a directly-reachable install. When Collectify sits behind a
-    // reverse proxy / TLS terminator, every client shares the proxy's peer IP,
-    // which would collapse per-client limiting back to one global bucket. To
-    // restore real per-client limiting in that deployment, set
-    // Collectify:Platforms:Steam:TrustForwardedIp=true so the partition key is
-    // taken from X-Forwarded-For (the first, outermost proxy-appended value).
-    // This is deliberately opt-in rather than default: trusting a spoofable
-    // forwarded header when no trusted proxy is in front would let a direct
-    // attacker mint a fresh bucket per request and bypass the limit entirely.
-    var trustForwardedIp = builder.Configuration
-        .GetSection(SteamOptions.SectionName).GetSection("Steam")
-        .GetValue<bool?>("TrustForwardedIp") ?? false;
-
+    // Partition keyed on HttpContext.Connection.RemoteIpAddress. When the app
+    // sits behind a reverse proxy, UseForwardedHeaders (configured below with
+    // the trusted proxy networks) rewrites RemoteIpAddress to the real client
+    // BEFORE rate limiting runs, so we always partition on the true client even
+    // behind a proxy — and never touch a spoofable forwarded header by hand.
+    // If no proxy is trusted (directly-reachable install), RemoteIpAddress is
+    // the honest peer address, so the rate limit can't be bypassed by sending a
+    // fake X-Forwarded-For.
     rate.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     rate.AddPolicy("steam-callback", httpContext =>
     {
-        var ip = trustForwardedIp && httpContext.Request.Headers.TryGetValue("X-Forwarded-For", out var fwd)
-                 && fwd.Count > 0 && !string.IsNullOrWhiteSpace(fwd[0])
-            ? fwd[0]!.Split(',')[0].Trim()
-            : httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 30,
@@ -124,6 +115,27 @@ builder.Services.AddScoped<ICoverImageStore, CoverImageStore>();
 builder.Services.AddScoped<CoverImageGarbageCollector>();
 
 var app = builder.Build();
+
+// Honour X-Forwarded-* headers ONLY from trusted reverse proxies. This is the
+// secure way to recover the real client address (and scheme) behind Cloudflare
+// / Traefik: the middleware drops forwarded values from any address that isn't
+// in KnownProxies/KnownNetworks, so an external client can't spoof a caller IP
+// to defeat per-client rate limiting. Configure Collectify:ReverseProxy:
+// KnownProxies (e.g. ["10.0.0.0/8"]) for your deployment. When unset, all
+// forwarded headers are ignored and RemoteIpAddress is the direct peer — the
+// correct, honest behaviour for a directly-reachable install.
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+};
+foreach (var ip in builder.Configuration.GetSection("Collectify:ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+{
+    if (System.Net.IPAddress.TryParse(ip, out var address))
+        forwardedOptions.KnownProxies.Add(address);
+    else if (System.Net.IPNetwork.TryParse(ip, out var network)) // CIDR prefix, e.g. "10.0.0.0/8"
+        forwardedOptions.KnownIPNetworks.Add(network);
+}
+app.UseForwardedHeaders(forwardedOptions);
 
 using (var scope = app.Services.CreateScope())
 {

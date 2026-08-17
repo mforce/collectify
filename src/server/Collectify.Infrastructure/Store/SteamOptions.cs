@@ -28,15 +28,6 @@ public sealed class SteamOptions
         /// <summary>Max selections a preview may return.</summary>
         public int PreviewCap { get; set; } = 500;
 
-        /// <summary>
-        /// When true (opt-in), the Steam callback rate limiter partitions by the
-        /// X-Forwarded-For client address instead of the direct peer IP. Set this
-        /// ONLY when the service is deployed behind a trusted reverse proxy /
-        /// TLS terminator (e.g. Traefik/Cloudflare); otherwise a directly-reachable
-        /// install would let anyone spoof X-Forwarded-For to bypass the limit.
-        /// </summary>
-        public bool TrustForwardedIp { get; set; }
-
         public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
     }
 }

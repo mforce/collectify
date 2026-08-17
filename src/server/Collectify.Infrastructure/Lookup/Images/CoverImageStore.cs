@@ -99,12 +99,22 @@ public sealed class CoverImageStore : ICoverImageStore
         }
         catch (DbUpdateException)
         {
-            // A concurrent request stored the same hash first. The row is
-            // there, our payload would have been identical (same content
-            // hash); just discard our copy (detaching the still-Added entity so
-            // a later SaveChangesAsync on this context won't retry a duplicate
-            // insert) and return the public URL.
-            _db.ChangeTracker.Clear();
+            // A concurrent request stored the same hash first. The row is already
+            // in the table and our payload would have been identical, so discard
+            // OUR pending CoverImage row and return the public URL.
+            //
+            // IMPORTANT: this scoped store shares the request's DbContext, which
+            // may also be tracking an edited Movie/MusicAlbum/Game from the
+            // enclosing endpoint (metadata/cover enrichment runs mid-request).
+            // That SaveChangesAsync above failed and rolled the DB back, but the
+            // edited entity is still tracked with its pending values — so we must
+            // detach ONLY the conflicting CoverImage and leave everything else
+            // tracked, or the endpoint's later SaveChangesAsync would silently
+            // succeed without persisting the user's edit.
+            var conflicting = _db.ChangeTracker.Entries<CoverImage>()
+                .FirstOrDefault(e => e.Entity.Hash == hash);
+            if (conflicting is not null)
+                conflicting.State = EntityState.Detached;
             return publicUrl;
         }
         catch (Exception ex)
@@ -168,12 +178,15 @@ public sealed class CoverImageStore : ICoverImageStore
         }
         catch (DbUpdateException)
         {
-            // Two concurrent uploads of the same bytes race; the loser's
-            // payload is identical, so we can swallow and return the same
-            // URL (the winner's row is already in the table). Detach the
-            // still-Added entity so a later SaveChangesAsync on this context
-            // won't retry a duplicate insert.
-            _db.ChangeTracker.Clear();
+            // Two concurrent uploads of the same bytes race; the loser's payload
+            // is identical, so we swallow and return the same URL (the winner's
+            // row is already in the table). As in EnsureLocalAsync, detach only
+            // the conflicting CoverImage — never clear the whole tracker, which
+            // shares the scoped context with the enclosing endpoint's edits.
+            var conflicting = _db.ChangeTracker.Entries<CoverImage>()
+                .FirstOrDefault(e => e.Entity.Hash == hash);
+            if (conflicting is not null)
+                conflicting.State = EntityState.Detached;
         }
         return publicUrl;
     }

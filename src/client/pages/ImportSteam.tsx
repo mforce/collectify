@@ -215,16 +215,7 @@ export default function ImportSteam() {
             </Card>
           )}
 
-          {!games.isLoading && games.data?.status === 'ok' && games.data.titles.length === 0 && (
-            <Card>
-              <p className="text-sm text-text-secondary">
-                No owned games returned. Make sure your Steam profile's game details are set
-                to <strong>Public</strong> in Privacy Settings, then try again.
-              </p>
-            </Card>
-          )}
-
-          {games.data?.status === 'ok' && games.data.titles.length > 0 && (
+          {!games.isLoading && games.data?.status === 'ok' && (
             <>
               <input
                 type="search"
@@ -236,7 +227,7 @@ export default function ImportSteam() {
               />
               <div className="flex items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
-                  <input type="checkbox" checked={allImportableSelected} onChange={toggleAll} />
+                  <input type="checkbox" checked={allImportableSelected} onChange={toggleAll} disabled={games.data.titles.length === 0} />
                   Select all not-imported ({importable.length})
                   {games.data.truncated && (
                     <span className="font-normal text-xs text-text-tertiary">
@@ -267,7 +258,11 @@ export default function ImportSteam() {
 
               <Card className="divide-y divide-border">
                 {filtered.length === 0 ? (
-                  <p className="px-3 py-2.5 text-sm text-text-tertiary">No matches for “{filter}”.</p>
+                  <p className="px-3 py-2.5 text-sm text-text-tertiary">
+                    {filter.trim()
+                      ? `No matches for “${filter}”.`
+                      : <>No owned games returned. Make sure your Steam profile's game details are set to <strong className="text-text-secondary">Public</strong> in Privacy Settings, then try again.</>}
+                  </p>
                 ) : (
                   filtered.map((g) => {
                     const isImported = g.state === 'imported';
