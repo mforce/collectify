@@ -102,8 +102,12 @@ public sealed class IgdbBackfillRunner
                 }
                 else
                 {
-                    // Confident "no match" — leave for manual resolution. Not a
-                    // throttle signal, so leave consecutiveEmpty untouched.
+                    // Provider returned a non-empty result but nothing was a
+                    // confident match — leave for manual resolution. A nonempty
+                    // response proves IGDB is NOT throttled, so reset the
+                    // empty-result streak (otherwise empties separated by real
+                    // responses would accumulate and falsely abort the sweep).
+                    consecutiveEmpty = 0;
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -175,9 +179,11 @@ public sealed class IgdbBackfillRunner
         // Localize the cover FIRST, before mutating the game. CoverImageStore
         // calls SaveChangesAsync internally on the same scoped DbContext; doing
         // this before we touch the game means that internal save never flushes
-        // a partially-applied game.
+        // a partially-applied game. Skip the download entirely when the game
+        // already has an image — fill-only Apply would discard it anyway, so
+        // this avoids an unreferenced CoverImages row + needless network I/O.
         string? coverPath = null;
-        if (!string.IsNullOrWhiteSpace(match.Result.ImageUrl))
+        if (string.IsNullOrWhiteSpace(game.ImagePath) && !string.IsNullOrWhiteSpace(match.Result.ImageUrl))
             coverPath = await _covers.EnsureLocalAsync(match.Result.ImageUrl, ct);
 
         Apply(game, match.Result, coverPath);
@@ -185,6 +191,22 @@ public sealed class IgdbBackfillRunner
         // Single atomic save: the whole game is committed at once. IgdbId is
         // only persisted here, so a failure before this line leaves the game
         // fully null and re-sweepable.
+        //
+        // Concurrency guard: re-check "still pending" against the DATABASE (not
+        // the in-memory tracked value) right before persisting. A user who
+        // manually assigned an IGDB id while our search/cover I/O was in flight
+        // must not be overwritten. If the row is no longer pending, drop our
+        // stale mutations and skip.
+        var stillPending = await _db.Games
+            .AsNoTracking()
+            .AnyAsync(g => g.Id == gameId && g.IgdbId == null, ct);
+        if (!stillPending)
+        {
+            _db.ChangeTracker.Clear();
+            _log.LogInformation("IGDB backfill skipped for game {GameId}: IGDB id assigned concurrently", gameId);
+            return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
+        }
+
         await _db.SaveChangesAsync(ct);
         _log.LogInformation("IGDB backfill: linked \"{Title}\" to IGDB id {IgdbId}", game.Title, match.Result.ProviderKey);
         return new BackfillOutcome(WasFilled: true, ProviderReturnedEmpty: false);

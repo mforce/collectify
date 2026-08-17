@@ -55,7 +55,7 @@ public sealed class IgdbBackfillService : BackgroundService
                 return;
             }
 
-            if (!await ProviderConfiguredAsync(stoppingToken))
+            if (!ProviderConfigured())
             {
                 _log.LogInformation("IGDB backfill not started: IGDB/Twitch not configured");
                 return;
@@ -74,7 +74,7 @@ public sealed class IgdbBackfillService : BackgroundService
         }
     }
 
-    private async Task<bool> ProviderConfiguredAsync(CancellationToken ct)
+    private bool ProviderConfigured()
     {
         using var scope = _scopeFactory.CreateScope();
         var provider = scope.ServiceProvider.GetRequiredService<IGameMetadataProvider>();
@@ -83,9 +83,10 @@ public sealed class IgdbBackfillService : BackgroundService
 
     private async Task RunLoopAsync(CancellationToken ct)
     {
-        // Stagger the first sweep so it doesn't compete with app warm-up.
-        await Task.Delay(_options.CurrentValue.Interval, _clock, ct);
-
+        // PeriodicTimer's first tick fires after one Interval, so the first
+        // sweep runs ~Interval after startup and then every Interval after.
+        // (Previously an extra Task.Delay here made the first sweep wait TWO
+        // intervals, needlessly delaying metadata after an import.)
         using var timer = new PeriodicTimer(_options.CurrentValue.Interval, _clock);
         while (await timer.WaitForNextTickAsync(ct))
         {

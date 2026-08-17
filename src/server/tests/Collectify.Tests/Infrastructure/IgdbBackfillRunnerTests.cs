@@ -357,6 +357,98 @@ public class IgdbBackfillRunnerTests : IDisposable
         Assert.Equal(4, assert.Games.Count(g => g.IgdbId == null));
     }
 
+    [Fact]
+    public async Task RunSweepAsync_NonEmptyNoMatch_ResetsEmptyAbortStreak()
+    {
+        // The throttle abort must count CONSECUTIVE empty results. A non-empty
+        // response (even one with no confident match) proves IGDB is alive and
+        // must reset the streak, otherwise alternating empty/success responses
+        // would accumulate to the threshold and abort a healthy sweep.
+        // Threshold 2: on a non-reset counter this aborts after "Three" (never
+        // reaching "Four"); with the reset it processes and fills "Four".
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.AddRange(
+                new Game { OwnerId = "alice", Title = "One" },
+                new Game { OwnerId = "alice", Title = "Two" },
+                new Game { OwnerId = "alice", Title = "Three" },
+                new Game { OwnerId = "alice", Title = "Four" });
+            await seed.SaveChangesAsync();
+        }
+
+        var runner = NewRunner(
+            provider: new MultiplyGameProvider(new Dictionary<string, Func<IReadOnlyList<GameLookupResult>>>
+            {
+                ["One"] = () => [],                                                    // empty (1)
+                ["Two"] = () => [Hit("Different Title", GamePlatform.Pc, "x")],        // nonempty, no match -> reset
+                ["Three"] = () => [],                                                  // empty (1 again)
+                ["Four"] = () => [Hit("Four", GamePlatform.Pc, "4")],                  // would be skipped if streak wasn't reset
+            }),
+            options: new IgdbBackfillOptions { EmptyResultAbortThreshold = 2, PacingDelay = TimeSpan.Zero });
+
+        await runner.RunSweepAsync(CancellationToken.None);
+
+        await using var assert = new CollectifyDbContext(_options);
+        // With the streak reset on the non-empty "Two", the sweep reaches "Four"
+        // and fills it instead of aborting early.
+        Assert.Equal("4", assert.Games.Single(g => g.Title == "Four").IgdbId);
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_SkipsCoverDownload_WhenImagePathAlreadySet()
+    {
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "Hades", ImagePath = "/covers/user" });
+            await seed.SaveChangesAsync();
+        }
+
+        // A cover func that throws if called: the match has an ImageUrl, but
+        // fill-only means it would be discarded, so the download must be skipped.
+        var runner = NewRunner(
+            provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9")] },
+            covers: _ => throw new InvalidOperationException("cover must not be downloaded when ImagePath is set"));
+
+        await runner.RunSweepAsync(CancellationToken.None);
+
+        await using var assert = new CollectifyDbContext(_options);
+        var g = assert.Games.Single();
+        Assert.Equal("9", g.IgdbId);
+        Assert.Equal("/covers/user", g.ImagePath); // preserved, not overwritten
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_ConcurrentIgdbAssignment_IsNotOverwritten()
+    {
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "Hades" });
+            await seed.SaveChangesAsync();
+        }
+
+        // Simulate a user manually assigning IGDB id 999 on another DbContext
+        // while the sweep's search/cover I/O is in flight. The cover callback
+        // runs between the sweep's game read and its save, letting us commit
+        // the concurrent assignment into the DB at the contested moment.
+        var runner = NewRunner(
+            provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9")] },
+            covers: _ =>
+            {
+                using var concurrent = new CollectifyDbContext(_options);
+                var g = concurrent.Games.Single(x => x.Title == "Hades");
+                g.IgdbId = "999";
+                concurrent.SaveChanges();
+                return "/covers/manual";
+            });
+
+        var filled = await runner.RunSweepAsync(CancellationToken.None);
+        Assert.Equal(0, filled); // sweep correctly declined to overwrite
+
+        await using var assert = new CollectifyDbContext(_options);
+        // The user-assigned id 999 wins; the backfill's "9" must not clobber it.
+        Assert.Equal("999", assert.Games.Single().IgdbId);
+    }
+
     /// <summary>Query-aware provider: keys are the exact search title; a value's Func is invoked (may throw).</summary>
     private sealed class MultiplyGameProvider : IGameMetadataProvider
     {
