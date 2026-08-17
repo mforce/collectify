@@ -141,6 +141,7 @@ public sealed class SteamClient : ISteamClient
                 IncludeRelease = true,
                 IncludeReviews = true,
                 IncludeAllPurchaseOptions = true,
+                IncludeAssets = true,
             },
         };
 

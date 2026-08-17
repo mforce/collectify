@@ -53,6 +53,9 @@ public sealed class SteamStoreBrowseDataRequest
 
     [JsonPropertyName("include_all_purchase_options")]
     public bool IncludeAllPurchaseOptions { get; set; }
+
+    [JsonPropertyName("include_assets")]
+    public bool IncludeAssets { get; set; }
 }
 
 public sealed class SteamStoreBrowseResponseEnvelope
@@ -80,6 +83,30 @@ public sealed class SteamStoreBrowseItem
 
     [JsonPropertyName("release")]
     public SteamStoreRelease? Release { get; set; }
+
+    [JsonPropertyName("assets")]
+    public SteamStoreAssets? Assets { get; set; }
+}
+
+/// <summary>
+/// Storefront art asset descriptors. The <c>asset_url_format</c> is a
+/// <c>${FILENAME}</c> template resolved against a per-filename value in this
+/// object; the real files live under the
+/// <c>https://shared.akamai.steamstatic.com/store_item_assets/</c> host.
+/// Newer apps hash the directory (e.g. <c>{hash}/library_capsule_2x.jpg</c>),
+/// so these values MUST be used instead of constructing an appid-based URL.
+/// </summary>
+public sealed class SteamStoreAssets
+{
+    [JsonPropertyName("asset_url_format")]
+    public string? AssetUrlFormat { get; set; }
+
+    /// <summary>600x900 portrait cover (the app's 2:3 library tile).</summary>
+    [JsonPropertyName("library_capsule_2x")]
+    public string? LibraryCapsule2x { get; set; }
+
+    [JsonPropertyName("library_capsule")]
+    public string? LibraryCapsule { get; set; }
 }
 
 public sealed class SteamStoreBasicInfo

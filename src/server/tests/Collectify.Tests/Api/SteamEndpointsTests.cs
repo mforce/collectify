@@ -247,6 +247,13 @@ public class SteamEndpointsTests
                             Publishers = [new SteamStoreOwner { Name = "Supergiant Games" }],
                         },
                         Release = new SteamStoreRelease { SteamReleaseDate = 1609459200 }, // 2021-01-01
+                        // Hashed asset dir (like newer apps) — the import MUST use
+                        // this to build the cover URL, not a hardcoded appid URL.
+                        Assets = new SteamStoreAssets
+                        {
+                            AssetUrlFormat = "steam/apps/1/${FILENAME}?t=1",
+                            LibraryCapsule2x = "aabbcc/library_600x900_2x.jpg",
+                        },
                     },
                 },
             },

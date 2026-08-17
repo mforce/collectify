@@ -324,7 +324,7 @@ public sealed class SteamStoreImportService
                         ownerId,
                         game,
                         appIdStr,
-                        await LocalizeCoverAsync(game, ct),
+                        await LocalizeCoverAsync(metadataByAppId.GetValueOrDefault(appIdStr), game, ct),
                         metadataByAppId.GetValueOrDefault(appIdStr));
                     _db.Games.Add(newGame);
                     await _db.SaveChangesAsync(ct);
@@ -356,7 +356,7 @@ public sealed class SteamStoreImportService
                         ownerId,
                         game,
                         appIdStr,
-                        await LocalizeCoverAsync(game, ct),
+                        await LocalizeCoverAsync(metadataByAppId.GetValueOrDefault(appIdStr), game, ct),
                         metadataByAppId.GetValueOrDefault(appIdStr));
                         _db.Games.Add(newGame);
                         await _db.SaveChangesAsync(ct);
@@ -400,25 +400,44 @@ public sealed class SteamStoreImportService
 
     /// <summary>
     /// Localize a Steam cover to the app's /covers/ store. Prefers the
-    /// high-res 600x900 library cover (real portrait box art, correct 2:3
-    /// aspect for the app's cover boxes), then the logo banner, then the small
-    /// icon, and downloads it through <see cref="ICoverImageStore"/> (same
-    /// path the edit flow uses). Fail-soft: no cover or a download failure
-    /// leaves ImagePath null.
+    /// high-res 600x900 library cover via the storefront <c>assets</c>
+    /// metadata (correct 2:3 portrait and handles the hash-pathed art that new
+    /// apps use), falling back to the logo banner then the small icon, and
+    /// downloads it through <see cref="ICoverImageStore"/> (same path the edit
+    /// flow uses). Fail-soft: no cover or a download failure leaves ImagePath
+    /// null.
     /// </summary>
-    private async Task<string?> LocalizeCoverAsync(SteamOwnedGame game, CancellationToken ct)
+    private async Task<string?> LocalizeCoverAsync(SteamStoreBrowseItem? meta, SteamOwnedGame game, CancellationToken ct)
     {
-        var coverUrl = LibraryCoverUrl(game.AppId)
+        var coverUrl = StoreAssetUrl(meta)
+            ?? LibraryCoverUrl(game.AppId)
             ?? LogoUrl(game.AppId, game.ImgLogoUrl)
             ?? IconUrl(game.AppId, game.ImgIconUrl);
         return await _covers.EnsureLocalAsync(coverUrl, ct);
     }
 
     /// <summary>
+    /// Resolve the app's real 600x900 library cover from the GetItems
+    /// <c>assets</c> block. Newer apps hash the asset directory, so the URL
+    /// must come from the metadata's <c>asset_url_format</c> template +
+    /// filename — a hardcoded appid-based URL 404s for those. Returns null
+    /// when no assets were returned.
+    /// </summary>
+    public static string? StoreAssetUrl(SteamStoreBrowseItem? meta)
+    {
+        var assets = meta?.Assets;
+        var filename = assets?.LibraryCapsule2x ?? assets?.LibraryCapsule;
+        var format = assets?.AssetUrlFormat;
+        if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(format)) return null;
+        var path = format.Replace("${FILENAME}", filename, StringComparison.Ordinal);
+        return $"https://shared.akamai.steamstatic.com/store_item_assets/{path}";
+    }
+
+    /// <summary>
     /// Steam's canonical library cover for an app: a 600x900 portrait used by
-    /// the Steam client library (the same URL that powers the 2:3 cover art on
-    /// the app's own detail page). Deterministic from the appid, no extra API
-    /// call. Returns null for invalid appids.
+    /// the Steam client library. Deterministic from the appid; kept only as a
+    /// fallback when GetItems returned no assets (older apps expose this
+    /// un-hashed path). Returns null for invalid appids.
     /// </summary>
     private static string? LibraryCoverUrl(uint appId)
         => appId == 0 ? null : $"https://cdn.akamai.steamstatic.com/steam/apps/{appId}/library_600x900_2x.jpg";
