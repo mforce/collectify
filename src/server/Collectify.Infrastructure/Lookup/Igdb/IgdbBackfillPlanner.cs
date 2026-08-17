@@ -103,7 +103,20 @@ public static class IgdbBackfillPlanner
             var yearAligned = group
                 .Where(c => c.Year is { } y && Math.Abs(y - localYear) <= YearTolerance)
                 .ToList();
-            if (yearAligned.Count > 0) group = yearAligned;
+            if (yearAligned.Count > 0)
+            {
+                group = yearAligned;
+            }
+            else
+            {
+                // The local year is known but no candidate is within tolerance.
+                // If any candidate exposes an explicit year that contradicts it
+                // (e.g. a local 2016 DOOM vs a lone 1993 entry), decline rather
+                // than fall back to the full group and permanently lock in a
+                // wrong link. Only fall through when every candidate year is
+                // unknown (no contradiction evidence, e.g. IGDB lacks a date).
+                if (group.Any(c => c.Year is not null)) return null;
+            }
         }
 
         // 2. Narrow by the local game's own platform (PC for Steam-imported,

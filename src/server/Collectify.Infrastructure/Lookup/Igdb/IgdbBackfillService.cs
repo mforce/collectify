@@ -106,11 +106,13 @@ public sealed class IgdbBackfillService : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var runner = scope.ServiceProvider.GetRequiredService<IgdbBackfillRunner>();
-            // Rotate the window each sweep: pass the current offset, then
-            // advance it. The runner wraps by the pending count, so this single
-            // ±MaxGamesPerSweep advance guarantees every game is eventually swept.
-            await runner.RunSweepAsync(ct, (int)(_sweepOffset % int.MaxValue));
-            _sweepOffset += _options.CurrentValue.MaxGamesPerSweep;
+            // Rotate the window each sweep: pass the current offset, then advance
+            // by the games ACTUALLY attempted (not the configured cap) so a
+            // throttle-aborted sweep doesn't skip over its unattempted remainder
+            // and permanently starve those games. The runner wraps via
+            // `offset % pending.Count`, so every pending game is eventually swept.
+            var result = await runner.RunSweepAsync(ct, (int)(_sweepOffset % int.MaxValue));
+            _sweepOffset += result.Attempted;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

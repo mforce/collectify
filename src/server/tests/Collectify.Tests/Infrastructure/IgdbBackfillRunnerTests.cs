@@ -74,7 +74,7 @@ public class IgdbBackfillRunnerTests : IDisposable
             covers: _ => "/covers/abc");
 
         var filled = await runner.RunSweepAsync(CancellationToken.None);
-        Assert.Equal(1, filled);
+        Assert.Equal(1, filled.Filled);
 
         await using var assert = new CollectifyDbContext(_options);
         var g = assert.Games.Single();
@@ -108,8 +108,11 @@ public class IgdbBackfillRunnerTests : IDisposable
             await seed.SaveChangesAsync();
         }
 
-        // IGDB would supply different values (and nulls in some spots).
-        var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9", year: 2018, genres: null)] });
+        // IGDB would supply different values (and nulls in some spots). Year is
+        // null here so the year-contradiction guard doesn't decline (the local
+        // game's known year 2020 is deliberately not what IGDB reports, which is
+        // exactly the fill-only case being tested, not a matching concern).
+        var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9", year: null, genres: null)] });
 
         await runner.RunSweepAsync(CancellationToken.None);
 
@@ -173,7 +176,7 @@ public class IgdbBackfillRunnerTests : IDisposable
         var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9")] });
         var filled = await runner.RunSweepAsync(CancellationToken.None);
 
-        Assert.Equal(0, filled);
+        Assert.Equal(0, filled.Filled);
         await using var assert = new CollectifyDbContext(_options);
         Assert.Equal("9", assert.Games.Single().IgdbId);
     }
@@ -190,7 +193,7 @@ public class IgdbBackfillRunnerTests : IDisposable
         var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [Hit("Dark Souls II: Scholar of the First Sin", GamePlatform.Ps4, "1")] });
         var filled = await runner.RunSweepAsync(CancellationToken.None);
 
-        Assert.Equal(0, filled);
+        Assert.Equal(0, filled.Filled);
         await using var assert = new CollectifyDbContext(_options);
         Assert.Null(assert.Games.Single().IgdbId);
     }
@@ -213,7 +216,7 @@ public class IgdbBackfillRunnerTests : IDisposable
 
         var filled = await runner.RunSweepAsync(CancellationToken.None);
 
-        Assert.Equal(1, filled); // the throwing game did NOT stop Hades from filling
+        Assert.Equal(1, filled.Filled); // the throwing game did NOT stop Hades from filling
         await using var assert = new CollectifyDbContext(_options);
         Assert.Equal("9", assert.Games.Single(g => g.Title == "Hades").IgdbId);
         Assert.Null(assert.Games.Single(g => g.Title == "Doomed").IgdbId);
@@ -236,7 +239,7 @@ public class IgdbBackfillRunnerTests : IDisposable
         }));
 
         var filled = await runner.RunSweepAsync(CancellationToken.None);
-        Assert.Equal(1, filled);
+        Assert.Equal(1, filled.Filled);
         await using var assert = new CollectifyDbContext(_options);
         Assert.Equal("9", assert.Games.Single(g => g.Title == "Hades").IgdbId);
     }
@@ -287,7 +290,7 @@ public class IgdbBackfillRunnerTests : IDisposable
         var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9")], IsConfigured = false });
         var filled = await runner.RunSweepAsync(CancellationToken.None);
 
-        Assert.Equal(0, filled);
+        Assert.Equal(0, filled.Filled);
         await using var assert = new CollectifyDbContext(_options);
         Assert.Null(assert.Games.Single().IgdbId);
     }
@@ -316,7 +319,7 @@ public class IgdbBackfillRunnerTests : IDisposable
             options: new IgdbBackfillOptions { MaxGamesPerSweep = 2, PacingDelay = TimeSpan.Zero });
 
         var filled = await runner.RunSweepAsync(CancellationToken.None);
-        Assert.Equal(2, filled); // only the first 2 attempted (cap)
+        Assert.Equal(2, filled.Filled); // only the first 2 attempted (cap)
 
         await using var assert = new CollectifyDbContext(_options);
         Assert.Equal(2, assert.Games.Count(g => g.IgdbId != null));
@@ -351,7 +354,11 @@ public class IgdbBackfillRunnerTests : IDisposable
             options: new IgdbBackfillOptions { EmptyResultAbortThreshold = 2, PacingDelay = TimeSpan.Zero });
 
         var filled = await runner.RunSweepAsync(CancellationToken.None);
-        Assert.Equal(0, filled); // nothing filled, sweep aborted rather than storming
+        Assert.Equal(0, filled.Filled); // nothing filled, sweep aborted rather than storming
+        // Only 2 games were attempted before the throttle abort — proof that the
+        // caller can advance the rotation by Attempted (not the full cap) so the
+        // unattempted remainder isn't skipped next sweep.
+        Assert.Equal(2, filled.Attempted);
 
         await using var assert = new CollectifyDbContext(_options);
         Assert.Equal(4, assert.Games.Count(g => g.IgdbId == null));
@@ -442,7 +449,7 @@ public class IgdbBackfillRunnerTests : IDisposable
             });
 
         var filled = await runner.RunSweepAsync(CancellationToken.None);
-        Assert.Equal(0, filled); // sweep correctly declined to overwrite
+        Assert.Equal(0, filled.Filled); // sweep correctly declined to overwrite
 
         await using var assert = new CollectifyDbContext(_options);
         // The user-assigned id 999 wins; the backfill's "9" must not clobber it.
@@ -475,11 +482,11 @@ public class IgdbBackfillRunnerTests : IDisposable
 
         // Sweep 1 (offset 0): window = [A, B] — no matches, nothing filled.
         var sweep1 = NewRunner(provider, options: options);
-        Assert.Equal(0, await sweep1.RunSweepAsync(CancellationToken.None, offset: 0));
+        Assert.Equal(0, (await sweep1.RunSweepAsync(CancellationToken.None, offset: 0)).Filled);
 
-        // Sweep 2 (offset offset+cap=2): window = [C, D] — both filled.
+        // Sweep 2 (offset offset+attempted=2): window = [C, D] — both filled.
         var sweep2 = NewRunner(provider, options: options);
-        Assert.Equal(2, await sweep2.RunSweepAsync(CancellationToken.None, offset: options.MaxGamesPerSweep));
+        Assert.Equal(2, (await sweep2.RunSweepAsync(CancellationToken.None, offset: options.MaxGamesPerSweep)).Filled);
 
         await using var assert = new CollectifyDbContext(_options);
         Assert.Equal("3", assert.Games.Single(g => g.Title == "C").IgdbId);

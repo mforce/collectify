@@ -56,7 +56,10 @@ public sealed class IgdbBackfillRunner
     }
 
     /// <summary>
-    /// Run one sweep. Returns the number of games successfully backfilled.
+    /// Run one sweep. Returns how many games were filled and how many were
+    /// actually attempted (so the caller can advance the rotation window by the
+    /// real amount processed, not a configured cap that may have been cut short
+    /// by the throttle abort).
     /// </summary>
     /// <param name="ct">Cancellation token (honoured throughout, incl. pacing).</param>
     /// <param name="offset">
@@ -68,12 +71,12 @@ public sealed class IgdbBackfillRunner
     /// (and wrapping via `offset % count`) guarantees every pending game is
     /// eventually attempted.
     /// </param>
-    public async Task<int> RunSweepAsync(CancellationToken ct = default, int offset = 0)
+    public async Task<BackfillSweepResult> RunSweepAsync(CancellationToken ct = default, int offset = 0)
     {
         if (!_provider.IsConfigured)
         {
             _log.LogInformation("IGDB backfill skipped: IGDB/Twitch not configured");
-            return 0;
+            return new BackfillSweepResult(Filled: 0, Attempted: 0);
         }
 
         // Deterministic, bounded, and NOT tracked: the pending list is only
@@ -86,7 +89,7 @@ public sealed class IgdbBackfillRunner
             .OrderBy(g => g.Id)
             .Select(g => g.Id)
             .ToListAsync(ct);
-        if (pending.Count == 0) return 0;
+        if (pending.Count == 0) return new BackfillSweepResult(Filled: 0, Attempted: 0);
 
         // Rotate the window start by `offset` so each sweep reaches a different
         // slice of the (unmatched) pending set instead of always the lowest ids.
@@ -97,6 +100,7 @@ public sealed class IgdbBackfillRunner
             .ToList();
 
         var filled = 0;
+        var attempted = 0;
         var consecutiveEmpty = 0;
 
         foreach (var gameId in window)
@@ -105,6 +109,7 @@ public sealed class IgdbBackfillRunner
 
             try
             {
+                attempted++;
                 var outcome = await BackfillOneAsync(gameId, ct);
 
                 if (outcome.ProviderReturnedEmpty)
@@ -162,8 +167,11 @@ public sealed class IgdbBackfillRunner
         }
 
         _log.LogInformation("IGDB backfill sweep complete: filled {Filled} of {Pending} pending", filled, pending.Count);
-        return filled;
+        return new BackfillSweepResult(Filled: filled, Attempted: attempted);
     }
+
+    /// <summary>Result of a single sweep: how many games were filled and attempted.</summary>
+    public sealed record BackfillSweepResult(int Filled, int Attempted);
 
     /// <summary>
     /// Outcome of attempting to backfill a single game.
@@ -175,57 +183,62 @@ public sealed class IgdbBackfillRunner
     /// </summary>
     private async Task<BackfillOutcome> BackfillOneAsync(int gameId, CancellationToken ct)
     {
-        // Re-read the game fresh on this context, filtered to still-pending so a
-        // manual/concurrent IgdbId assignment made after the sweep read is
-        // honoured (no concurrency token, so check right before persisting).
-        var game = await _db.Games.FirstOrDefaultAsync(g => g.Id == gameId && g.IgdbId == null, ct);
-        if (game is null) return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
+        // Read just the seed fields we need for matching, AsNoTracking (we don't
+        // mutate this instance). The authoritative, fill-only merge happens below
+        // against a FRESH tracked load taken after the outbound work.
+        var seed = await _db.Games.AsNoTracking()
+            .Where(g => g.Id == gameId)
+            .Select(g => new { g.Title, g.Year, g.Platform, g.ImagePath })
+            .FirstOrDefaultAsync(ct);
+        if (seed is null) return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
 
-        var candidates = await _provider.SearchAsync(game.Title, ct);
+        var candidates = await _provider.SearchAsync(seed.Title, ct);
         if (candidates.Count == 0)
         {
             // IGDB returned nothing — likely throttling, signal the caller.
             return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: true);
         }
 
-        var match = IgdbBackfillPlanner.BestMatch(game, candidates);
+        var match = IgdbBackfillPlanner.BestMatch(
+            new Game { Title = seed.Title, Year = seed.Year, Platform = seed.Platform },
+            candidates);
         if (match is null)
         {
-            _log.LogDebug("IGDB backfill: no confident match for \"{Title}\", leaving for manual resolution", game.Title);
+            _log.LogDebug("IGDB backfill: no confident match for \"{Title}\", leaving for manual resolution", seed.Title);
             return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
         }
 
-        // Localize the cover FIRST, before mutating the game. CoverImageStore
-        // calls SaveChangesAsync internally on the same scoped DbContext; doing
-        // this before we touch the game means that internal save never flushes
-        // a partially-applied game. Skip the download entirely when the game
-        // already has an image — fill-only Apply would discard it anyway, so
-        // this avoids an unreferenced CoverImages row + needless network I/O.
+        // Localize the cover NOW, before any further read/apply of the row.
+        // CoverImageStore calls SaveChangesAsync internally on the same scoped
+        // DbContext, and doing it here — while the game row is untouched — means
+        // that internal save never flushes a partially-applied game. The skip
+        // decision uses the seed's ImagePath (captured before the outbound work);
+        // fill-only would discard the download if an image already exists
+        // (avoiding an orphan CoverImages row + needless network I/O).
         string? coverPath = null;
-        if (string.IsNullOrWhiteSpace(game.ImagePath) && !string.IsNullOrWhiteSpace(match.Result.ImageUrl))
+        if (string.IsNullOrWhiteSpace(seed.ImagePath) && !string.IsNullOrWhiteSpace(match.Result.ImageUrl))
             coverPath = await _covers.EnsureLocalAsync(match.Result.ImageUrl, ct);
 
-        Apply(game, match.Result, coverPath);
-
-        // Single atomic save: the whole game is committed at once. IgdbId is
-        // only persisted here, so a failure before this line leaves the game
-        // fully null and re-sweepable.
-        //
-        // Concurrency guard: re-check "still pending" against the DATABASE (not
-        // the in-memory tracked value) right before persisting. A user who
-        // manually assigned an IGDB id while our search/cover I/O was in flight
-        // must not be overwritten. If the row is no longer pending, drop our
-        // stale mutations and skip.
-        var stillPending = await _db.Games
-            .AsNoTracking()
-            .AnyAsync(g => g.Id == gameId && g.IgdbId == null, ct);
-        if (!stillPending)
+        // Reload the row TRACKED and apply immediately — with NO awaiting between
+        // this load and the single save below. This is the concurrent-edit guard:
+        // the fill-only merge runs against the CURRENT committed values (a user
+        // may meanwhile have filled Description/Year/Developer or assigned an
+        // IgdbId during the search/cover I/O above), and the `IgdbId == null`
+        // filter makes an in-flight assignment turn this load into null -> skip,
+        // never overwriting it. All the slow I/O has already happened, so the
+        // load->apply->save window is microseconds with no await.
+        var game = await _db.Games.FirstOrDefaultAsync(g => g.Id == gameId && g.IgdbId == null, ct);
+        if (game is null)
         {
-            _db.ChangeTracker.Clear();
             _log.LogInformation("IGDB backfill skipped for game {GameId}: IGDB id assigned concurrently", gameId);
             return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
         }
 
+        Apply(game, match.Result, coverPath);
+
+        // Single atomic save commits the whole game at once. IgdbId is only
+        // persisted here, so a failure before this line leaves the game fully
+        // null and re-sweepable.
         await _db.SaveChangesAsync(ct);
         _log.LogInformation("IGDB backfill: linked \"{Title}\" to IGDB id {IgdbId}", game.Title, match.Result.ProviderKey);
         return new BackfillOutcome(WasFilled: true, ProviderReturnedEmpty: false);

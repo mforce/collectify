@@ -118,6 +118,30 @@ public class IgdbBackfillPlannerTests
             ]));
     }
 
+    [Fact]
+    public void BestMatch_KnownLocalYear_ContradictedByCandidateYear_Declines()
+    {
+        // Local 2016 DOOM, but the only exact-title result is the 1993 SKU and
+        // no 2016 entry is present in IGDB's limited response. The explicit
+        // contradictory year is evidence of a wrong link: decline instead of
+        // permanently locking the game (and IgdbId) to the wrong release.
+        Assert.Null(IgdbBackfillPlanner.BestMatch(
+            Game("DOOM", GamePlatform.Pc, year: 2016),
+            [Hit("DOOM", GamePlatform.Pc, "1993", year: 1993)]));
+    }
+
+    [Fact]
+    public void BestMatch_KnownLocalYear_AllCandidateYearsUnknown_FallsThrough()
+    {
+        // Local year is known but IGDB lacks dates for the candidates — no
+        // contradiction evidence, so the normal single-candidate accept applies.
+        var match = IgdbBackfillPlanner.BestMatch(
+            Game("Hades", GamePlatform.Pc, year: 2020),
+            [Hit("Hades", GamePlatform.Pc, "9", year: null)]);
+        Assert.NotNull(match);
+        Assert.Equal("9", match.Result.ProviderKey);
+    }
+
     // ---- Skip-uncertain / no match ----
 
     [Fact]
