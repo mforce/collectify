@@ -33,6 +33,12 @@ public sealed class IgdbBackfillService : BackgroundService
     private readonly IOptionsMonitor<IgdbBackfillOptions> _options;
     private readonly ILogger<IgdbBackfillService> _log;
 
+    // Rotates the runner's per-sweep window (see IgdbBackfillRunner.RunSweepAsync)
+    // so that games past MaxGamesPerSweep are eventually attempted even when a
+    // run of low-id titles never matches. Advancing an unbounded long and letting
+    // the runner wrap via `offset % pending.Count` avoids any cross-sweep bookkeeping.
+    private long _sweepOffset;
+
     public IgdbBackfillService(
         IServiceScopeFactory scopeFactory,
         TimeProvider clock,
@@ -100,7 +106,11 @@ public sealed class IgdbBackfillService : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var runner = scope.ServiceProvider.GetRequiredService<IgdbBackfillRunner>();
-            await runner.RunSweepAsync(ct);
+            // Rotate the window each sweep: pass the current offset, then
+            // advance it. The runner wraps by the pending count, so this single
+            // ±MaxGamesPerSweep advance guarantees every game is eventually swept.
+            await runner.RunSweepAsync(ct, (int)(_sweepOffset % int.MaxValue));
+            _sweepOffset += _options.CurrentValue.MaxGamesPerSweep;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

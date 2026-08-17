@@ -58,7 +58,17 @@ public sealed class IgdbBackfillRunner
     /// <summary>
     /// Run one sweep. Returns the number of games successfully backfilled.
     /// </summary>
-    public async Task<int> RunSweepAsync(CancellationToken ct = default)
+    /// <param name="ct">Cancellation token (honoured throughout, incl. pacing).</param>
+    /// <param name="offset">
+    /// Rotates the start of the per-sweep window so high-id games are never
+    /// permanently starved by low-id unmatchable titles at the head of the
+    /// queue. There is deliberately NO attempted-marker (issue #132), so the
+    /// pending set is ordered by Id and unchanged games would otherwise pin
+    /// the window to the lowest ids forever; advancing the offset each sweep
+    /// (and wrapping via `offset % count`) guarantees every pending game is
+    /// eventually attempted.
+    /// </param>
+    public async Task<int> RunSweepAsync(CancellationToken ct = default, int offset = 0)
     {
         if (!_provider.IsConfigured)
         {
@@ -69,18 +79,27 @@ public sealed class IgdbBackfillRunner
         // Deterministic, bounded, and NOT tracked: the pending list is only
         // used to drive iteration. Each game is re-read on its own scope/save
         // below, so we never hold the whole set in memory or leave stale
-        // tracked state lying around.
+        // tracked state lying around. Personal collections are small, so
+        // fetching all pending ids to rotate the window is cheap.
         var pending = await _db.Games.AsNoTracking()
             .Where(g => g.IgdbId == null)
             .OrderBy(g => g.Id)
-            .Take(_options.MaxGamesPerSweep)
             .Select(g => g.Id)
             .ToListAsync(ct);
+        if (pending.Count == 0) return 0;
+
+        // Rotate the window start by `offset` so each sweep reaches a different
+        // slice of the (unmatched) pending set instead of always the lowest ids.
+        var rotateBy = offset % pending.Count;
+        var window = pending.Skip(rotateBy)
+            .Concat(pending.Take(rotateBy))
+            .Take(_options.MaxGamesPerSweep)
+            .ToList();
 
         var filled = 0;
         var consecutiveEmpty = 0;
 
-        foreach (var gameId in pending)
+        foreach (var gameId in window)
         {
             ct.ThrowIfCancellationRequested();
 

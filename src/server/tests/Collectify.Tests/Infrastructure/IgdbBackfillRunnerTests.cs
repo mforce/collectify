@@ -449,6 +449,43 @@ public class IgdbBackfillRunnerTests : IDisposable
         Assert.Equal("999", assert.Games.Single().IgdbId);
     }
 
+    [Fact]
+    public async Task RunSweepAsync_RotatesWindow_SoHighIdGamesEventualySwept()
+    {
+        // 4 games, cap 2. Only C and D are matchable; A and B never match.
+        // With a fixed head window this would repeatedly sweep A,B and silently
+        // starve C,D forever. The runner rotates by `offset`, so advancing the
+        // offset by the cap each sweep eventually reaches C and D.
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.AddRange(
+                new Game { OwnerId = "alice", Title = "A" },
+                new Game { OwnerId = "alice", Title = "B" },
+                new Game { OwnerId = "alice", Title = "C" },
+                new Game { OwnerId = "alice", Title = "D" });
+            await seed.SaveChangesAsync();
+        }
+
+        var options = new IgdbBackfillOptions { MaxGamesPerSweep = 2, PacingDelay = TimeSpan.Zero };
+        var provider = new MultiplyGameProvider(new Dictionary<string, Func<IReadOnlyList<GameLookupResult>>>
+        {
+            ["C"] = () => [Hit("C", GamePlatform.Pc, "3")],
+            ["D"] = () => [Hit("D", GamePlatform.Pc, "4")],
+        });
+
+        // Sweep 1 (offset 0): window = [A, B] — no matches, nothing filled.
+        var sweep1 = NewRunner(provider, options: options);
+        Assert.Equal(0, await sweep1.RunSweepAsync(CancellationToken.None, offset: 0));
+
+        // Sweep 2 (offset offset+cap=2): window = [C, D] — both filled.
+        var sweep2 = NewRunner(provider, options: options);
+        Assert.Equal(2, await sweep2.RunSweepAsync(CancellationToken.None, offset: options.MaxGamesPerSweep));
+
+        await using var assert = new CollectifyDbContext(_options);
+        Assert.Equal("3", assert.Games.Single(g => g.Title == "C").IgdbId);
+        Assert.Equal("4", assert.Games.Single(g => g.Title == "D").IgdbId);
+    }
+
     /// <summary>Query-aware provider: keys are the exact search title; a value's Func is invoked (may throw).</summary>
     private sealed class MultiplyGameProvider : IGameMetadataProvider
     {
