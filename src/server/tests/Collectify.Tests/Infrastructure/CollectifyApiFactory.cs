@@ -62,6 +62,11 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Collectify:Auth:AllowRegistration"] = AllowRegistration ? "true" : "false",
+                // Background IGDB backfill must never run in tests: it would
+                // sweep and mutate seeded games nondeterministically (especially
+                // when a test injects a configured GameProvider). The hosted
+                // service is still registered but no-ops on exit.
+                ["Collectify:IgdbBackfill:Enabled"] = "false",
             });
         });
 

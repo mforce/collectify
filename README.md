@@ -77,6 +77,7 @@ All provider keys are optional — lookups degrade gracefully when unconfigured.
 |---|---|---|
 | `Collectify__Metadata__CacheTtl` | `30.00:00:00` | How long a cached lookup stays fresh (`.NET TimeSpan`). |
 | `Collectify__Auth__AllowRegistration` | `false` | Flip to `true` to expose `/register` and allow sign-ups. |
+| `Collectify__IgdbBackfill__Enabled` | `true` | Background IGDB backfill (games with no IGDB id get developer/publisher/year/description/cover filled after a Steam import). Only active when IGDB credentials are configured; fill-only, so it never overwrites existing data. See `.env.example` for `Interval`, `PacingDelay`, `MaxGamesPerSweep`, `EmptyResultAbortThreshold`. |
 
 See [`.env.example`](.env.example) for the full list including optional base URL overrides.
 
