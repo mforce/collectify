@@ -105,7 +105,16 @@ export default function ImportSteam() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <SectionHeading>Import from Steam</SectionHeading>
+      <SectionHeading>
+        <span className="inline-flex items-center gap-2">
+          <img
+            src="/brand/steam-logo.svg"
+            alt="Steam"
+            className="inline h-5 w-5 shrink-0"
+          />
+          Import from Steam
+        </span>
+      </SectionHeading>
 
       {!connected ? (
         <Card>
