@@ -14,7 +14,7 @@ public static class SteamStoreEndpoints
 
     public record SteamConnectDto(bool Configured, string? RedirectUrl);
     public record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
-    public record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string State);
+    public record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string? LogoUrl, string State);
     public record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated);
     public record SteamImportRequest(string[]? ExternalGameIds);
     public record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);
@@ -31,12 +31,13 @@ public static class SteamStoreEndpoints
         app.MapGet("/api/accounts/steam/callback", async (
             HttpContext ctx,
             ISteamOpenIdVerifier verifier,
+            SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
             Microsoft.Extensions.Configuration.IConfiguration config,
             CancellationToken ct) =>
         {
-            var publicBase = SteamStoreServiceCollectionExtensions.ResolvePublicBaseUrl(config);
-            if (publicBase is null || !verifier.IsConfigured)
+            var publicBase = SteamStoreServiceCollectionExtensions.ResolvePublicBaseUrl(config, RequestOrigin(ctx.Request));
+            if (publicBase is null || !verifier.IsConfigured || !schemaGuard.IsSchemaReady)
                 return Results.Redirect($"{SpaImportPath}?steam=error");
 
             // Collect every openid.* param for verification/echo.
@@ -56,7 +57,7 @@ public static class SteamStoreEndpoints
             // /connect). Checked locally BEFORE any outbound Steam call so a
             // random request can't trigger a Steam round trip (amplification).
             var cookieHalf = ctx.Request.Cookies[SteamAuthCookie];
-            if (cookieHalf is null || !service.HasValidAuthRequest(state, cookieHalf))
+            if (cookieHalf is null || !await service.HasValidAuthRequestAsync(state, cookieHalf, ct))
                 return Results.Redirect($"{SpaImportPath}?steam=error");
 
             var expectedReturnTo = $"{publicBase}/api/accounts/steam/callback?state={Uri.EscapeDataString(state)}";
@@ -85,13 +86,14 @@ public static class SteamStoreEndpoints
         group.MapPost("/connect", async (
             HttpContext ctx,
             UserManager<AppUser> users,
+            SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
             ISteamOpenIdVerifier verifier,
             Microsoft.Extensions.Configuration.IConfiguration config,
             CancellationToken ct) =>
         {
-            var publicBase = SteamStoreServiceCollectionExtensions.ResolvePublicBaseUrl(config);
-            if (publicBase is null || !verifier.IsConfigured)
+            var publicBase = SteamStoreServiceCollectionExtensions.ResolvePublicBaseUrl(config, RequestOrigin(ctx.Request));
+            if (publicBase is null || !verifier.IsConfigured || !schemaGuard.IsSchemaReady)
                 return Results.Ok(new SteamConnectDto(false, null));
 
             var ownerId = users.GetUserId(ctx.User)!;
@@ -116,9 +118,12 @@ public static class SteamStoreEndpoints
         group.MapGet("/", async (
             HttpContext ctx,
             UserManager<AppUser> users,
+            SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
             CancellationToken ct) =>
         {
+            if (!schemaGuard.IsSchemaReady)
+                return Results.Ok(new SteamConnectionDto(false, null, null));
             var ownerId = users.GetUserId(ctx.User)!;
             var c = await service.GetConnectionAsync(ownerId, ct);
             return Results.Ok(new SteamConnectionDto(c is not null, c?.ExternalAccountId, c?.ExternalDisplayName));
@@ -127,16 +132,19 @@ public static class SteamStoreEndpoints
         group.MapGet("/games", async (
             HttpContext ctx,
             UserManager<AppUser> users,
+            SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
             CancellationToken ct) =>
         {
+            if (!schemaGuard.IsSchemaReady)
+                return Results.Ok(new SteamPreviewDto("notconnected", [], false));
             var ownerId = users.GetUserId(ctx.User)!;
             var preview = await service.GetOwnedTitlesAsync(ownerId, ct);
             return Results.Ok(new SteamPreviewDto(
                 preview.Status.ToString().ToLowerInvariant(),
                 preview.Titles
                     .Select(t => new SteamOwnedTitleDto(
-                        t.ExternalGameId, t.Title, t.PlaytimeMinutes, t.IconUrl,
+                        t.ExternalGameId, t.Title, t.PlaytimeMinutes, t.IconUrl, t.LogoUrl,
                         t.State == SteamTitleImportState.Imported ? "imported" : "importable"))
                     .ToArray(),
                 preview.Truncated));
@@ -146,10 +154,16 @@ public static class SteamStoreEndpoints
             [FromBody] SteamImportRequest req,
             HttpContext ctx,
             UserManager<AppUser> users,
+            SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
             Microsoft.Extensions.Options.IOptions<SteamOptions> options,
             CancellationToken ct) =>
         {
+            // Schema missing (upgraded existing Postgres install): fail soft with
+            // an empty result rather than crash on an undefined table.
+            if (!schemaGuard.IsSchemaReady)
+                return Results.Ok(new SteamImportResultDto(0, 0, []));
+
             // Reject oversized selections up front (400) rather than quietly
             // processing a capped prefix — "you picked too many to import".
             var distinct = req?.ExternalGameIds?
@@ -179,9 +193,11 @@ public static class SteamStoreEndpoints
         group.MapDelete("/", async (
             HttpContext ctx,
             UserManager<AppUser> users,
+            SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
             CancellationToken ct) =>
         {
+            if (!schemaGuard.IsSchemaReady) return Results.NoContent();
             var ownerId = users.GetUserId(ctx.User)!;
             await service.DisconnectAsync(ownerId, ct);
             return Results.NoContent();
@@ -217,5 +233,24 @@ public static class SteamStoreEndpoints
         qs["openid.identity"] = IdentifierSelect;
         qs["openid.claimed_id"] = IdentifierSelect;
         return $"https://steamcommunity.com/openid/login?{qs}";
+    }
+
+    /// <summary>
+    /// Derives the externally visible origin (scheme://host) of the current
+    /// request for OpenID return_to / SPA redirects. Honours the standard
+    /// X-Forwarded-Proto / X-Forwarded-Host headers added by a reverse proxy
+    /// (the container serves plain HTTP on a private port behind Traefik/CF), so
+    /// an unconfigured <c>Collectify:PublicBaseUrl</c> still resolves to the
+    /// real public host instead of the Vite dev server. Only the first (outermost)
+    /// forwarded value is trusted, which is how well-behaved proxies append.
+    /// </summary>
+    internal static string? RequestOrigin(HttpRequest request)
+    {
+        var scheme = request.Headers["X-Forwarded-Proto"].FirstOrDefault()
+                     ?? request.Scheme;
+        var host = request.Headers["X-Forwarded-Host"].FirstOrDefault()
+                   ?? request.Host.Value;
+        if (string.IsNullOrWhiteSpace(host)) return null;
+        return $"{scheme}://{host}";
     }
 }

@@ -53,10 +53,14 @@ public class CoverImageStoreTests : IDisposable
         Assert.Empty(handler.RequestedUrls);
     }
 
+    // Minimal JPEG magic bytes (FF D8 FF) so the download passes the store's
+    // real-image validation; the exact bytes are what the tests assert on.
+    private static readonly byte[] JpegMagic = { 0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10 };
+
     [Fact]
     public async Task EnsureLocalAsync_WithRemoteUrl_DownloadsAndStoresRowReturningPublicUrl()
     {
-        var payload = new byte[] { 1, 2, 3, 4 };
+        var payload = JpegMagic;
         var store = NewStore(new StubHandler(payload, mediaType: "image/jpeg"));
 
         var result = await store.EnsureLocalAsync("https://image.tmdb.org/t/p/w342/poster.jpg");
@@ -76,7 +80,7 @@ public class CoverImageStoreTests : IDisposable
     [Fact]
     public async Task EnsureLocalAsync_RepeatedRemoteUrl_DoesNotRefetch()
     {
-        var handler = new StubHandler(payload: new byte[] { 9 });
+        var handler = new StubHandler(payload: JpegMagic);
         var first = await NewStore(handler).EnsureLocalAsync("https://image.tmdb.org/x.jpg");
         var second = await NewStore(handler).EnsureLocalAsync("https://image.tmdb.org/x.jpg");
 
@@ -102,7 +106,7 @@ public class CoverImageStoreTests : IDisposable
     [Fact]
     public async Task EnsureLocalAsync_PreservesContentTypeFromResponseHeader()
     {
-        var store = NewStore(new StubHandler(payload: [0xFF], mediaType: "image/webp"));
+        var store = NewStore(new StubHandler(payload: JpegMagic, mediaType: "image/webp"));
 
         var result = await store.EnsureLocalAsync("https://cdn.example/poster.jpg");
 
@@ -114,7 +118,7 @@ public class CoverImageStoreTests : IDisposable
     [Fact]
     public async Task EnsureLocalAsync_FallsBackToExtensionWhenContentTypeHeaderIsAbsent()
     {
-        var store = NewStore(new StubHandler(payload: [0xFF], mediaType: null));
+        var store = NewStore(new StubHandler(payload: JpegMagic, mediaType: null));
 
         await store.EnsureLocalAsync("https://cdn.example/poster.png");
 
@@ -128,7 +132,7 @@ public class CoverImageStoreTests : IDisposable
     {
         // Even with a malicious-looking poster path, the row's Hash is
         // SHA256-derived hex; the URL never leaks into the public path.
-        var store = NewStore(new StubHandler(payload: [1]));
+        var store = NewStore(new StubHandler(payload: JpegMagic));
 
         var result = await store.EnsureLocalAsync("https://cdn.example/../../../etc/passwd.jpg");
 

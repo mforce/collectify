@@ -45,6 +45,11 @@ export default function ImportSteam() {
     [games.data],
   );
 
+  const importedCount = useMemo(
+    () => (games.data?.titles ?? []).filter((g) => g.state === 'imported').length,
+    [games.data],
+  );
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return games.data?.titles ?? [];
@@ -98,6 +103,33 @@ export default function ImportSteam() {
       if (res.imported > 0) navigate('/games');
     } catch {
       toast.error('Import failed. Please try again.');
+    }
+  };
+
+  // Re-submits already-imported titles so the server re-derives any missing or
+  // stale remote covers (games imported before the 600x900 / hash-path cover fix).
+  // Idempotent: import of an already-imported id only heals the cover, never
+  // duplicates the game. Disabled when every imported title already has a local
+  // cover (the preview doesn't report that, so it's always available; the server
+  // simply no-ops on titles that need no healing).
+  const handleRepairCovers = async () => {
+    if (doImport.isPending) return;
+    const importedIds = (games.data?.titles ?? [])
+      .filter((g) => g.state === 'imported')
+      .map((g) => g.externalGameId);
+    if (importedIds.length === 0) {
+      toast.info('Nothing to repair — no games imported yet.');
+      return;
+    }
+    try {
+      const res = await doImport.mutateAsync(importedIds);
+      toast.success(
+        res.imported > 0
+          ? `Re-imported ${res.imported} game${res.imported === 1 ? '' : 's'} and refreshed covers`
+          : `Refreshed covers for ${res.alreadyImported} imported game${res.alreadyImported === 1 ? '' : 's'}`,
+      );
+    } catch {
+      toast.error('Could not refresh covers. Please try again.');
     }
   };
 
@@ -212,6 +244,16 @@ export default function ImportSteam() {
                     ? 'Importing…'
                     : `Import selected${selected.size ? ` (${selected.size})` : ''}`}
                 </Button>
+                {importedCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    onClick={handleRepairCovers}
+                    disabled={doImport.isPending}
+                    title="Re-derive missing or stale covers for games imported before the cover fix"
+                  >
+                    Repair covers
+                  </Button>
+                )}
               </div>
 
               <Card className="divide-y divide-border">

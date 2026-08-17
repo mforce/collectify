@@ -13,7 +13,7 @@ public class SteamEndpointsTests
 {
     private record SteamConnectDto(bool Configured, string? RedirectUrl);
     private record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
-    private record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string State);
+    private record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string? LogoUrl, string State);
     private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated);
     private record SteamImportResultDto(int Imported, int AlreadyImported, SteamImportItemDto[] Items);
     private record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);

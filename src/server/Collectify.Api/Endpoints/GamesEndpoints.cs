@@ -155,6 +155,16 @@ public static class GamesEndpoints
                 link.UpdatedAt = DateTime.UtcNow;
             }
 
+            // DLC -> base-game self-reference is Restrict, so deleting a base game
+            // with DLC children would otherwise trip the FK and 500. Detach them
+            // first (owner-scoped): the DLC children survive as standalone games
+            // rather than being silently deleted or blocking the parent's removal.
+            foreach (var child in db.Games.Where(x => x.ParentGameId == id && x.OwnerId == ownerId))
+            {
+                child.ParentGameId = null;
+                child.UpdatedAt = DateTime.UtcNow;
+            }
+
             db.Games.Remove(g);
             await db.SaveChangesAsync();
             return Results.NoContent();

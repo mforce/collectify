@@ -108,11 +108,11 @@ public sealed class SteamStoreImportService
     /// BEFORE any outbound Steam round trip: the hashed (state, cookie) must
     /// map to an unconsumed, unexpired request. Doesn't consume anything.
     /// </summary>
-    public bool HasValidAuthRequest(string state, string? cookieHalf)
+    public async Task<bool> HasValidAuthRequestAsync(string state, string? cookieHalf, CancellationToken ct = default)
     {
         var combined = HashState(state + ":" + (cookieHalf ?? string.Empty));
-        return _db.SteamAuthRequests.Any(r =>
-            r.StateHash == combined && !r.Consumed && r.ExpiresAt > DateTime.UtcNow);
+        return await _db.SteamAuthRequests.AnyAsync(r =>
+            r.StateHash == combined && !r.Consumed && r.ExpiresAt > DateTime.UtcNow, ct);
     }
 
     /// <summary>
@@ -239,9 +239,25 @@ public sealed class SteamStoreImportService
             ? null
             : $"https://media.steampowered.com/steamcommunity/public/images/apps/{appId}/{logoHash}.jpg";
 
-    /// <summary>Unix timestamp of last play to UTC, or null when never played.</summary>
+    /// <summary>
+    /// Unix seconds to a UTC <see cref="DateTimeOffset"/>, or null when the
+    /// value is invalid (≤ 0 or outside the representable range). Range-guarded
+    /// so a malformed/absurd provider timestamp can never throw and abort the
+    /// whole import batch — the import is best-effort and fails soft.
+    /// </summary>
+    private static DateTimeOffset? FromUnixTimeSecondsOrNull(long unixSeconds)
+    {
+        if (unixSeconds <= 0) return null;
+        // DateTimeOffset.FromUnixTimeSeconds throws ArgumentOutOfRangeException
+        // outside +/- ~292 billion years; clamp to a sane 1970..9999 range so a
+        // bogus provider value degrades to null instead of an exception.
+        if (unixSeconds < 0 || unixSeconds > 253_402_300_799) return null; // 1970-01-01 .. 9999-12-31T23:59:59
+        return DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+    }
+
+    /// <summary>Unix timestamp of last play to UTC, or null when never played (or invalid).</summary>
     private static DateTimeOffset? LastPlayedAt(long unixSeconds)
-        => unixSeconds > 0 ? DateTimeOffset.FromUnixTimeSeconds(unixSeconds) : null;
+        => FromUnixTimeSecondsOrNull(unixSeconds);
 
     /// <summary>
     /// Transactional import of selected game ids. Only ids present in the
@@ -272,8 +288,12 @@ public sealed class SteamStoreImportService
         var fetch = await _steam.GetOwnedGamesAsync(connection.ExternalAccountId, ct);
         if (fetch.Status == SteamFetchStatus.Unavailable)
             return (Results: requested.Select(a => new SteamImportResultItem(a, false, false)).ToList(), CreatedGames: []);
+        // Dedupe by appid up-front (DistinctBy) — Steam should never return
+        // duplicate appids, but if it ever does, a naive ToDictionary would
+        // throw and nuke the whole batch instead of failing soft.
         var ownedByAppId = fetch.Games
             .Where(g => g.AppId > 0)
+            .DistinctBy(g => g.AppId)
             .ToDictionary(g => g.AppId.ToString(), g => g, StringComparer.Ordinal);
 
         // Rich metadata (developer/publisher/year/description) from Steam's
@@ -283,6 +303,40 @@ public sealed class SteamStoreImportService
         // a metadata outage returns an empty lookup and import still proceeds
         // with just what GetOwnedGames gave (cover/playtime/last-played).
         var metadataByAppId = await FetchMetadataAsync(requested, ct);
+
+        // Pre-read the owner's current ledger + matching games ONCE, before any
+        // write transaction, so we can (a) localize covers with correct knowledge
+        // of what's already imported and (b) keep the write transaction short.
+        var ledgerByAppId = await _db.GameStoreOwnedTitles.AsNoTracking()
+            .Where(t => t.OwnerId == ownerId && t.Store == SteamStore && requested.Contains(t.ExternalGameId))
+            .ToDictionaryAsync(t => t.ExternalGameId, t => t, StringComparer.Ordinal, ct);
+        var existingGameIds = ledgerByAppId.Values.Where(l => l.GameId is not null).Select(l => l.GameId!.Value).ToList();
+        var existingGamesById = existingGameIds.Count == 0
+            ? new Dictionary<int, Game>()
+            : await _db.Games.AsNoTracking()
+                .Where(g => g.OwnerId == ownerId && existingGameIds.Contains(g.Id))
+                .ToDictionaryAsync(g => g.Id, g => g, ct);
+
+        // Pre-localize covers OUTSIDE the write transaction. Network I/O (HTTP
+        // fetch + store) happens here so the transaction below stays a short,
+        // local DB-only critical section — a 500-game import no longer holds a
+        // write lock across 500 sequential downloads. Only items that actually
+        // need a cover (not owned → none; existing game with a good local cover
+        // → keep it, no download) get one.
+        var coverByAppId = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var appIdStr in requested)
+        {
+            if (!ownedByAppId.TryGetValue(appIdStr, out var owned)) continue; // unowned — no cover
+            if (ledgerByAppId.TryGetValue(appIdStr, out var ledger) && ledger.GameId is { } gid
+                && existingGamesById.TryGetValue(gid, out var existingGame) && HasGoodLocalCover(existingGame))
+            {
+                // Already imported with a good local cover (user/IGDB set) —
+                // keep it; do NOT download or overwrite.
+                coverByAppId[appIdStr] = existingGame.ImagePath;
+                continue;
+            }
+            coverByAppId[appIdStr] = await LocalizeCoverAsync(metadataByAppId.GetValueOrDefault(appIdStr), owned, ct);
+        }
 
         var results = new List<SteamImportResultItem>();
         var created = new List<Game>();
@@ -324,7 +378,7 @@ public sealed class SteamStoreImportService
                         ownerId,
                         game,
                         appIdStr,
-                        await LocalizeCoverAsync(metadataByAppId.GetValueOrDefault(appIdStr), game, ct),
+                        coverByAppId.GetValueOrDefault(appIdStr),
                         metadataByAppId.GetValueOrDefault(appIdStr));
                     _db.Games.Add(newGame);
                     await _db.SaveChangesAsync(ct);
@@ -353,11 +407,11 @@ public sealed class SteamStoreImportService
                         // Ledger row present but its Game was deleted — re-import:
                         // save the Game first, then relink the existing ledger row.
                         newGame = NewImportedGame(
-                        ownerId,
-                        game,
-                        appIdStr,
-                        await LocalizeCoverAsync(metadataByAppId.GetValueOrDefault(appIdStr), game, ct),
-                        metadataByAppId.GetValueOrDefault(appIdStr));
+                            ownerId,
+                            game,
+                            appIdStr,
+                            coverByAppId.GetValueOrDefault(appIdStr),
+                            metadataByAppId.GetValueOrDefault(appIdStr));
                         _db.Games.Add(newGame);
                         await _db.SaveChangesAsync(ct);
 
@@ -366,13 +420,15 @@ public sealed class SteamStoreImportService
                         existing.UpdatedAt = DateTime.UtcNow;
                         createdGame = true;
                     }
-                    else if (await HealMissingSteamCoverAsync(newGame, metadataByAppId.GetValueOrDefault(appIdStr), game, ct))
+                    else if (!HasGoodLocalCover(newGame) && coverByAppId.TryGetValue(appIdStr, out var healed))
                     {
                         // Game already imported but its cover is missing or still
                         // a raw remote URL (e.g. imported before the 600x900 /
                         // hash-path fix). Re-derive the local cover now — we only
                         // ever fill a MISSING cover, never overwrite one the user
-                        // set manually.
+                        // set manually. The download already happened pre-transaction.
+                        newGame.ImagePath = healed;
+                        newGame.UpdatedAt = DateTime.UtcNow;
                         await _db.SaveChangesAsync(ct);
                     }
                 }
@@ -426,26 +482,13 @@ public sealed class SteamStoreImportService
     }
 
     /// <summary>
-    /// Re-sync a Steam game's cover when it is missing or still a raw remote
-    /// URL (e.g. imported before the 600x900 / hash-path cover fix). This only
-    /// ever FILLS a missing or non-local cover — a local /covers/ image (set
-    /// by the user via IGDB or otherwise) is never overwritten. Returns true
-    /// when ImagePath was (re)set and should be saved.
+    /// A cover qualifies as "good" when it is stored locally under /covers/.
+    /// Anything else (null, empty, or a stale raw remote URL) is repairable and
+    /// will be re-localized. A local /covers/ image — however it got there (the
+    /// import itself, the user, or IGDB) — is never overwritten.
     /// </summary>
-    private async Task<bool> HealMissingSteamCoverAsync(Game game, SteamStoreBrowseItem? meta, SteamOwnedGame owned, CancellationToken ct)
-    {
-        // A good cover is stored locally under /covers/; if it's anything else
-        // (null, empty, or a stale remote URL) it's repairable.
-        if (!string.IsNullOrEmpty(game.ImagePath) && game.ImagePath.StartsWith("/covers/", StringComparison.Ordinal))
-            return false;
-
-        var coverPath = await LocalizeCoverAsync(meta, owned, ct);
-        if (string.IsNullOrEmpty(coverPath)) return false;
-
-        game.ImagePath = coverPath;
-        game.UpdatedAt = DateTime.UtcNow;
-        return true;
-    }
+    private static bool HasGoodLocalCover(Game? game)
+        => !string.IsNullOrEmpty(game?.ImagePath) && game.ImagePath.StartsWith("/covers/", StringComparison.Ordinal);
 
     /// <summary>
     /// Resolve the app's real 600x900 library cover from the GetItems
@@ -460,7 +503,14 @@ public sealed class SteamStoreImportService
         var filename = assets?.LibraryCapsule2x ?? assets?.LibraryCapsule;
         var format = assets?.AssetUrlFormat;
         if (string.IsNullOrWhiteSpace(filename) || string.IsNullOrWhiteSpace(format)) return null;
-        var path = format.Replace("${FILENAME}", filename, StringComparison.Ordinal);
+        // The template must contain exactly one ${FILENAME} placeholder. A format
+        // that doesn't (or a filename/format with path chars that could escape the
+        // asset root) is rejected so we never construct a malformed/off-host URL.
+        const string token = "${FILENAME}";
+        var first = format.IndexOf(token, StringComparison.Ordinal);
+        if (first < 0 || format.IndexOf(token, first + token.Length, StringComparison.Ordinal) >= 0) return null;
+        if (filename.Contains("..", StringComparison.Ordinal) || filename.Contains("://", StringComparison.Ordinal)) return null;
+        var path = format.Replace(token, filename, StringComparison.Ordinal);
         return $"https://shared.akamai.steamstatic.com/store_item_assets/{path}";
     }
 
@@ -495,9 +545,9 @@ public sealed class SteamStoreImportService
     private static string? FirstOrNull(string? s, int max)
         => string.IsNullOrWhiteSpace(s) ? null : Truncate(s, max);
 
-    /// <summary>Unix release timestamp to the release year, or null when unknown.</summary>
+    /// <summary>Unix release timestamp to the release year, or null when unknown/invalid.</summary>
     private static int? ToYear(long unixSeconds)
-        => unixSeconds > 0 ? DateTimeOffset.FromUnixTimeSeconds(unixSeconds).UtcDateTime.Year : null;
+        => FromUnixTimeSecondsOrNull(unixSeconds)?.UtcDateTime.Year;
 
     /// <summary>
     /// Bulk-rich-metadata lookup keyed by appid string. Chunks the requested
@@ -525,6 +575,10 @@ public sealed class SteamStoreImportService
 
         return items
             .Where(i => i.AppId > 0)
+            // DistinctBy up-front — a naive ToDictionary throws (and would abort
+            // the whole import) if Steam ever returned a duplicate appid in a
+            // batch; we want that to fail soft, not take down the request.
+            .DistinctBy(i => i.AppId)
             .ToDictionary(i => i.AppId.ToString(), i => i, StringComparer.Ordinal);
     }
 
@@ -534,9 +588,9 @@ public sealed class SteamStoreImportService
             yield return source.GetRange(i, Math.Min(size, source.Count - i));
     }
 
-    /// <summary>Steam's unix-epoch last-played to a UTC date, or null when never played.</summary>
+    /// <summary>Steam's unix-epoch last-played to a UTC date, or null when never played (or invalid).</summary>
     private static DateOnly? ToDateOnly(long unixSeconds)
-        => unixSeconds > 0 ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(unixSeconds).UtcDateTime) : null;
+        => FromUnixTimeSecondsOrNull(unixSeconds) is { } dto ? DateOnly.FromDateTime(dto.UtcDateTime) : null;
 
     /// <summary>
     /// Remove the Steam connection but KEEP imported games and the ledger

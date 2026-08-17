@@ -8,11 +8,11 @@ public class SteamId64Tests
 
     [Theory]
     // Canonical documented form -> accepted.
-    [InlineData("http://steamcommunity.com/openid/id/76561198000000000", "76561198000000000")]
     [InlineData("https://steamcommunity.com/openid/id/76561198000000000", "76561198000000000")]
     // Trailing slash is tolerated.
     [InlineData("https://steamcommunity.com/openid/id/76561198000000000/", "76561198000000000")]
     // Reject malformed / forged URLs -> null.
+    [InlineData("http://steamcommunity.com/openid/id/76561198000000000", null)]                   // downgraded http scheme
     [InlineData("https://steamcommunity.com/openid/id/", null)]                                  // empty tail
     [InlineData("https://steamcommunity.com/openid/id/abc", null)]                               // non-numeric
     [InlineData("https://steamcommunity.com/openid/id/0", null)]                                 // zero
@@ -32,10 +32,10 @@ public class SteamId64Tests
     public void FromClaimedId_Rejects_SteamIdBeyondInt64()
     {
         // > long.MaxValue -> rejected (we only store positive int64-range ids).
-        Assert.Null(SteamId64.FromClaimedId("http://steamcommunity.com/openid/id/9223372036854775808"));
+        Assert.Null(SteamId64.FromClaimedId("https://steamcommunity.com/openid/id/9223372036854775808"));
     }
 
     [Fact]
     public void FromClaimedId_ApiDoesNotLeakState()
-        => Assert.Equal(Known, SteamId64.FromClaimedId($"http://steamcommunity.com/openid/id/{Known}"));
+        => Assert.Equal(Known, SteamId64.FromClaimedId($"https://steamcommunity.com/openid/id/{Known}"));
 }

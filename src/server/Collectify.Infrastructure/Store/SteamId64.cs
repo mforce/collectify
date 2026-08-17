@@ -13,6 +13,7 @@ public static class SteamId64
     {
         if (string.IsNullOrWhiteSpace(claimedId)) return null;
         if (!Uri.TryCreate(claimedId, UriKind.Absolute, out var uri)) return null;
+        if (uri.Scheme != Uri.UriSchemeHttps) return null;   // never trust a downgraded http claimed-id
         if (uri.Query.Length > 0 || uri.Fragment.Length > 0) return null;
 
         // Allow the documented canonical Steam Community /id/<steamid64>

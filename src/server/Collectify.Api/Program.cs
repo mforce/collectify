@@ -62,12 +62,24 @@ builder.Services.AddRateLimiter(rate =>
 {
     // Per-IP fixed-window guard for the public Steam OpenID callback so a
     // stream of forged requests can't spam the outbound Steam verify step.
+    //
+    // Partitioned keyed on the direct peer address (Connection.RemoteIpAddress),
+    // which is the honest, unspoofable signal without forwarded-header trust.
+    // NOTE: when Collectify sits behind a reverse proxy / TLS terminator, every
+    // client shares the proxy's peer IP, so this degrades to a global 30/min
+    // window (identical to the previous behavior) rather than per-client. Real
+    // per-client limiting behind a proxy requires UseForwardedHeaders + trusting
+    // the specific proxy, which is deployment-specific — see docs/security.md.
     rate.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    rate.AddFixedWindowLimiter("steam-callback", opt =>
+    rate.AddPolicy("steam-callback", httpContext =>
     {
-        opt.PermitLimit = 30;
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.QueueLimit = 0;
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
     });
 });
 builder.Services.ConfigureHttpJsonOptions(opt =>
@@ -87,7 +99,16 @@ builder.Services.AddSteamStoreImport(builder.Configuration);
 
 // Cover-image cache. Bytes live in the CoverImages table alongside the
 // rest of the data so a backup of collectify.db is a complete snapshot.
-builder.Services.AddHttpClient(CoverImageStore.HttpClientName);
+// The handler caps automatic redirects (defense against a hostile/looping
+// URL chain) and the client bounds the download size; see CoverImageStore.
+builder.Services.AddHttpClient(CoverImageStore.HttpClientName, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    MaxAutomaticRedirections = CoverImageStore.MaxRedirects,
+    AllowAutoRedirect = true,
+});
 builder.Services.AddScoped<ICoverImageStore, CoverImageStore>();
 builder.Services.AddScoped<CoverImageGarbageCollector>();
 
@@ -111,6 +132,22 @@ using (var scope = app.Services.CreateScope())
     else
     {
         await db.Database.MigrateAsync();
+    }
+
+    // Record whether the Steam store-import tables exist. On Postgres an upgrade
+    // of an existing install leaves them absent (EnsureCreated is a no-op); the
+    // guard lets the Steam endpoints fail soft to "not configured" instead of
+    // crashing with an undefined-table 500. Best-effort: never let a failed
+    // detection take down app boot, and always allow the sweep below to try.
+    var steamSchema = scope.ServiceProvider.GetRequiredService<SteamSchemaGuard>();
+    try
+    {
+        steamSchema.MarkReady(await SteamSchemaGuard.DetectAsync(db, app.Lifetime.ApplicationStopping));
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not determine Steam schema presence; treating store import as unavailable");
+        steamSchema.MarkReady(false);
     }
     // Resolve any free-text Game.Platform values that the
     // ConvertGamePlatformToEnum migration preserved in PlatformLegacy.
