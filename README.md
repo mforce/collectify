@@ -69,7 +69,7 @@ All provider keys are optional — lookups degrade gracefully when unconfigured.
 
 | Provider | Variable(s) | Required? | Purpose |
 |---|---|---|---|
-| **Steam** (games) | `Collectify__Platforms__Steam__ApiKey` | Yes (to enable) | Connect a Steam account and import the owned games you list. Get a Steam Web API key at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey). Fail-soft: leave it empty and the import page shows a "set the Steam API key to enable" hint. If you run behind a reverse proxy, also set `Collectify__PublicBaseUrl` so the OpenID callback URL matches your external host. |
+| **Steam** (games) | `Collectify__Platforms__Steam__ApiKey` | Yes (to enable) | Connect a Steam account and import the owned games you list. Get a Steam Web API key at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey). Fail-soft: leave it empty and the import page shows a "set the Steam API key to enable" hint. If you run behind a reverse proxy, also set `Collectify__PublicBaseUrl` so the OpenID callback URL matches your external host, and set `Collectify__ReverseProxy__KnownProxies` to your proxy's IP/CIDR so the Steam callback rate limiter can key on the real client address (otherwise every public caller shares the proxy's bucket and can exhaust the 30/min allowance). |
 
 #### Other settings
 
