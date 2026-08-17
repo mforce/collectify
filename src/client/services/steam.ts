@@ -16,7 +16,11 @@ export interface SteamOwnedTitle {
   externalGameId: string;
   title: string;
   playtimeMinutes: number;
+  /** Steam square icon (~32px). Used as a thumbnail fallback. */
   iconUrl?: string | null;
+  /** Steam logo banner (~184x69). Preferred thumbnail when present. */
+  logoUrl?: string | null;
+  lastPlayedAt?: string | null;
   state: 'importable' | 'imported';
 }
 

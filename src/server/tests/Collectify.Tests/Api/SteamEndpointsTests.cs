@@ -177,6 +177,52 @@ public class SteamEndpointsTests
     }
 
     [Fact]
+    public async Task Import_CapturesSteamCoverAndLastPlayedOnGame()
+    {
+        var lastPlayedUnix = 1735689600; // 2025-01-01T00:00:00Z
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames =
+                [
+                    new SteamOwnedGame
+                    {
+                        AppId = 1,
+                        Name = "Hades",
+                        ImgIconUrl = "iconhash",
+                        ImgLogoUrl = "logohash",
+                        RtimeLastPlayed = lastPlayedUnix,
+                    },
+                    new SteamOwnedGame
+                    {
+                        AppId = 2,
+                        Name = "Hollow Knight",
+                        // No cover, never played -> ImagePath/LastPlayedOn stay null.
+                    },
+                ],
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = new[] { "1", "2" } })).ReadJsonAsync<SteamImportResultDto>();
+
+        var withCover = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hades"));
+        // Logo URL preferred over icon; localized through the (fake) cover store
+        // into /covers/<hash> — never the raw remote URL.
+        Assert.StartsWith("/covers/", withCover.ImagePath);
+        Assert.DoesNotContain("steampowered.com", withCover.ImagePath);
+        Assert.Equal(new DateOnly(2025, 1, 1), withCover.LastPlayedOn);
+
+        var noCover = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hollow Knight"));
+        Assert.Null(noCover.ImagePath);
+        Assert.Null(noCover.LastPlayedOn);
+    }
+
+    [Fact]
     public async Task Import_IsIdempotent()
     {
         await using var factory = new CollectifyApiFactory

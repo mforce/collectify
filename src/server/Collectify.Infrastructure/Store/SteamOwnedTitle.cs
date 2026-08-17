@@ -18,6 +18,8 @@ public sealed record SteamOwnedTitle(
     string Title,
     long PlaytimeMinutes,
     string? IconUrl,
+    string? LogoUrl,
+    DateTimeOffset? LastPlayedAt,
     SteamTitleImportState State);
 
 /// <summary>Result of an import batch, reported per selected ID.</summary>

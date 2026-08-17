@@ -32,6 +32,13 @@ public sealed class SteamOwnedGame
 
     [JsonPropertyName("img_icon_url")]
     public string? ImgIconUrl { get; set; }
+
+    [JsonPropertyName("img_logo_url")]
+    public string? ImgLogoUrl { get; set; }
+
+    /// <summary>Unix timestamp of the last time the owner played the app.</summary>
+    [JsonPropertyName("rtime_last_played")]
+    public long RtimeLastPlayed { get; set; }
 }
 
 /// <summary>

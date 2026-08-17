@@ -114,6 +114,12 @@ export default function ImportSteam() {
             collection. You'll be asked to authorise access on Steam.
           </p>
           <Button onClick={handleConnect} disabled={connect.isPending}>
+            <img
+              src="/brand/steam-logo.svg"
+              alt=""
+              className="mr-2 inline h-4 w-4"
+              aria-hidden
+            />
             {connect.isPending ? 'Connecting…' : 'Connect Steam'}
           </Button>
         </Card>
@@ -121,8 +127,14 @@ export default function ImportSteam() {
         <>
           <Card className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="truncate font-semibold text-text-primary">
-                {connection.data?.personaName ?? 'Steam account'}
+              <p className="flex items-center gap-2 truncate font-semibold text-text-primary">
+                <img
+                  src="/brand/steam-logo.svg"
+                  alt=""
+                  className="inline h-4 w-4 shrink-0"
+                  aria-hidden
+                />
+                <span className="truncate">{connection.data?.personaName ?? 'Steam account'}</span>
               </p>
               <p className="text-xs text-text-tertiary">
                 {connection.data?.steamId} · Linked via Steam
@@ -211,9 +223,9 @@ export default function ImportSteam() {
                           disabled={isImported}
                           onChange={() => toggle(g.externalGameId)}
                         />
-                        {g.iconUrl ? (
+                        {g.logoUrl || g.iconUrl ? (
                           <img
-                            src={g.iconUrl}
+                            src={g.logoUrl ?? g.iconUrl!}
                             alt=""
                             className="h-7 w-7 rounded-sm object-cover"
                             loading="lazy"

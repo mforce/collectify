@@ -3,6 +3,7 @@ using System.Text;
 using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
+using Collectify.Infrastructure.Lookup.Images;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -23,6 +24,7 @@ public sealed class SteamStoreImportService
 {
     private readonly CollectifyDbContext _db;
     private readonly ISteamClient _steam;
+    private readonly ICoverImageStore _covers;
     private readonly SteamOptions.SteamSubOptions _options;
     private readonly ILogger<SteamStoreImportService> _log;
 
@@ -31,11 +33,13 @@ public sealed class SteamStoreImportService
     public SteamStoreImportService(
         CollectifyDbContext db,
         ISteamClient steam,
+        ICoverImageStore covers,
         IOptions<SteamOptions> options,
         ILogger<SteamStoreImportService> log)
     {
         _db = db;
         _steam = steam;
+        _covers = covers;
         _options = options.Value.Steam;
         _log = log;
     }
@@ -211,6 +215,8 @@ public sealed class SteamStoreImportService
                 // sets HoursPlayed = PlaytimeForever / 60.
                 g.PlaytimeForever,
                 IconUrl(g.AppId, g.ImgIconUrl),
+                LogoUrl(g.AppId, g.ImgLogoUrl),
+                LastPlayedAt(g.RtimeLastPlayed),
                 imported.Contains(g.AppId.ToString()) ? SteamTitleImportState.Imported : SteamTitleImportState.Importable))
             .OrderByDescending(t => t.PlaytimeMinutes)
             .ToList();
@@ -227,6 +233,15 @@ public sealed class SteamStoreImportService
         => string.IsNullOrWhiteSpace(iconHash)
             ? null
             : $"https://media.steampowered.com/steamcommunity/public/images/apps/{appId}/{iconHash}.jpg";
+
+    private static string? LogoUrl(uint appId, string? logoHash)
+        => string.IsNullOrWhiteSpace(logoHash)
+            ? null
+            : $"https://media.steampowered.com/steamcommunity/public/images/apps/{appId}/{logoHash}.jpg";
+
+    /// <summary>Unix timestamp of last play to UTC, or null when never played.</summary>
+    private static DateTimeOffset? LastPlayedAt(long unixSeconds)
+        => unixSeconds > 0 ? DateTimeOffset.FromUnixTimeSeconds(unixSeconds) : null;
 
     /// <summary>
     /// Transactional import of selected game ids. Only ids present in the
@@ -297,7 +312,7 @@ public sealed class SteamStoreImportService
                     // Save the Game FIRST so its Id is real before the ledger row
                     // references it (the ledger's composite FK needs a genuine
                     // Games.Id). Inside the same transaction as the ledger insert.
-                    newGame = NewImportedGame(ownerId, game, appIdStr);
+                    newGame = NewImportedGame(ownerId, game, appIdStr, await LocalizeCoverAsync(game, ct));
                     _db.Games.Add(newGame);
                     await _db.SaveChangesAsync(ct);
 
@@ -324,7 +339,7 @@ public sealed class SteamStoreImportService
                     {
                         // Ledger row present but its Game was deleted — re-import:
                         // save the Game first, then relink the existing ledger row.
-                        newGame = NewImportedGame(ownerId, game, appIdStr);
+                        newGame = NewImportedGame(ownerId, game, appIdStr, await LocalizeCoverAsync(game, ct));
                         _db.Games.Add(newGame);
                         await _db.SaveChangesAsync(ct);
 
@@ -365,7 +380,19 @@ public sealed class SteamStoreImportService
         return (Results: results, CreatedGames: created);
     }
 
-    private static Game NewImportedGame(string ownerId, SteamOwnedGame game, string appIdStr) => new()
+    /// <summary>
+    /// Localize a Steam cover to the app's /covers/ store. Prefers the
+    /// higher-res logo banner, falls back to the small icon, then downloads
+    /// it through <see cref="ICoverImageStore"/> (same path the edit flow
+    /// uses). Fail-soft: no cover or a download failure leaves ImagePath null.
+    /// </summary>
+    private async Task<string?> LocalizeCoverAsync(SteamOwnedGame game, CancellationToken ct)
+    {
+        var coverUrl = LogoUrl(game.AppId, game.ImgLogoUrl) ?? IconUrl(game.AppId, game.ImgIconUrl);
+        return await _covers.EnsureLocalAsync(coverUrl, ct);
+    }
+
+    private static Game NewImportedGame(string ownerId, SteamOwnedGame game, string appIdStr, string? coverPath) => new()
     {
         OwnerId = ownerId,
         Title = Truncate(game.Name ?? appIdStr, 500),
@@ -374,8 +401,14 @@ public sealed class SteamStoreImportService
         DigitalStore = SteamStore,
         Status = CollectionStatus.Owned,
         HoursPlayed = (int)Math.Min(int.MaxValue, game.PlaytimeForever / 60),
+        ImagePath = coverPath,
+        LastPlayedOn = ToDateOnly(game.RtimeLastPlayed),
         AcquisitionSource = "Steam Import",
     };
+
+    /// <summary>Steam's unix-epoch last-played to a UTC date, or null when never played.</summary>
+    private static DateOnly? ToDateOnly(long unixSeconds)
+        => unixSeconds > 0 ? DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(unixSeconds).UtcDateTime) : null;
 
     /// <summary>
     /// Remove the Steam connection but KEEP imported games and the ledger
