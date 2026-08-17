@@ -121,14 +121,22 @@ var app = builder.Build();
 // / Traefik: the middleware drops forwarded values from any address that isn't
 // in KnownProxies/KnownNetworks, so an external client can't spoof a caller IP
 // to defeat per-client rate limiting. Configure Collectify:ReverseProxy:
-// KnownProxies (e.g. ["10.0.0.0/8"]) for your deployment. When unset, all
+// KnownProxies (e.g. "10.0.0.0/8") for your deployment. When unset, all
 // forwarded headers are ignored and RemoteIpAddress is the direct peer — the
 // correct, honest behaviour for a directly-reachable install.
+//
+// Both configuration forms are accepted: a scalar comma-separated value
+// (Collectify__ReverseProxy__KnownProxies="10.0.0.0/8,192.168.1.5") and the
+// indexed-array form (…KnownProxies__0, …KnownProxies__1). The environment
+// provider stores a scalar as a single entry, so we split each bound value on
+// commas rather than assuming Get<string[]>() yields one item per address.
 var forwardedOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
 };
-foreach (var ip in builder.Configuration.GetSection("Collectify:ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+var proxyCandidates = (builder.Configuration.GetSection("Collectify:ReverseProxy:KnownProxies").Get<string[]>() ?? [])
+    .SelectMany(s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+foreach (var ip in proxyCandidates)
 {
     if (System.Net.IPAddress.TryParse(ip, out var address))
         forwardedOptions.KnownProxies.Add(address);
