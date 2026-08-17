@@ -234,6 +234,20 @@ public sealed class IgdbBackfillRunner
             return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
         }
 
+        // Revalidate the match inputs against the reloaded row: a user may have
+        // renamed the game or edited its year/platform during the search/cover
+        // I/O, in which case this match was computed against stale Title/Year/
+        // Platform and would link the wrong release. Skip so the (cheap, cached)
+        // re-sweep recomputes the match next interval rather than baking in a
+        // stale IgdbId.
+        if (!string.Equals(game.Title, seed.Title, StringComparison.Ordinal)
+            || game.Year != seed.Year
+            || game.Platform != seed.Platform)
+        {
+            _log.LogInformation("IGDB backfill skipped for game {GameId}: title/year/platform changed while matching", gameId);
+            return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
+        }
+
         Apply(game, match.Result, coverPath);
 
         // Single atomic save commits the whole game at once. IgdbId is only

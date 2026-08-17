@@ -457,6 +457,37 @@ public class IgdbBackfillRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task RunSweepAsync_TitleChangedWhileMatching_IsNotStaleLinked()
+    {
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "DOOM" });
+            await seed.SaveChangesAsync();
+        }
+
+        // The user renames DOOM -> Hades while the backfill's cover I/O is in
+        // flight (the cover callback simulates the concurrent edit). The match
+        // for "DOOM" must not be applied to the renamed row.
+        var runner = NewRunner(
+            provider: new ScriptedGameProvider { SearchResults = [Hit("DOOM", GamePlatform.Pc, "1993", year: 1993)] },
+            covers: _ =>
+            {
+                using var concurrent = new CollectifyDbContext(_options);
+                var g = concurrent.Games.Single(x => x.Title == "DOOM");
+                g.Title = "Hades";
+                concurrent.SaveChanges();
+                return "/covers/doom";
+            });
+
+        await runner.RunSweepAsync(CancellationToken.None);
+
+        await using var assert = new CollectifyDbContext(_options);
+        var g = assert.Games.Single();
+        Assert.Equal("Hades", g.Title);   // user's rename preserved
+        Assert.Null(g.IgdbId);            // stale DOOM match NOT applied
+    }
+
+    [Fact]
     public async Task RunSweepAsync_RotatesWindow_SoHighIdGamesEventualySwept()
     {
         // 4 games, cap 2. Only C and D are matchable; A and B never match.
