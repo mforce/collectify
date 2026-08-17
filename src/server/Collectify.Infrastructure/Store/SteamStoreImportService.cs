@@ -182,8 +182,12 @@ public sealed class SteamStoreImportService
     /// <summary>
     /// Owned titles for the preview: trusted Steam fetch joined against the
     /// owner's ledger to tag import state. Ordered by playtime desc.
+    /// Pass an optional <paramref name="search"/> term to filter server-side by
+    /// title across the FULL library (not just the capped preview slice), so
+    /// users with more than <see cref="SteamOptions.SteamSubOptions.PreviewCap"/>
+    /// games can still find, import, or repair lower-playtime titles.
     /// </summary>
-    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(string ownerId, CancellationToken ct = default)
+    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(string ownerId, string? search = null, CancellationToken ct = default)
     {
         var connection = await GetConnectionAsync(ownerId, ct);
         if (connection is null)
@@ -205,6 +209,7 @@ public sealed class SteamStoreImportService
             .ToListAsync(ct);
         var imported = ledger.Where(i => i.GameId != null).Select(i => i.ExternalGameId).ToHashSet();
 
+        var searchTerm = search?.Trim().ToLowerInvariant();
         var all = fetch.Games
             .Select(g => new SteamOwnedTitle(
                 g.AppId.ToString(),
@@ -220,6 +225,11 @@ public sealed class SteamStoreImportService
                 imported.Contains(g.AppId.ToString()) ? SteamTitleImportState.Imported : SteamTitleImportState.Importable))
             .OrderByDescending(t => t.PlaytimeMinutes)
             .ToList();
+
+        // Apply an optional server-side search over the WHOLE library first so a
+        // matching lower-playtime title outside the capped preview is reachable.
+        if (!string.IsNullOrEmpty(searchTerm))
+            all = all.Where(t => t.Title.ToLowerInvariant().Contains(searchTerm)).ToList();
 
         // Bound the preview so a huge library stays navigable server-side; the
         // client gets a "truncated" flag to show "show more"/search, and can

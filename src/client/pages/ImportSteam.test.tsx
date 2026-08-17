@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ImportSteam from './ImportSteam';
@@ -15,7 +15,7 @@ const mockConnectMutate = vi.fn();
 vi.mock('../services/steam', () => ({
   useSteamConnection: () => mockUseConnection(),
   useSteamConnect: () => mockUseConnect(),
-  useSteamGames: (enabled: boolean) => mockUseGames(enabled),
+  useSteamGames: (enabled: boolean, search: string) => mockUseGames(enabled, search),
   useSteamImport: (onSuccess: () => void) => mockUseImport(onSuccess),
   useSteamDisconnect: (onSuccess: () => void) => mockUseDisconnect(onSuccess),
 }));
@@ -50,7 +50,7 @@ describe('ImportSteam', () => {
 
   it('does not fetch games until connected', () => {
     renderPage();
-    expect(mockUseGames).toHaveBeenCalledWith(false);
+    expect(mockUseGames).toHaveBeenCalledWith(false, '');
   });
 
   it('disconnects and keeps a message that games stay', async () => {
@@ -115,27 +115,36 @@ describe('ImportSteam', () => {
     expect(screen.getByText(/no owned games returned/i)).toBeInTheDocument();
   });
 
-  it('filters the owned-games list by title', async () => {
+  it('filters the owned-games list by title (server-side search)', async () => {
     const user = userEvent.setup();
+    const allTitles = [
+      { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' as const },
+      { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'importable' as const },
+    ];
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
-    mockUseGames.mockReturnValue({
-      data: {
-        status: 'ok',
-        truncated: false,
-        titles: [
-          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
-          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
-        ],
-      },
-      isLoading: false,
-      error: null,
+    // The hook's search arg is sent to the server; simulate the server returning
+    // the filtered slice across the full library.
+    mockUseGames.mockImplementation((_enabled: boolean, search: string) => {
+      const trimmed = search.trim().toLowerCase();
+      return {
+        data: {
+          status: 'ok',
+          truncated: false,
+          titles: trimmed ? allTitles.filter((t) => t.title.toLowerCase().includes(trimmed)) : allTitles,
+        },
+        isLoading: false,
+        error: null,
+      };
     });
 
     renderPage();
 
-    expect(screen.getByText('Hades')).toBeInTheDocument();
+    expect(await screen.findByText('Hades')).toBeInTheDocument();
+    expect(screen.getByText('Celeste')).toBeInTheDocument();
     await user.type(screen.getByLabelText(/filter owned games/i), 'celeste');
-    expect(screen.queryByText('Hades')).not.toBeInTheDocument();
+    // Debounced server-side search: wait for the filtered response to land and
+    // Hades to be removed from the list.
+    await waitFor(() => expect(screen.queryByText('Hades')).not.toBeInTheDocument());
     expect(screen.getByText('Celeste')).toBeInTheDocument();
   });
 

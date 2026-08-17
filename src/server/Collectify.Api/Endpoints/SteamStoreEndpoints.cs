@@ -131,6 +131,7 @@ public static class SteamStoreEndpoints
 
         group.MapGet("/games", async (
             HttpContext ctx,
+            string? q,
             UserManager<AppUser> users,
             SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
@@ -139,7 +140,7 @@ public static class SteamStoreEndpoints
             if (!schemaGuard.IsSchemaReady)
                 return Results.Ok(new SteamPreviewDto("notconnected", [], false));
             var ownerId = users.GetUserId(ctx.User)!;
-            var preview = await service.GetOwnedTitlesAsync(ownerId, ct);
+            var preview = await service.GetOwnedTitlesAsync(ownerId, q, ct);
             return Results.Ok(new SteamPreviewDto(
                 preview.Status.ToString().ToLowerInvariant(),
                 preview.Titles

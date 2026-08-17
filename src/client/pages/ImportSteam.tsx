@@ -24,7 +24,18 @@ export default function ImportSteam() {
 
   const connection = useSteamConnection();
   const connect = useSteamConnect();
-  const games = useSteamGames(connection.data?.connected === true);
+  const [debouncedFilter, setDebouncedFilter] = useState(filter);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedFilter(filter), 300);
+    return () => clearTimeout(t);
+  }, [filter]);
+  // Search is sent to the server so it filters across the FULL owned library,
+  // not just the capped preview slice — reaching lower-playtime titles a user
+  // might search for (Codex: paginate/search large libraries).
+  const games = useSteamGames(
+    connection.data?.connected === true,
+    filter.trim() ? debouncedFilter : '',
+  );
   const doImport = useSteamImport(() => setSelected(new Set()));
   const disconnect = useSteamDisconnect(() => setSelected(new Set()));
 
@@ -50,11 +61,9 @@ export default function ImportSteam() {
     [games.data],
   );
 
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return games.data?.titles ?? [];
-    return (games.data?.titles ?? []).filter((g) => g.title.toLowerCase().includes(q));
-  }, [games.data, filter]);
+  // The server already applies the search filter across the full library, so
+  // what we render is exactly the filtered result (no client-side re-filter).
+  const filtered = games.data?.titles ?? [];
 
   const toggle = (id: string) =>
     setSelected((prev) => {

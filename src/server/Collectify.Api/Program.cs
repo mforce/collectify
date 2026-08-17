@@ -60,20 +60,31 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(rate =>
 {
-    // Per-IP fixed-window guard for the public Steam OpenID callback so a
+    // Per-client fixed-window guard for the public Steam OpenID callback so a
     // stream of forged requests can't spam the outbound Steam verify step.
     //
-    // Partitioned keyed on the direct peer address (Connection.RemoteIpAddress),
-    // which is the honest, unspoofable signal without forwarded-header trust.
-    // NOTE: when Collectify sits behind a reverse proxy / TLS terminator, every
-    // client shares the proxy's peer IP, so this degrades to a global 30/min
-    // window (identical to the previous behavior) rather than per-client. Real
-    // per-client limiting behind a proxy requires UseForwardedHeaders + trusting
-    // the specific proxy, which is deployment-specific — see docs/security.md.
+    // Partition keyed on the effective client address. By default that's the
+    // direct peer (Connection.RemoteIpAddress) — the honest, unspoofable signal,
+    // correct for a directly-reachable install. When Collectify sits behind a
+    // reverse proxy / TLS terminator, every client shares the proxy's peer IP,
+    // which would collapse per-client limiting back to one global bucket. To
+    // restore real per-client limiting in that deployment, set
+    // Collectify:Platforms:Steam:TrustForwardedIp=true so the partition key is
+    // taken from X-Forwarded-For (the first, outermost proxy-appended value).
+    // This is deliberately opt-in rather than default: trusting a spoofable
+    // forwarded header when no trusted proxy is in front would let a direct
+    // attacker mint a fresh bucket per request and bypass the limit entirely.
+    var trustForwardedIp = builder.Configuration
+        .GetSection(SteamOptions.SectionName).GetSection("Steam")
+        .GetValue<bool?>("TrustForwardedIp") ?? false;
+
     rate.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     rate.AddPolicy("steam-callback", httpContext =>
     {
-        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ip = trustForwardedIp && httpContext.Request.Headers.TryGetValue("X-Forwarded-For", out var fwd)
+                 && fwd.Count > 0 && !string.IsNullOrWhiteSpace(fwd[0])
+            ? fwd[0]!.Split(',')[0].Trim()
+            : httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 30,

@@ -50,10 +50,13 @@ export function useSteamConnect() {
   });
 }
 
-export function useSteamGames(enabled: boolean) {
+export function useSteamGames(enabled: boolean, search = '') {
   return useQuery<SteamPreview>({
-    queryKey: ['steam', 'games'],
-    queryFn: () => api<SteamPreview>('/api/accounts/steam/games'),
+    queryKey: ['steam', 'games', search.trim().toLowerCase()],
+    queryFn: () => {
+      const q = search.trim();
+      return api<SteamPreview>(`/api/accounts/steam/games${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    },
     enabled,
   });
 }

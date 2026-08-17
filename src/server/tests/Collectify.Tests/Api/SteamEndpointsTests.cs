@@ -471,6 +471,41 @@ public class SteamEndpointsTests
     }
 
     [Fact]
+    public async Task Games_SearchFiltersAcrossFullLibrary()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames =
+                [
+                    new SteamOwnedGame { AppId = 1, Name = "Hades" },
+                    new SteamOwnedGame { AppId = 2, Name = "Celeste" },
+                    new SteamOwnedGame { AppId = 3, Name = "Hollow Knight" },
+                ],
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        // No search -> whole library (2 owned, one of them the searched title).
+        var all = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
+        Assert.Equal(3, all!.Titles.Length);
+
+        // Case-insensitive title search filters server-side across the full
+        // library, so a user with more than PreviewCap games can still reach a
+        // specific lower-playtime title no matter where it sorts.
+        var celeste = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=celeste");
+        Assert.Single(celeste!.Titles);
+        Assert.Equal("2", celeste.Titles[0].ExternalGameId);
+
+        var hollow = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=HOLLOW");
+        Assert.Single(hollow!.Titles);
+        Assert.Equal("3", hollow.Titles[0].ExternalGameId);
+    }
+
+    [Fact]
     public async Task Games_NotLinked_ReturnsEmpty()
     {
         await using var factory = new CollectifyApiFactory
