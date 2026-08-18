@@ -86,6 +86,9 @@ builder.Services.AddRateLimiter(rate =>
 });
 builder.Services.ConfigureHttpJsonOptions(opt =>
 {
+    // GamePlatform keeps its own converter so retired/write paths degrade
+    // (Linux -> Pc) instead of 400-ing; all other enums use the string form.
+    opt.SerializerOptions.Converters.Add(new GamePlatformJsonConverter());
     opt.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 

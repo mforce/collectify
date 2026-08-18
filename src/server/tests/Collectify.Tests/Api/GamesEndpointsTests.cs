@@ -1,5 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Tests.Infrastructure;
@@ -107,6 +110,33 @@ public class GamesEndpointsTests
         var stored = await factory.WithDbAsync(db =>
             db.Games.AsNoTracking().FirstAsync(g => g.Id == created!.Id));
         Assert.Equal(alice.Id, stored.OwnerId);
+    }
+
+    [Fact]
+    public async Task Create_WithLegacyLinuxPlatform_SavesAsPc()
+    {
+        // A stale / pre-upgrade client posting "platform": "Linux" (the member
+        // retired in #102) must land on Pc via GamePlatformJsonConverter, not
+        // 400 on the now-removed enum name.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var baseDto = JsonSerializer.Serialize(Sample(), new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter() }, // serializes Platform as its name
+        });
+        // The sample's Platform (Pc) is serialized as the literal name "Pc";
+        // rewrite that token to the retired "Linux" to simulate a stale client.
+        var payload = System.Text.RegularExpressions.Regex.Replace(
+            baseDto, "\"platform\":\"Pc\"", "\"platform\":\"Linux\"");
+        var response = await alice.Client.PostAsync(
+            "/api/games/",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var body = await response.ReadJsonAsync<GameResponse>();
+        Assert.Equal(GamePlatform.Pc, body!.Platform);
     }
 
     [Fact]
