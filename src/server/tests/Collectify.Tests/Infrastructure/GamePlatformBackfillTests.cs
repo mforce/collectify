@@ -105,6 +105,32 @@ public class GamePlatformBackfillTests : IDisposable
     }
 
     [Fact]
+    public async Task RunAsync_RetiresRemovedEnumValues_LinuxBecomesPc()
+    {
+        // #102: Linux (3) was removed from GamePlatform and folds into Pc;
+        // Mac (2) stays its own platform. This is the Postgres path
+        // (EnsureCreated, no migrations). Seed 3 by raw int.
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "Linux game", Platform = GamePlatform.Mac });
+            await seed.SaveChangesAsync();
+            seed.Database.ExecuteSqlRaw("UPDATE \"Games\" SET \"Platform\" = 3 WHERE \"Title\" = 'Linux game';");
+        }
+
+        await using var db = new CollectifyDbContext(_options);
+        Assert.Equal(1, await GamePlatformBackfill.RunAsync(db));
+
+        await using (var assert = new CollectifyDbContext(_options))
+        {
+            Assert.Equal(GamePlatform.Pc, assert.Games.Single().Platform);
+        }
+
+        // Idempotent: a second run finds no retired rows left and returns 0.
+        await using var db2 = new CollectifyDbContext(_options);
+        Assert.Equal(0, await GamePlatformBackfill.RunAsync(db2));
+    }
+
+    [Fact]
     public async Task RunAsync_OnDbWithNoPendingRows_IsANoOp()
     {
         await using (var seed = new CollectifyDbContext(_options))

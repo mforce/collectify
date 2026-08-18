@@ -13,6 +13,7 @@ public class GamePlatformMappingTests
     [InlineData("PC(Microsoft Windows)", GamePlatform.Pc)]
     [InlineData("Apple Macintosh", GamePlatform.Mac)]
     [InlineData("Mac OS", GamePlatform.Mac)]
+    [InlineData("Linux", GamePlatform.Pc)] // Linux folds into Pc (#102)
     [InlineData("PlayStation 5", GamePlatform.Ps5)]
     [InlineData("playstation-5", GamePlatform.Ps5)]
     [InlineData(" PS_5 ", GamePlatform.Ps5)]

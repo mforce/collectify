@@ -154,7 +154,6 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         id = platform switch
         {
             GamePlatform.Pc => 6,
-            GamePlatform.Linux => 3,
             GamePlatform.Mac => 14,
             GamePlatform.XboxOriginal => 11,
             GamePlatform.Xbox360 => 12,

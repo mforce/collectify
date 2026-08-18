@@ -109,7 +109,7 @@ public class EnumParityTests
             },
             ["GamePlatform"] = new Dictionary<string, int>
             {
-                ["Other"] = 0, ["Pc"] = 1, ["Mac"] = 2, ["Linux"] = 3, ["Mobile"] = 4,
+                ["Other"] = 0, ["Pc"] = 1, ["Mac"] = 2, ["Mobile"] = 4,
                 ["XboxOriginal"] = 10, ["Xbox360"] = 11, ["XboxOne"] = 12, ["XboxSeriesXS"] = 13,
                 ["Ps1"] = 20, ["Ps2"] = 21, ["Ps3"] = 22, ["Ps4"] = 23, ["Ps5"] = 24, ["Psp"] = 25, ["PsVita"] = 26,
                 ["Nes"] = 30, ["Snes"] = 31, ["N64"] = 32, ["GameCube"] = 33, ["Wii"] = 34, ["WiiU"] = 35,
