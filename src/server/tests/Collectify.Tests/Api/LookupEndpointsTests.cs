@@ -119,6 +119,41 @@ public class LookupEndpointsTests
         Assert.Equal("Pc", hit.Platform?.ToString());
     }
 
+    [Fact]
+    public async Task SearchGames_WithLegacyLinuxPlatform_PerformsPcScopedSearch()
+    {
+        // A stale JS bundle / bookmarked URL passing the retired "Linux"
+        // platform (folded into Pc, #102) must resolve to a Pc-scoped search
+        // (returning the Pc SKU, not the Ps4 bundle) instead of 400-ing on the
+        // removed enum name.
+        var pcWitcher = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            Provider: "igdb", ProviderKey: "1942", Title: "The Witcher 3: Wild Hunt",
+            Platform: GamePlatform.Pc, Year: 2015, Publisher: "WB", Developer: "CD Projekt Red",
+            Description: "desc", ImageUrl: null, Genres: "RPG")
+        { Platforms = [GamePlatform.Pc] };
+        var ps4Witcher = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            Provider: "igdb", ProviderKey: "141472", Title: "The Witcher 3: Wild Hunt + Dark Souls III",
+            Platform: GamePlatform.Ps4, Year: 2018, Publisher: "BN", Developer: null,
+            Description: "bundle", ImageUrl: null, Genres: "RPG")
+        { Platforms = [GamePlatform.Ps4, GamePlatform.XboxOne] };
+
+        var provider = new ScriptedGameProvider
+        {
+            SearchResults = [pcWitcher, ps4Witcher],
+        };
+        await using var factory = new CollectifyApiFactory { GameProvider = provider };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<GameLookupResult>>(
+            "/api/lookup/games?q=the witcher 3&platform=Linux");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        var hit = Assert.Single(body.Results);
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
+    }
+
     // ---------- /api/lookup/movies/by-id/{providerKey} ----------
 
     [Fact]
