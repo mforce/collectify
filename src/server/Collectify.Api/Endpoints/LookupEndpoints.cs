@@ -1,3 +1,4 @@
+using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Vision;
 using Microsoft.AspNetCore.Mvc;
@@ -136,6 +137,7 @@ public static class LookupEndpoints
 
         group.MapGet("/games", async (
             [FromQuery] string? q,
+            [FromQuery] GamePlatform? platform,
             IGameMetadataProvider provider,
             CancellationToken ct) =>
         {
@@ -143,6 +145,19 @@ public static class LookupEndpoints
             if (!provider.IsConfigured)
                 return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, false, []));
             var results = await provider.SearchAsync(q!.Trim(), ct);
+
+            // Edit-page prefill: when the caller passes the game's already-set
+            // platform, prioritise same-platform results to the top so the user
+            // sees the right SKU first (IGDB returns many platforms per title).
+            // One search, partitioned in memory — no second IGDB round-trip.
+            if (platform is { } p && results.Count > 1)
+            {
+                results = results
+                    .OrderByDescending(r => r.IsOn(p))
+                    .ThenBy(r => r.Title, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+
             return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, results));
         });
 

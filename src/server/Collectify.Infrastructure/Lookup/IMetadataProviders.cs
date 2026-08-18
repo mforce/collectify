@@ -1,5 +1,7 @@
 namespace Collectify.Infrastructure.Lookup;
 
+using Collectify.Domain.Enums;
+
 /// <summary>
 /// Per-domain provider contracts. Each concrete provider (TMDB,
 /// MusicBrainz, IGDB, etc.) implements one of these; the lookup endpoint
@@ -63,6 +65,22 @@ public interface IGameMetadataProvider
     string Name { get; }
     bool IsConfigured { get; }
     Task<IReadOnlyList<GameLookupResult>> SearchAsync(string query, CancellationToken ct = default);
+
+    /// <summary>
+    /// Search restricted to results that map to <paramref name="platform"/>.
+    /// The default implementation filters <see cref="SearchAsync"/> in memory;
+    /// providers that fetch platform data natively (IGDB returns several
+    /// platforms per release) may override to filter at the source and/or use a
+    /// platform-scoped cache key. Empty when no result matches the platform.
+    /// </summary>
+    async Task<IReadOnlyList<GameLookupResult>> SearchByPlatformAsync(
+        string query,
+        GamePlatform platform,
+        CancellationToken ct = default)
+    {
+        var results = await SearchAsync(query, ct).ConfigureAwait(false);
+        return results.Where(r => r.IsOn(platform)).ToList();
+    }
 
     /// <summary>
     /// Direct lookup by the provider's identifier (e.g. an IGDB game id).

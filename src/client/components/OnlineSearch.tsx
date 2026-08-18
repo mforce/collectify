@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLookup } from '../services/lookup';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
-import type { MediaType } from '../services/types';
+import type { MediaType, GamePlatform } from '../services/types';
 import { Field, Input, Label } from './ui';
 
 type ResultMap = {
@@ -19,6 +19,11 @@ interface Props<T extends MediaType> {
   /** Optional label shown above the input. */
   label?: string;
   placeholder?: string;
+  /**
+   * Games only: pass the game's already-set platform so the backend prioritises
+   * same-platform results to the top of the dropdown. Ignored for other types.
+   */
+  platform?: GamePlatform;
 }
 
 /**
@@ -33,6 +38,7 @@ export default function OnlineSearch<T extends MediaType>({
   onPick,
   label = 'Search online',
   placeholder = 'Type a title…',
+  platform,
 }: Props<T>) {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -43,7 +49,7 @@ export default function OnlineSearch<T extends MediaType>({
     return () => clearTimeout(t);
   }, [query]);
 
-  const lookup = useLookup(type, debounced);
+  const lookup = useLookup(type, debounced, platform);
   const data = lookup.data;
 
   const results = (data?.results ?? []) as ResultMap[T][];

@@ -85,12 +85,39 @@ public static class IgdbBackfillPlanner
         var target = NormalizeTitle(game.Title);
         if (target.Length == 0) return null;
 
-        var exact = candidates
-            .Where(c => NormalizeTitle(c.Title) == target)
+        // Edition variants (e.g. a local "Tomb Raider Game of the Year" vs an
+        // IGDB "Tomb Raider") are the SAME release, so compare on the
+        // edition-stripped base name rather than the full string. This only
+        // broadens the candidate set to other editions of the same game; the
+        // single-survivor gate in <see cref="Pick"/> still refuses to auto-link
+        // when year/platform can't isolate exactly one candidate.
+        var bareTarget = StripEdition(target);
+        var matching = candidates
+            .Where(c => StripEdition(NormalizeTitle(c.Title)) == bareTarget)
             .ToList();
-        if (exact.Count == 0) return null;
+        if (matching.Count == 0) return null;
 
-        return Pick(exact, game);
+        return Pick(matching, game);
+    }
+
+    // Trailing edition/subtitle qualifiers that denote the SAME base release.
+    // Operates on the normalised (lowercased, no-space) title; each is a
+    // suffix stripped once, longest-first so "gameoftheyearedition" wins over
+    // "gameoftheyear" before "edition" alone.
+    private static readonly string[] EditionSuffixes =
+    {
+        "gameoftheyearedition", "gameoftheyear", "completeedition", "goty",
+        "deluxe", "definitiveedition", "edition", "remastered",
+    };
+
+    private static string StripEdition(string normalized)
+    {
+        foreach (var suffix in EditionSuffixes)
+        {
+            if (normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+        return normalized;
     }
 
     private static BackfillMatch? Pick(List<GameLookupResult> exact, Game game)

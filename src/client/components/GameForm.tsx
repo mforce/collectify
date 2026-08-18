@@ -123,6 +123,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         type="games"
         label="Search online (IGDB)"
         placeholder="e.g. The Witcher 3"
+        platform={g.platform === 'Other' ? undefined : g.platform}
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),

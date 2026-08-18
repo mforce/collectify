@@ -71,12 +71,34 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         !string.IsNullOrWhiteSpace(_options.Igdb.TwitchClientSecret);
 
     public async Task<IReadOnlyList<GameLookupResult>> SearchAsync(string query, CancellationToken ct = default)
+        => await SearchCoreAsync(query, filter: null, ct);
+
+    public async Task<IReadOnlyList<GameLookupResult>> SearchByPlatformAsync(
+        string query,
+        GamePlatform platform,
+        CancellationToken ct = default)
+        => await SearchCoreAsync(query, filter: platform, ct);
+
+    /// <summary>
+    /// Shared search. When <paramref name="filter"/> is set the cache key is
+    /// platform-scoped (so a PC-scoped search never reuses — or gets reused by —
+    /// a result set cached for an unscoped query) and every mapped result is
+    /// filtered to those on that platform.
+    /// </summary>
+    private async Task<IReadOnlyList<GameLookupResult>> SearchCoreAsync(
+        string query,
+        GamePlatform? filter,
+        CancellationToken ct)
     {
         if (!IsConfigured) return [];
         var trimmed = query.Trim();
         if (trimmed.Length == 0) return [];
 
-        var cacheKey = "search:" + trimmed.ToLowerInvariant();
+        // Platform-scoped searches must not share a cache entry with an
+        // unscoped (or other-platform) one, or the filter is silently wrong.
+        var cacheKey = filter is { } p
+            ? $"search:{trimmed.ToLowerInvariant()}|{p}"
+            : "search:" + trimmed.ToLowerInvariant();
         var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
@@ -88,6 +110,8 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         if (games is null) return [];
 
         var mapped = games.Select(Map).ToList();
+        if (filter is { } f)
+            mapped = mapped.Where(r => r.IsOn(f)).ToList();
         await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
         return mapped;
     }
@@ -199,19 +223,23 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         var pubs = g.InvolvedCompanies?.Where(c => c.Publisher && c.Company?.Name is not null)
                                        .Select(c => c.Company!.Name!).Distinct().ToList();
 
+        var mappedPlatforms = g.Platforms?
+            .Select(p => GamePlatformMapping.TryParse(p.Name))
+            .Where(v => v.HasValue)
+            .Select(v => v!.Value)
+            .Distinct()
+            .ToList() ?? [];
+
         return new GameLookupResult(
             Provider: ProviderName,
             ProviderKey: g.Id.ToString(),
             Title: g.Name ?? string.Empty,
-            // IGDB returns N platforms per release. Walk them in order
-            // and surface the first one that maps cleanly to our enum;
-            // if none does, leave it null so the form's dropdown stays
-            // unselected (better than auto-defaulting to Other). The
-            // mapping resolver is normalisation-tolerant -- "PlayStation
-            // 5", "playstation-5", " PS_5 " all hit the same value.
-            Platform: g.Platforms?
-                .Select(p => GamePlatformMapping.TryParse(p.Name))
-                .FirstOrDefault(v => v.HasValue),
+            // IGDB returns N platforms per release. Surface the first one that
+            // maps cleanly to our enum as `Platform` (for form dropdown compat);
+            // null when none map, so the dropdown stays unset rather than
+            // defaulting to Other. The mapping resolver is normalisation-tolerant
+            // -- "PlayStation 5", "playstation-5", " PS_5 " all hit one value.
+            Platform: mappedPlatforms.Count > 0 ? mappedPlatforms[0] : null,
             Year: ToYear(g.FirstReleaseDate),
             Publisher: pubs is { Count: > 0 } ? string.Join(", ", pubs) : null,
             Developer: devs is { Count: > 0 } ? string.Join(", ", devs) : null,
@@ -221,7 +249,12 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
                 : null,
             Genres: g.Genres is { Count: > 0 }
                 ? string.Join(", ", g.Genres.Where(x => x.Name is not null).Select(x => x.Name!))
-                : null);
+                : null)
+        {
+            // The full mapped platform set, not just the first — used for
+            // platform-scoped matching and edit-page prioritisation.
+            Platforms = mappedPlatforms,
+        };
     }
 
     private static int? ToYear(long? unixSeconds)

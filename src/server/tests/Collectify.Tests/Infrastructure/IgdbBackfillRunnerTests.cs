@@ -32,7 +32,12 @@ public class IgdbBackfillRunnerTests : IDisposable
     private static GameLookupResult Hit(string title, GamePlatform? platform = null, string key = "100", int? year = 2015, string? genres = "RPG, Adventure")
         => new(Provider: "igdb", ProviderKey: key, Title: title, Platform: platform,
             Year: year, Publisher: "CD Projekt Red", Developer: "CD Projekt Red",
-            Description: "A rich story.", ImageUrl: "https://images.igdb.com/cover.jpg", Genres: genres);
+            Description: "A rich story.", ImageUrl: "https://images.igdb.com/cover.jpg", Genres: genres)
+    {
+        // Keep Platforms in sync so the platform-scoped search path (SearchByPlatformAsync)
+        // can filter by IsOn — a result that lists a platform must match that platform.
+        Platforms = platform is { } p ? [p] : [],
+    };
 
     private IgdbBackfillRunner NewRunner(
         IGameMetadataProvider? provider = null,
@@ -88,6 +93,35 @@ public class IgdbBackfillRunnerTests : IDisposable
         // Decision #1: NO auto-tags. True table-level check (Tags is a many-to-many
         // that a bare Games load would leave empty regardless).
         Assert.Empty(assert.Set<Tag>());
+    }
+
+    [Fact]
+    public async Task RunSweepAsync_PlatformScopedSearch_IsolatesPcSku()
+    {
+        // The Witcher 3 case: a PC game whose title also exists as a console SKU
+        // (IGDB models each platform as a separate game). Without the platform
+        // bias the planner would see several same-named candidates and decline;
+        // with it (SearchByPlatformAsync isolates the PC entry) it auto-links.
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "The Witcher 3: Wild Hunt", Platform = GamePlatform.Pc });
+            await seed.SaveChangesAsync();
+        }
+
+        var runner = NewRunner(provider: new ScriptedGameProvider
+        {
+            SearchResults =
+            [
+                Hit("The Witcher 3: Wild Hunt", GamePlatform.Ps4, "55"),  // console SKU, ranks high
+                Hit("The Witcher 3: Wild Hunt", GamePlatform.Pc, "1942"), // PC SKU, what we want
+            ],
+        });
+
+        var filled = await runner.RunSweepAsync(CancellationToken.None);
+        Assert.Equal(1, filled.Filled);
+
+        await using var assert = new CollectifyDbContext(_options);
+        Assert.Equal("1942", assert.Games.Single().IgdbId); // the PC SKU, not 55
     }
 
     [Fact]

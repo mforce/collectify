@@ -1,4 +1,5 @@
 using Collectify.Domain.Entities;
+using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup.Images;
 using Microsoft.EntityFrameworkCore;
@@ -192,7 +193,16 @@ public sealed class IgdbBackfillRunner
             .FirstOrDefaultAsync(ct);
         if (seed is null) return new BackfillOutcome(WasFilled: false, ProviderReturnedEmpty: false);
 
-        var candidates = await _provider.SearchAsync(seed.Title, ct);
+        // Search with a platform bias when we know the local platform (PC for a
+        // Steam import): console SKUs that share a title are dropped so the PC
+        // match can be isolated. `GamePlatform.Other` is the "unknown/unset"
+        // value, so only apply the bias when we actually know the platform. If
+        // the platform-scoped search comes back empty (e.g. a console-only game
+        // we mis-tagged, or IGDB lacking that platform) fall back to an
+        // unfiltered search so nothing is missed.
+        var candidates = seed.Platform == GamePlatform.Other
+            ? await _provider.SearchAsync(seed.Title, ct)
+            : await SearchAnyPlatformAsync(seed.Title, seed.Platform, ct);
         if (candidates.Count == 0)
         {
             // IGDB returned nothing — likely throttling, signal the caller.
@@ -290,5 +300,21 @@ public sealed class IgdbBackfillRunner
         if (hasSummary && hasGenres) return $"{summary}\n\nGenres: {genres}";
         if (hasGenres) return $"Genres: {genres}";
         return hasSummary ? summary : null;
+    }
+
+    /// <summary>
+    /// Platform-biased search with a graceful fallback: try the platform-scoped
+    /// query first (so console SKUs sharing a title don't crowd out the PC
+    /// match); if IGDB has nothing for that platform, fall back to an
+    /// unfiltered search so a console-only or platform-less title is still seen.
+    /// </summary>
+    private async Task<IReadOnlyList<GameLookupResult>> SearchAnyPlatformAsync(
+        string title,
+        GamePlatform platform,
+        CancellationToken ct)
+    {
+        var scoped = await _provider.SearchByPlatformAsync(title, platform, ct);
+        if (scoped.Count > 0) return scoped;
+        return await _provider.SearchAsync(title, ct);
     }
 }

@@ -65,6 +65,33 @@ public class IgdbBackfillPlannerTests
         Assert.Equal("7", match.Result.ProviderKey);
     }
 
+    [Fact]
+    public void BestMatch_EditionSuffix_MatchesBaseRelease()
+    {
+        // Local "Tomb Raider Game of the Year" vs IGDB's base "Tomb Raider" are
+        // the SAME release — the trailing edition qualifier is stripped so the
+        // base name compares equal, and a single surviving candidate links.
+        var match = IgdbBackfillPlanner.BestMatch(
+            Game("Tomb Raider Game of the Year", GamePlatform.Pc, year: 2013),
+            [Hit("Tomb Raider", GamePlatform.Pc, "33", year: 2013)]);
+        Assert.NotNull(match);
+        Assert.Equal("33", match.Result.ProviderKey);
+    }
+
+    [Fact]
+    public void BestMatch_EditionStrip_DoesNotOverreach_TwoEditionsDeclines()
+    {
+        // Edition-strip must NOT turn an ambiguous set into a guess: two PC
+        // editions of the same base name (base + Complete) with no year to
+        // separate them must still be declined, not auto-linked to the first.
+        Assert.Null(IgdbBackfillPlanner.BestMatch(
+            Game("The Witcher 3", GamePlatform.Pc),
+            [
+                Hit("The Witcher 3", GamePlatform.Pc, "1", year: null),
+                Hit("The Witcher 3 Complete Edition", GamePlatform.Pc, "2", year: null),
+            ]));
+    }
+
     // ---- Platform-aware accent (bias toward the game's OWN platform) ----
 
     [Fact]

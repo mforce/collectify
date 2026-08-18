@@ -66,12 +66,13 @@ type ResultMap = {
  * Disabled until the query has at least 2 non-whitespace characters; the
  * server enforces the same minimum.
  */
-export function useLookup<T extends MediaType>(type: T, query: string) {
+export function useLookup<T extends MediaType>(type: T, query: string, platform?: string) {
   const trimmed = query.trim();
+  const platformParam = platform !== undefined ? `&platform=${encodeURIComponent(platform)}` : '';
   return useQuery({
-    queryKey: ['lookup', type, trimmed],
+    queryKey: ['lookup', type, trimmed, platform ?? null],
     queryFn: () =>
-      api<LookupResponse<ResultMap[T]>>(`/api/lookup/${type}?q=${encodeURIComponent(trimmed)}`),
+      api<LookupResponse<ResultMap[T]>>(`/api/lookup/${type}?q=${encodeURIComponent(trimmed)}${platformParam}`),
     enabled: trimmed.length >= 2,
     staleTime: 60_000,
   });
