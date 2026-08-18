@@ -30,6 +30,16 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     public const string ProviderName = "igdb";
     public const string HttpClientName = "igdb";
 
+    /// <summary>
+    /// Bumped when the cached <see cref="GameLookupResult"/> shape changes.
+    /// The lookup cache is keyed by (Provider, Key) with no schema guard, so a
+    /// DTO field added/removed/renamed would otherwise silently serve stale,
+    /// wrongly-shaped rows (e.g. a pre-<c>Platforms</c> JSON deserializes that
+    /// field to its default empty set). Versioning the key forces a refresh once
+    /// and prevents ever serving an out-of-shape cached result again.
+    /// </summary>
+    private const int CacheSchemaVersion = 2;
+
     // IGDB image URLs are "https://images.igdb.com/igdb/image/upload/{size}/{image_id}.jpg".
     // t_cover_big is the canonical "box art at form thumbnail size" preset.
     private const string CoverImageBase = "https://images.igdb.com/igdb/image/upload/t_cover_big";
@@ -105,9 +115,10 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
 
         // Platform-scoped searches must not share a cache entry with an
         // unscoped (or other-platform) one, or the filter is silently wrong.
+        // Version prefix busts stale pre-Platforms rows (see CacheSchemaVersion).
         var cacheKey = filter is { } p
-            ? $"search:{trimmed.ToLowerInvariant()}|{p}"
-            : "search:" + trimmed.ToLowerInvariant();
+            ? $"v{CacheSchemaVersion}:search:{trimmed.ToLowerInvariant()}|{p}"
+            : $"v{CacheSchemaVersion}:search:" + trimmed.ToLowerInvariant();
         var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
@@ -183,7 +194,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         if (string.IsNullOrWhiteSpace(providerKey)) return null;
         if (!long.TryParse(providerKey.Trim(), out var id) || id <= 0) return null;
 
-        var cacheKey = "id:" + id.ToString();
+        var cacheKey = $"v{CacheSchemaVersion}:id:" + id.ToString();
         var cached = await _cache.GetAsync<GameLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
@@ -202,7 +213,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         var trimmed = (barcode ?? string.Empty).Trim();
         if (trimmed.Length == 0) return [];
 
-        var cacheKey = "barcode:" + trimmed;
+        var cacheKey = $"v{CacheSchemaVersion}:barcode:" + trimmed;
         var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 

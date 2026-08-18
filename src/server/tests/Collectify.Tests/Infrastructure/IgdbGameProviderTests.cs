@@ -218,14 +218,14 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchByPlatformAsync_UsesPlatformScopedCacheKey_NotSharedWithUnscoped()
     {
         // The platform-scoped cache key must be distinct from the unscoped one:
-        // an unscoped "search:witcher" entry must NOT satisfy a PC-scoped
-        // "search:witcher|Pc" request (or the platform filter would be wrong).
+        // an unscoped "v2:search:witcher" entry must NOT satisfy a PC-scoped
+        // "v2:search:witcher|Pc" request (or the platform filter would be wrong).
         var handler = new StubHandler(SingleGameJson);
         var p1 = NewProvider(handler);
         var p2 = NewProvider(handler); // shared sqlite cache
 
-        await p1.SearchAsync("witcher");                            // unscoped: key "search:witcher"
-        await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "search:witcher|Pc"
+        await p1.SearchAsync("witcher");                            // unscoped: key "v2:search:witcher"
+        await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "v2:search:witcher|Pc"
 
         // Two distinct cache keys -> two upstream calls, not a cache hit.
         Assert.Equal(2, handler.Requests.Count);
@@ -306,7 +306,7 @@ public class IgdbGameProviderTests : IDisposable
     {
         await SeedRawCacheRowAsync(
             "igdb",
-            "search:witcher",
+            "v2:search:witcher",
             "[{\"provider\":\"igdb\",\"providerKey\":\"old\",\"title\":\"Old\",\"platform\":\"Windows 95\"}]");
         var handler = new StubHandler(SingleGameJson);
         var provider = NewProvider(handler);
@@ -316,6 +316,32 @@ public class IgdbGameProviderTests : IDisposable
         Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
         Assert.Equal(GamePlatform.Pc, hit.Platform);
         Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchAsync_UnversionedStaleCacheRow_IsNotServed_AndRefreshes()
+    {
+        // Regression for the stale-cache bug: a cached row written before the
+        // `Platforms` DTO field existed (key "search:witcher", no v2 prefix)
+        // must NOT be served. The versioned key the current code reads
+        // (v2:search:witcher) won't match it, so the provider hits IGDB afresh
+        // and returns fully-shaped results — this is what fixes the prod case
+        // where every result came back `platforms: []`.
+        await SeedRawCacheRowAsync(
+            "igdb",
+            "search:witcher", // OLD schema key (unversioned)
+            "[{\"provider\":\"igdb\",\"providerKey\":\"old\",\"title\":\"Old\",\"platform\":\"Windows 95\"}]");
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler);
+
+        var hit = Assert.Single(await provider.SearchAsync("witcher"));
+
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
+        // The stale unversioned row was ignored -> one fresh upstream call.
+        Assert.Single(handler.Requests);
+        // And the fresh result carries the full platform set (would've been []).
+        Assert.Contains(GamePlatform.Pc, hit.Platforms);
     }
 
     [Fact]
