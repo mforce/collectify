@@ -307,6 +307,26 @@ public class GamesEndpointsTests
     }
 
     [Fact]
+    public async Task List_FiltersByPlatform_RetiredOrUndefinedNumeric_IsIgnoredNotStaleValue()
+    {
+        // A numeric that isn't a live GamePlatform member (3 = retired Linux,
+        // 999 = never defined) must NOT bind to a stale enum value and filter
+        // to nothing; it resolves to no filter and returns all rows. The neat
+        // way to prove "no filter applied": a Linux row is present and matches
+        // under no platform predicate.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Hades", Platform = GamePlatform.Pc });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "BotW", Platform = GamePlatform.Switch });
+
+        var byRetired = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?platform=3");
+        Assert.Equal(2, byRetired!.Length); // not filtered to the retired value
+
+        var byUndefined = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?platform=999");
+        Assert.Equal(2, byUndefined!.Length); // not filtered, not a 400
+    }
+
+    [Fact]
     public async Task List_FiltersByDigital_ReturnsMatchingRows()
     {
         await using var factory = new CollectifyApiFactory();

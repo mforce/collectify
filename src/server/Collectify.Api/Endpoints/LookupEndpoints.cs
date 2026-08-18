@@ -148,14 +148,19 @@ public static class LookupEndpoints
             // Bound as a raw string (not the enum) so a stale value from an
             // older JS bundle (e.g. "?platform=Linux" from before Linux folded
             // into Pc, #102) degrades via the resolver instead of failing enum
-            // binding and 400-ing the lookup. Exact member names (Pc/Ps5/...,
-            // incl. the no-filter sentinel Other) bind directly; aliases like
-            // "linux" fall through GamePlatformMapping -> Pc.
-            GamePlatform? resolved =
-                platform is null ? null :
-                Enum.TryParse<GamePlatform>(platform, ignoreCase: true, out var direct)
-                    ? direct
-                    : GamePlatformMapping.TryParse(platform);
+            // binding and 400-ing the lookup. Exact, DEFINED member names
+            // (Pc/Ps5/..., incl. the no-filter sentinel Other) bind directly;
+            // a retired/unnamed numeric like "3" or "999" is rejected rather
+            // than bound to a stale value; aliases like "linux" fall through
+            // GamePlatformMapping -> Pc.
+            static GamePlatform? ResolvePlatform(string? raw)
+            {
+                if (Enum.TryParse<GamePlatform>(raw, ignoreCase: true, out var direct)
+                    && Enum.IsDefined(direct))
+                    return direct;
+                return GamePlatformMapping.TryParse(raw);
+            }
+            var resolved = ResolvePlatform(platform);
 
             // Edit-page prefill: when the caller passes the game's already-set
             // platform, search AT THE SOURCE for that platform (IGDB appends
