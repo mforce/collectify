@@ -82,6 +82,43 @@ public class LookupEndpointsTests
         Assert.Empty(body.Results);
     }
 
+    [Fact]
+    public async Task SearchGames_WithPlatform_FiltersToThatPlatformOnly()
+    {
+        // When the client passes the game's known platform, the endpoint must
+        // search scoped to that platform (via IGameMetadataProvider
+        // SearchByPlatformAsync -> default in-memory filter here) rather than
+        // returning every console re-release and reordering. Non-PC SKUs are
+        // excluded from the result set instead of being left in and pushed
+        // down, which is what buried the right SKU in the real IGDB window.
+        var pcWitcher = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            Provider: "igdb", ProviderKey: "1942", Title: "The Witcher 3: Wild Hunt",
+            Platform: GamePlatform.Pc, Year: 2015, Publisher: "WB", Developer: "CD Projekt Red",
+            Description: "desc", ImageUrl: null, Genres: "RPG")
+        { Platforms = [GamePlatform.Pc] };
+        var ps4Witcher = new Collectify.Infrastructure.Lookup.GameLookupResult(
+            Provider: "igdb", ProviderKey: "141472", Title: "The Witcher 3: Wild Hunt + Dark Souls III",
+            Platform: GamePlatform.Ps4, Year: 2018, Publisher: "BN", Developer: null,
+            Description: "bundle", ImageUrl: null, Genres: "RPG")
+        { Platforms = [GamePlatform.Ps4, GamePlatform.XboxOne] };
+
+        var provider = new ScriptedGameProvider
+        {
+            SearchResults = [pcWitcher, ps4Witcher],
+        };
+        await using var factory = new CollectifyApiFactory { GameProvider = provider };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+
+        var body = await alice.Client.GetJsonAsync<LookupResponse<GameLookupResult>>(
+            "/api/lookup/games?q=the witcher 3&platform=Pc");
+
+        Assert.NotNull(body);
+        Assert.True(body!.Configured);
+        var hit = Assert.Single(body.Results);
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+        Assert.Equal("Pc", hit.Platform?.ToString());
+    }
+
     // ---------- /api/lookup/movies/by-id/{providerKey} ----------
 
     [Fact]
