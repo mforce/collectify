@@ -31,14 +31,18 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     public const string HttpClientName = "igdb";
 
     /// <summary>
-    /// Bumped when the cached <see cref="GameLookupResult"/> shape changes.
-    /// The lookup cache is keyed by (Provider, Key) with no schema guard, so a
+    /// Bumped when the cached <see cref="GameLookupResult"/> shape changes OR
+    /// when a cached query's filtering semantics change for the same key. The
+    /// lookup cache is keyed by (Provider, Key) with no schema guard, so a
     /// DTO field added/removed/renamed would otherwise silently serve stale,
     /// wrongly-shaped rows (e.g. a pre-<c>Platforms</c> JSON deserializes that
-    /// field to its default empty set). Versioning the key forces a refresh once
-    /// and prevents ever serving an out-of-shape cached result again.
+    /// field to its default empty set), and a semantics change (e.g. PC-scoped
+    /// searches now include the Linux IGDB id, so old entries fetched with
+    /// Windows-only filtering would keep excluding Linux titles for the TTL)
+    /// would serve stale results. Versioning the key forces a refresh once
+    /// and prevents ever serving an out-of-date cached result again.
     /// </summary>
-    private const int CacheSchemaVersion = 2;
+    private const int CacheSchemaVersion = 3;
 
     // IGDB image URLs are "https://images.igdb.com/igdb/image/upload/{size}/{image_id}.jpg".
     // t_cover_big is the canonical "box art at form thumbnail size" preset.
@@ -158,6 +162,11 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     /// game on Linux (id 3) may have NO Windows id (6), so a PC-scoped search
     /// must include BOTH 6 and 3 or Linux-only titles are excluded upstream
     /// before the in-memory <see cref="GameLookupResult.IsOn"/> filter runs.
+    ///
+    /// Apicalypse <c>where platforms = (6,3)</c> means "contains ANY of"
+    /// (the OR form); <c>[6,3]</c> would mean "contains ALL of" (exclusive-AND)
+    /// and exclude Windows-only titles with no Linux port. Do NOT swap the
+    /// bracket styles — the multi-id form relies on OR semantics.
     /// </summary>
     private static IReadOnlyList<int> TryGetIgdbPlatformIds(GamePlatform platform)
     {

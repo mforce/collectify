@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Collectify.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(CollectifyDbContext))]
-    [Migration("20260818193439_ConvertMacLinuxToPc")]
-    partial class ConvertMacLinuxToPc
+    [Migration("20260818193439_ConvertLinuxToPc")]
+    partial class ConvertLinuxToPc
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

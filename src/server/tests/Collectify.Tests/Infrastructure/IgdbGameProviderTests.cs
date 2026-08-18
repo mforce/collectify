@@ -220,14 +220,14 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchByPlatformAsync_UsesPlatformScopedCacheKey_NotSharedWithUnscoped()
     {
         // The platform-scoped cache key must be distinct from the unscoped one:
-        // an unscoped "v2:search:witcher" entry must NOT satisfy a PC-scoped
-        // "v2:search:witcher|Pc" request (or the platform filter would be wrong).
+        // an unscoped "v3:search:witcher" entry must NOT satisfy a PC-scoped
+        // "v3:search:witcher|Pc" request (or the platform filter would be wrong).
         var handler = new StubHandler(SingleGameJson);
         var p1 = NewProvider(handler);
         var p2 = NewProvider(handler); // shared sqlite cache
 
-        await p1.SearchAsync("witcher");                            // unscoped: key "v2:search:witcher"
-        await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "v2:search:witcher|Pc"
+        await p1.SearchAsync("witcher");                            // unscoped: key "v3:search:witcher"
+        await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "v3:search:witcher|Pc"
 
         // Two distinct cache keys -> two upstream calls, not a cache hit.
         Assert.Equal(2, handler.Requests.Count);
@@ -306,6 +306,9 @@ public class IgdbGameProviderTests : IDisposable
     [Fact]
     public async Task SearchAsync_WithStaleIncompatibleCachedResult_TreatsCacheAsMissAndRefreshes()
     {
+        // Seed a cache row under the v2 schema key. The provider now reads
+        // v3:search:..., so this v2 row is stale-schema and must be treated as
+        // a miss -> the provider hits IGDB afresh and returns the real row.
         await SeedRawCacheRowAsync(
             "igdb",
             "v2:search:witcher",
@@ -324,9 +327,9 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchAsync_UnversionedStaleCacheRow_IsNotServed_AndRefreshes()
     {
         // Regression for the stale-cache bug: a cached row written before the
-        // `Platforms` DTO field existed (key "search:witcher", no v2 prefix)
+        // `Platforms` DTO field existed (key "search:witcher", no v-prefix)
         // must NOT be served. The versioned key the current code reads
-        // (v2:search:witcher) won't match it, so the provider hits IGDB afresh
+        // (v3:search:witcher) won't match it, so the provider hits IGDB afresh
         // and returns fully-shaped results — this is what fixes the prod case
         // where every result came back `platforms: []`.
         await SeedRawCacheRowAsync(

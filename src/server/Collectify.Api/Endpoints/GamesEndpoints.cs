@@ -46,7 +46,7 @@ public static class GamesEndpoints
 
         group.MapGet("/", async (
             [FromQuery] string? query,
-            [FromQuery] GamePlatform? platform,
+            [FromQuery] string? platform,
             [FromQuery] bool? digital,
             [FromQuery] int? year,
             [FromQuery] int? yearFrom,
@@ -71,7 +71,12 @@ public static class GamesEndpoints
                               || (g.Publisher != null && EF.Functions.Like(g.Publisher, like))
                               || (g.Developer != null && EF.Functions.Like(g.Developer, like)));
             }
-            if (platform.HasValue) q = q.Where(g => g.Platform == platform.Value);
+            // Bound as a raw string (not the enum) so a stale/legacy value
+            // (e.g. a bookmarked "?platform=Linux" from before Linux folded
+            // into Pc, #102) degrades via GamePlatformMapping rather than
+            // failing enum binding and 400-ing the whole list request.
+            var platformFilter = GamePlatformMapping.TryParse(platform);
+            if (platformFilter.HasValue) q = q.Where(g => g.Platform == platformFilter.Value);
             if (digital.HasValue) q = q.Where(g => g.IsDigital == digital.Value);
             if (year.HasValue) q = q.Where(g => g.Year == year);
             if (yearFrom.HasValue) q = q.Where(g => g.Year != null && g.Year >= yearFrom);

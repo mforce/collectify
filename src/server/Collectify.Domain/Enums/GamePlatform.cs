@@ -18,9 +18,14 @@ public enum GamePlatform
     // (Microsoft Windows)" id 6). Linux (3) was folded into Pc (#102): a
     // Linux/Steam-Deck title is the same desktop library, and the "how you
     // play" dimension is IsDigital + DigitalStore, not the platform enum.
-    // 3 is reserved — DO NOT REUSE. Mac (2) stays its own platform.
+    // Mac (2) stays its own platform.
     Pc = 1,
     Mac = 2,
+
+    // 3 = retired (was Linux, folded into Pc, #102). DO NOT REUSE.
+    // GamePlatformBackfill rewrites any row still holding 3 to Pc on every
+    // startup; a new member assigned 3 would be silently clobbered back to
+    // Pc forever. The retired set is pinned in EnumParityTests.ReservedValues.
     Mobile = 4,
 
     // Xbox

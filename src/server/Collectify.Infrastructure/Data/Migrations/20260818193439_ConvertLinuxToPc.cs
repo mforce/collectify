@@ -5,7 +5,7 @@
 namespace Collectify.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class ConvertMacLinuxToPc : Migration
+    public partial class ConvertLinuxToPc : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
