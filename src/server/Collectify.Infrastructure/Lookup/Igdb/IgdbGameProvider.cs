@@ -77,13 +77,22 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         string query,
         GamePlatform platform,
         CancellationToken ct = default)
-        => await SearchCoreAsync(query, filter: platform, ct);
+        => await SearchCoreAsync(query, platform, ct);
 
     /// <summary>
     /// Shared search. When <paramref name="filter"/> is set the cache key is
     /// platform-scoped (so a PC-scoped search never reuses — or gets reused by —
-    /// a result set cached for an unscoped query) and every mapped result is
-    /// filtered to those on that platform.
+    /// a result set cached for an unscoped query) AND the query is filtered to
+    /// that platform AT THE SOURCE via Apicalypse <c>where platforms = (id)</c>.
+    ///
+    /// Filtering at the source matters: IGDB's fuzzy <c>search</c> ranks the
+    /// top N results across ALL platforms, and re-releases crowd out the exact
+    /// platform's release (a PC "The Witcher 3" gets buried under console and
+    /// bundled SKUs). A <c>where platforms = (6)</c> clause makes IGDB run the
+    /// fuzzy search within just that platform, so the right SKU is included.
+    /// The in-memory <see cref="GameLookupResult.IsOn"/> filter is kept as a
+    /// safety net for platforms we can't map to an IGDB id (and for
+    /// source-platforms that are multi-id, e.g. Android/iOS under Mobile).
     /// </summary>
     private async Task<IReadOnlyList<GameLookupResult>> SearchCoreAsync(
         string query,
@@ -104,16 +113,68 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
 
         // Apicalypse "search" is a fuzzy match. Quotes are required around
         // the query and any embedded quotes have to be escaped or IGDB
-        // returns 400.
-        var body = $"search \"{Escape(trimmed)}\"; fields {Fields}; limit 10;";
+        // returns 400. When we know the platform's IGDB id we append a
+        // `where platforms = (id)` clause so IGDB filters the search to that
+        // platform rather than relying purely on post-hoc in-memory filtering
+        // of an all-platform top-N (which starves the exact SKU).
+        var platformClause = filter is { } f && TryGetIgdbPlatformId(f, out var platId)
+            ? $" where platforms = ({platId});"
+            : ";";
+        var body = $"search \"{Escape(trimmed)}\"; fields {Fields}; limit 10;{platformClause}";
         var games = await PostGamesAsync(body, ct);
         if (games is null) return [];
 
         var mapped = games.Select(Map).ToList();
-        if (filter is { } f)
-            mapped = mapped.Where(r => r.IsOn(f)).ToList();
+        if (filter is { } f2)
+            mapped = mapped.Where(r => r.IsOn(f2)).ToList();
         await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
         return mapped;
+    }
+
+    /// <summary>
+    /// Maps our <see cref="GamePlatform"/> enum to IGDB's numeric platform id
+    /// (stable, from IGDB's /platforms endpoint). Returns false for platforms
+    /// with no single canonical id (Mobile splits Android/iOS; Other is
+    /// "unknown"; Steam Deck / Switch 2 are newer and left to the in-memory
+    /// filter). See https://api-docs.igdb.com and the public platform id lists.
+    /// </summary>
+    private static bool TryGetIgdbPlatformId(GamePlatform platform, out int id)
+    {
+        id = platform switch
+        {
+            GamePlatform.Pc => 6,
+            GamePlatform.Linux => 3,
+            GamePlatform.Mac => 14,
+            GamePlatform.XboxOriginal => 11,
+            GamePlatform.Xbox360 => 12,
+            GamePlatform.XboxOne => 49,
+            GamePlatform.XboxSeriesXS => 169,
+            GamePlatform.Ps1 => 7,
+            GamePlatform.Ps2 => 8,
+            GamePlatform.Ps3 => 9,
+            GamePlatform.Ps4 => 48,
+            GamePlatform.Ps5 => 167,
+            GamePlatform.Psp => 38,
+            GamePlatform.PsVita => 46,
+            GamePlatform.Nes => 18,
+            GamePlatform.Snes => 19,
+            GamePlatform.N64 => 4,
+            GamePlatform.GameCube => 21,
+            GamePlatform.Wii => 5,
+            GamePlatform.WiiU => 41,
+            GamePlatform.Switch => 130,
+            GamePlatform.Switch2 => 508,
+            GamePlatform.GameBoy => 33,
+            GamePlatform.GameBoyColor => 22,
+            GamePlatform.GameBoyAdvance => 24,
+            GamePlatform.NintendoDs => 20,
+            GamePlatform.Nintendo3Ds => 37,
+            GamePlatform.SegaGenesis => 29,
+            GamePlatform.SegaSaturn => 32,
+            GamePlatform.SegaDreamcast => 23,
+            _ => -1, // Other (unknown) and Mobile (Android/iOS split) — no single canonical id
+        };
+        return id > 0;
     }
 
     public async Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
