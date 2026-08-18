@@ -100,11 +100,27 @@ public sealed class IgdbBackfillRunner
             .Take(_options.MaxGamesPerSweep)
             .ToList();
 
+        var result = await ProcessGamesAsync(window, ct);
+        _log.LogInformation("IGDB backfill sweep complete: filled {Filled} of {Pending} pending", result.Filled, pending.Count);
+        return result;
+    }
+
+    /// <summary>
+    /// Run <see cref="BackfillOneAsync"/> over a concrete set of game ids with
+    /// the shared per-game semantics: pacing against IGDB's rate cap, fail-soft
+    /// isolation per game, and an early abort on a run of empty results that
+    /// looks like throttling. Returns how many were filled and attempted. Used
+    /// by both the timer sweep and the post-import targeted backfill.
+    /// </summary>
+    private async Task<BackfillSweepResult> ProcessGamesAsync(
+        IEnumerable<int> gameIds,
+        CancellationToken ct)
+    {
         var filled = 0;
         var attempted = 0;
         var consecutiveEmpty = 0;
 
-        foreach (var gameId in window)
+        foreach (var gameId in gameIds)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -167,8 +183,29 @@ public sealed class IgdbBackfillRunner
             }
         }
 
-        _log.LogInformation("IGDB backfill sweep complete: filled {Filled} of {Pending} pending", filled, pending.Count);
         return new BackfillSweepResult(Filled: filled, Attempted: attempted);
+    }
+
+    /// <summary>
+    /// Backfill a specific set of games by id, in order, immediately. This is
+    /// the "metadata right after an import" path (Steam import triggers it on
+    /// the newly-created games) — distinct from <see cref="RunSweepAsync"/>,
+    /// which picks its own pending window on a timer. Same per-game semantics:
+    /// fill-only merge, fail-soft, paced against IGDB's rate cap, aborting early
+    /// on a run of empty results that smells like throttling.
+    ///
+    /// Safely a no-op when IGDB/Twitch isn't configured. Running on the import
+    /// request thread means a large batch adds latency (pacing is honoured), so
+    /// the caller should pass only the games actually created this request.
+    /// </summary>
+    public async Task<BackfillSweepResult> BackfillGamesAsync(
+        IReadOnlyCollection<int> gameIds,
+        CancellationToken ct = default)
+    {
+        if (!_provider.IsConfigured || gameIds.Count == 0)
+            return new BackfillSweepResult(Filled: 0, Attempted: 0);
+
+        return await ProcessGamesAsync(gameIds, ct);
     }
 
     /// <summary>Result of a single sweep: how many games were filled and attempted.</summary>

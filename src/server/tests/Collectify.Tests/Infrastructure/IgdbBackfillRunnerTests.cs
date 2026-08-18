@@ -96,6 +96,53 @@ public class IgdbBackfillRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task BackfillGamesAsync_FillsOnlyTheGivenGameIds()
+    {
+        // Seed two pending games; only the explicitly-targeted one should be
+        // backfilled. This is the "metadata right after a Steam import" path —
+        // the import endpoint calls BackfillGamesAsync with ONLY the newly
+        // created ids, so it must not sweep every pending game in the DB.
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "The Witcher 3", Platform = GamePlatform.Pc });
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "That Other Game", Platform = GamePlatform.Pc });
+            await seed.SaveChangesAsync();
+        }
+
+        var runner = NewRunner(
+            provider: new ScriptedGameProvider { SearchResults = [Hit("The Witcher 3", GamePlatform.Pc, "1942")] });
+
+        // Target only the Witcher game (id 1); the other must stay untouched.
+        var filled = await runner.BackfillGamesAsync(new[] { 1 }, CancellationToken.None);
+        Assert.Equal(1, filled.Filled);
+        Assert.Equal(1, filled.Attempted);
+
+        await using var assert = new CollectifyDbContext(_options);
+        var byId = assert.Games.ToDictionary(g => g.Id);
+        Assert.Equal("1942", byId[1].IgdbId);
+        Assert.Null(byId[2].IgdbId); // untouched
+    }
+
+    [Fact]
+    public async Task BackfillGamesAsync_UnconfiguredProvider_IsANoOp()
+    {
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.Add(new Game { OwnerId = "alice", Title = "Hades", Platform = GamePlatform.Pc });
+            await seed.SaveChangesAsync();
+        }
+
+        var runner = NewRunner(
+            provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9")], IsConfigured = false });
+
+        var filled = await runner.BackfillGamesAsync(new[] { 1 }, CancellationToken.None);
+        Assert.Equal(0, filled.Filled);
+
+        await using var assert = new CollectifyDbContext(_options);
+        Assert.Null(assert.Games.Single().IgdbId);
+    }
+
+    [Fact]
     public async Task RunSweepAsync_PlatformScopedSearch_IsolatesPcSku()
     {
         // The Witcher 3 case: a PC game whose title also exists as a console SKU
