@@ -166,8 +166,9 @@ public class IgdbGameProviderTests : IDisposable
         // The Witcher 3 case from production: IGDB's fuzzy search ranks console
         // re-releases above the plain PC SKU, so a top-10 all-platform window
         // never surfaces it. The platform-scoped search must filter AT THE
-        // SOURCE with `where platforms = (6)` (PC = 6) so IGDB runs the fuzzy
-        // search within just that platform and the PC release appears.
+        // SOURCE with `where platforms = (6,3)` (PC = 6, plus Linux = 3 since
+        // Linux folds into Pc, #102) so IGDB runs the fuzzy search within the
+        // PC family and the PC release appears.
         var handler = new StubHandler(SingleGameJson);
         var provider = NewProvider(handler);
 
@@ -176,11 +177,12 @@ public class IgdbGameProviderTests : IDisposable
         var req = Assert.Single(handler.Requests);
         Assert.Contains("search \"The Witcher 3: Wild Hunt\";", req.Body);
         Assert.Contains("limit 10;", req.Body);
-        Assert.Contains(" where platforms = (6);", req.Body);
+        Assert.Contains(" where platforms = (6,3);", req.Body);
     }
 
     [Theory]
-    [InlineData(GamePlatform.Pc, "(6)")]
+    [InlineData(GamePlatform.Pc, "(6,3)")] // PC = Windows (6) + Linux (3), #102
+    [InlineData(GamePlatform.Mac, "(14)")]
     [InlineData(GamePlatform.Ps4, "(48)")]
     [InlineData(GamePlatform.Ps5, "(167)")]
     [InlineData(GamePlatform.XboxSeriesXS, "(169)")]
@@ -230,7 +232,7 @@ public class IgdbGameProviderTests : IDisposable
         // Two distinct cache keys -> two upstream calls, not a cache hit.
         Assert.Equal(2, handler.Requests.Count);
         Assert.DoesNotContain(" where platforms =", handler.Requests[0].Body); // unscoped first call
-        Assert.Contains(" where platforms = (6);", handler.Requests[1].Body);  // scoped second call
+        Assert.Contains(" where platforms = (6,3);", handler.Requests[1].Body);  // scoped second call (PC = 6 + Linux 3)
     }
 
     [Fact]

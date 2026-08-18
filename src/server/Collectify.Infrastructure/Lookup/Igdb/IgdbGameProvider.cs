@@ -124,12 +124,13 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
 
         // Apicalypse "search" is a fuzzy match. Quotes are required around
         // the query and any embedded quotes have to be escaped or IGDB
-        // returns 400. When we know the platform's IGDB id we append a
-        // `where platforms = (id)` clause so IGDB filters the search to that
-        // platform rather than relying purely on post-hoc in-memory filtering
-        // of an all-platform top-N (which starves the exact SKU).
-        var platformClause = filter is { } f && TryGetIgdbPlatformId(f, out var platId)
-            ? $" where platforms = ({platId});"
+        // returns 400. When we know the platform's IGDB id(s) we append a
+        // `where platforms = (id,...)` clause so IGDB filters the search to
+        // that platform rather than relying purely on post-hoc in-memory
+        // filtering of an all-platform top-N (which starves the exact SKU).
+        var ids = filter is { } f ? TryGetIgdbPlatformIds(f) : [];
+        var platformClause = ids.Count > 0
+            ? $" where platforms = ({string.Join(",", ids)});"
             : ";";
         var body = $"search \"{Escape(trimmed)}\"; fields {Fields}; limit 10;{platformClause}";
         var games = await PostGamesAsync(body, ct);
@@ -143,48 +144,57 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     }
 
     /// <summary>
-    /// Maps our <see cref="GamePlatform"/> enum to IGDB's numeric platform id
-    /// (stable, from IGDB's /platforms endpoint). Returns false for platforms
-    /// with no single canonical id (Mobile splits Android/iOS; Other is
-    /// "unknown"; Steam Deck / Switch 2 are newer and left to the in-memory
-    /// filter). See https://api-docs.igdb.com and the public platform id lists.
+    /// Maps our <see cref="GamePlatform"/> enum to IGDB's numeric platform
+    /// id(s) (stable, from IGDB's /platforms endpoint). Used to build the
+    /// <c>where platforms = (...)</c> source filter for platform-scoped
+    /// searches. Returns empty for platforms with no single canonical id
+    /// (Mobile splits Android/iOS; Other is "unknown"; Steam Deck / Switch 2
+    /// are newer and left to the in-memory filter). See
+    /// https://api-docs.igdb.com and the public platform id lists.
+    ///
+    /// PC is a family: IGDB has separate ids for PC / Microsoft Windows (6),
+    /// Linux (3) and Mac (14). We model Mac as its own platform, but Linux
+    /// folds into <see cref="GamePlatform.Pc"/> (#102) — and IGDB releases a
+    /// game on Linux (id 3) may have NO Windows id (6), so a PC-scoped search
+    /// must include BOTH 6 and 3 or Linux-only titles are excluded upstream
+    /// before the in-memory <see cref="GameLookupResult.IsOn"/> filter runs.
     /// </summary>
-    private static bool TryGetIgdbPlatformId(GamePlatform platform, out int id)
+    private static IReadOnlyList<int> TryGetIgdbPlatformIds(GamePlatform platform)
     {
-        id = platform switch
+        return platform switch
         {
-            GamePlatform.Pc => 6,
-            GamePlatform.Mac => 14,
-            GamePlatform.XboxOriginal => 11,
-            GamePlatform.Xbox360 => 12,
-            GamePlatform.XboxOne => 49,
-            GamePlatform.XboxSeriesXS => 169,
-            GamePlatform.Ps1 => 7,
-            GamePlatform.Ps2 => 8,
-            GamePlatform.Ps3 => 9,
-            GamePlatform.Ps4 => 48,
-            GamePlatform.Ps5 => 167,
-            GamePlatform.Psp => 38,
-            GamePlatform.PsVita => 46,
-            GamePlatform.Nes => 18,
-            GamePlatform.Snes => 19,
-            GamePlatform.N64 => 4,
-            GamePlatform.GameCube => 21,
-            GamePlatform.Wii => 5,
-            GamePlatform.WiiU => 41,
-            GamePlatform.Switch => 130,
-            GamePlatform.Switch2 => 508,
-            GamePlatform.GameBoy => 33,
-            GamePlatform.GameBoyColor => 22,
-            GamePlatform.GameBoyAdvance => 24,
-            GamePlatform.NintendoDs => 20,
-            GamePlatform.Nintendo3Ds => 37,
-            GamePlatform.SegaGenesis => 29,
-            GamePlatform.SegaSaturn => 32,
-            GamePlatform.SegaDreamcast => 23,
-            _ => -1, // Other (unknown) and Mobile (Android/iOS split) — no single canonical id
+            // PC = Windows (6) + Linux (3); Mac (14) is its own platform.
+            GamePlatform.Pc => [6, 3],
+            GamePlatform.Mac => [14],
+            GamePlatform.XboxOriginal => [11],
+            GamePlatform.Xbox360 => [12],
+            GamePlatform.XboxOne => [49],
+            GamePlatform.XboxSeriesXS => [169],
+            GamePlatform.Ps1 => [7],
+            GamePlatform.Ps2 => [8],
+            GamePlatform.Ps3 => [9],
+            GamePlatform.Ps4 => [48],
+            GamePlatform.Ps5 => [167],
+            GamePlatform.Psp => [38],
+            GamePlatform.PsVita => [46],
+            GamePlatform.Nes => [18],
+            GamePlatform.Snes => [19],
+            GamePlatform.N64 => [4],
+            GamePlatform.GameCube => [21],
+            GamePlatform.Wii => [5],
+            GamePlatform.WiiU => [41],
+            GamePlatform.Switch => [130],
+            GamePlatform.Switch2 => [508],
+            GamePlatform.GameBoy => [33],
+            GamePlatform.GameBoyColor => [22],
+            GamePlatform.GameBoyAdvance => [24],
+            GamePlatform.NintendoDs => [20],
+            GamePlatform.Nintendo3Ds => [37],
+            GamePlatform.SegaGenesis => [29],
+            GamePlatform.SegaSaturn => [32],
+            GamePlatform.SegaDreamcast => [23],
+            _ => [], // Other (unknown) and Mobile (Android/iOS split) — no single canonical id
         };
-        return id > 0;
     }
 
     public async Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
