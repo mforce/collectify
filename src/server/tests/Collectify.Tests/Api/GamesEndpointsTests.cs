@@ -341,9 +341,9 @@ public class GamesEndpointsTests
     {
         // A numeric that isn't a live GamePlatform member (3 = retired Linux,
         // 999 = never defined) must NOT bind to a stale enum value and filter
-        // to nothing; it resolves to no filter and returns all rows. The neat
-        // way to prove "no filter applied": a Linux row is present and matches
-        // under no platform predicate.
+        // to nothing; it resolves to no filter and returns all rows. Proof no
+        // filter was applied: both rows come back, and neither is on the
+        // numeric value being passed.
         await using var factory = new CollectifyApiFactory();
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
         await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Hades", Platform = GamePlatform.Pc });

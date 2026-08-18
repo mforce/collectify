@@ -97,13 +97,14 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     /// Shared search. When <paramref name="filter"/> is set the cache key is
     /// platform-scoped (so a PC-scoped search never reuses — or gets reused by —
     /// a result set cached for an unscoped query) AND the query is filtered to
-    /// that platform AT THE SOURCE via Apicalypse <c>where platforms = (id)</c>.
+    /// that platform AT THE SOURCE via Apicalypse <c>where platforms = (ids)</c>.
     ///
     /// Filtering at the source matters: IGDB's fuzzy <c>search</c> ranks the
     /// top N results across ALL platforms, and re-releases crowd out the exact
     /// platform's release (a PC "The Witcher 3" gets buried under console and
-    /// bundled SKUs). A <c>where platforms = (6)</c> clause makes IGDB run the
-    /// fuzzy search within just that platform, so the right SKU is included.
+    /// bundled SKUs). A <c>where platforms = (6)</c> clause (for Pc, <c>(6,3)</c>
+    /// — Windows + Linux) makes IGDB run the fuzzy search within just that
+    /// platform, so the right SKU is included.
     /// The in-memory <see cref="GameLookupResult.IsOn"/> filter is kept as a
     /// safety net for platforms we can't map to an IGDB id (and for
     /// source-platforms that are multi-id, e.g. Android/iOS under Mobile).
@@ -132,7 +133,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         // `where platforms = (id,...)` clause so IGDB filters the search to
         // that platform rather than relying purely on post-hoc in-memory
         // filtering of an all-platform top-N (which starves the exact SKU).
-        var ids = filter is { } f ? TryGetIgdbPlatformIds(f) : [];
+        var ids = filter is { } f ? IgdbPlatformIds(f) : [];
         var platformClause = ids.Count > 0
             ? $" where platforms = ({string.Join(",", ids)});"
             : ";";
@@ -168,7 +169,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     /// and exclude Windows-only titles with no Linux port. Do NOT swap the
     /// bracket styles — the multi-id form relies on OR semantics.
     /// </summary>
-    private static IReadOnlyList<int> TryGetIgdbPlatformIds(GamePlatform platform)
+    private static IReadOnlyList<int> IgdbPlatformIds(GamePlatform platform)
     {
         return platform switch
         {
