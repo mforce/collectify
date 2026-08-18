@@ -117,6 +117,58 @@ public class IgdbBackfillServiceTests : IDisposable
         Assert.Null(assert.Games.Single().IgdbId);
     }
 
+    [Fact]
+    public async Task StartAsync_WhenEnabledAndConfigured_SweepsImmediately()
+    {
+        // The startup sweep (before the periodic timer's first tick) is what
+        // makes metadata appear right after a fresh import instead of up to a
+        // full interval later. With a "Hades" game pending and the provider
+        // configured, StartAsync must have resolved and linked it synchronously.
+        using var provider = BuildProvider(enabled: true, providerConfigured: true);
+        await using (var seed = new CollectifyDbContext(
+            new DbContextOptionsBuilder<CollectifyDbContext>().UseSqlite(_connection).Options))
+        {
+            seed.Games.Add(new Collectify.Domain.Entities.Game { OwnerId = "alice", Title = "Hades" });
+            await seed.SaveChangesAsync();
+        }
+
+        var service = provider.GetRequiredService<IgdbBackfillService>();
+        await service.StartAsync(CancellationToken.None);
+
+        // StartAsync returns once the BackgroundService task is STARTED, not
+        // once ExecuteAsync completes, so the startup sweep runs on the
+        // background task. Wait (real time, bounded, retrying connection
+        // contention) for the sweep to link the game before stopping, otherwise
+        // StopAsync's cancellation races it. Polling can transiently collide
+        // with the sweep's own DbContext on the shared in-memory connection, so
+        // treat that specific exception as "still sweeping, try again".
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        string? igdbId = null;
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                await using (var assert = new CollectifyDbContext(
+                    new DbContextOptionsBuilder<CollectifyDbContext>().UseSqlite(_connection).Options))
+                {
+                    igdbId = assert.Games.AsNoTracking().Single().IgdbId;
+                }
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException) when (DateTime.UtcNow < deadline)
+            {
+                // Shared-connection collision with the live sweep; retry.
+                await Task.Delay(20);
+                continue;
+            }
+            if (igdbId is not null) break;
+            await Task.Delay(20);
+        }
+
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal("42", igdbId);
+    }
+
     private sealed class PassthroughCoverStore : ICoverImageStore
     {
         public Task<string?> EnsureLocalAsync(string? imagePath, CancellationToken ct = default) => Task.FromResult(imagePath);

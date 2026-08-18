@@ -89,10 +89,16 @@ public sealed class IgdbBackfillService : BackgroundService
 
     private async Task RunLoopAsync(CancellationToken ct)
     {
-        // PeriodicTimer's first tick fires after one Interval, so the first
-        // sweep runs ~Interval after startup and then every Interval after.
-        // (Previously an extra Task.Delay here made the first sweep wait TWO
-        // intervals, needlessly delaying metadata after an import.)
+        // Run an immediate sweep on startup, THEN enter the periodic loop.
+        // PeriodicTimer's first tick fires after one Interval, so without this
+        // a fresh DB's first import would sit with no metadata for up to a full
+        // interval (default 1h) before anything happens. The startup sweep means
+        // metadata appears within seconds of launch — and right after a Steam
+        // import on the next boot — instead of the user staring at empty fields
+        // and assuming the backfill is broken. Fail-soft inside SweepOnceAsync
+        // means a failed first sweep just falls through to the next interval.
+        await SweepOnceAsync(ct);
+
         using var timer = new PeriodicTimer(_options.CurrentValue.Interval, _clock);
         while (await timer.WaitForNextTickAsync(ct))
         {

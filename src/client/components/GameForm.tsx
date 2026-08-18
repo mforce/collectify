@@ -55,19 +55,28 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
   const set = <K extends keyof Game>(k: K, v: Game[K]) => setG((prev) => ({ ...prev, [k]: v }));
   const patch = (p: Partial<Game>) => setG((prev) => ({ ...prev, ...p }));
 
+  // Fill-only import: never overwrite a value the user (or a Steam import)
+  // already set. Each field takes the IGDB value ONLY when the current one is
+  // empty. This mirrors the backfill's Apply() so the edit page and the
+  // background sweep agree on the no-clobber contract. IgdbId is the one
+  // exception — it's always written (it's the linkage key, not display data).
+  //
+  // Platform is handled specially: IGDB's `platform` is just its FIRST-listed
+  // platform, which may not match the user's own (a PC game whose IGDB entry
+  // lists Xbox Series first). If the user already picked a platform, keep it;
+  // only adopt the result's when theirs is unset (Other) or the result is
+  // platformless. The real match signal is `platforms` (the full set).
   const importLookup = (r: GameLookupResult) => {
+    const platformIsSet = g.platform && g.platform !== 'Other';
     patch({
-      title: r.title,
-      year: r.year ?? null,
-      // IGDB returns a canonical GamePlatform value (or null when none
-      // of the listed platforms mapped). Keep what the user already had
-      // when the result is platformless, so we don't overwrite a good
-      // selection with Other.
-      platform: r.platform ?? g.platform,
-      publisher: r.publisher ?? null,
-      developer: r.developer ?? null,
-      imagePath: r.imageUrl ?? null,
-      igdbId: r.provider === 'igdb' ? r.providerKey : g.igdbId ?? null,
+      title: g.title.trim() ? g.title : r.title,
+      platform: platformIsSet ? g.platform : (r.platform ?? g.platform),
+      year: g.year ?? r.year ?? null,
+      publisher: g.publisher ?? r.publisher ?? null,
+      developer: g.developer ?? r.developer ?? null,
+      description: g.description ? g.description : r.description ?? null,
+      imagePath: g.imagePath ? g.imagePath : r.imageUrl ?? null,
+      igdbId: r.provider === 'igdb' ? r.providerKey : (g.igdbId ?? null),
     });
   };
 
@@ -82,6 +91,20 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
   useEffect(() => {
     if (prefillBarcode && !prefillLookup) set('barcode', prefillBarcode);
   }, []);
+
+  // Platform label for a search result. IGDB's `platform` is only its
+  // FIRST-listed platform, which easily misleads (a PC game's PC entry may
+  // list Xbox Series first). Prefer a platform that matches the one the user
+  // has set on the form, then the first whose label exists, so the dropdown
+  // reads "PC" for a PC game instead of "Xbox Series X|S".
+  const resultPlatformLabel = (r: GameLookupResult): string | null => {
+    const set = r.platforms?.length ? r.platforms : (r.platform ? [r.platform] : []);
+    if (set.length === 0) return null;
+    const match = g.platform !== 'Other' && set.includes(g.platform)
+      ? g.platform
+      : set[0];
+    return gamePlatformLabel(match);
+  };
 
   const runLookup = async (
     id: string,
@@ -127,7 +150,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
-          secondary: [r.developer, r.platform ? gamePlatformLabel(r.platform) : null].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          secondary: [r.developer, resultPlatformLabel(r)].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
           image: r.imageUrl,
         })}
       />
@@ -139,7 +162,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         fallbackLabel="Save this barcode anyway"
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
-          secondary: [r.developer, r.platform ? gamePlatformLabel(r.platform) : null].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          secondary: [r.developer, resultPlatformLabel(r)].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
           image: r.imageUrl,
         })}
       />
@@ -149,7 +172,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         onPick={importLookup}
         renderItem={(r) => ({
           primary: r.title + (r.year ? ` (${r.year})` : ''),
-          secondary: [r.developer, r.platform ? gamePlatformLabel(r.platform) : null].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
+          secondary: [r.developer, resultPlatformLabel(r)].filter(Boolean).join(' · ') || r.description?.slice(0, 120),
           image: r.imageUrl,
         })}
       />
