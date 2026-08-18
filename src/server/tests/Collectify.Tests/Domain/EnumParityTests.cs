@@ -126,7 +126,7 @@ public class EnumParityTests
     /// retired in the backfill, this picks it up automatically, so a new
     /// member reusing a retired value is caught here instead of being
     /// silently clobbered on every boot. 60 was GamePlatform.SteamDeck,
-    /// retired in #103.
+    /// retired in #103; 3 was GamePlatform.Linux, folded into Pc in #102.
     /// </summary>
     // The retired from-values all belong to GamePlatform (the backfill only
     // reclassifies GamePlatform.Platform rows), so key the reserved set by

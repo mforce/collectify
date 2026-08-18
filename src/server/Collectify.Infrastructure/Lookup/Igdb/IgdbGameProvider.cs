@@ -151,9 +151,9 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     /// Maps our <see cref="GamePlatform"/> enum to IGDB's numeric platform
     /// id(s) (stable, from IGDB's /platforms endpoint). Used to build the
     /// <c>where platforms = (...)</c> source filter for platform-scoped
-    /// searches. Returns empty for platforms with no single canonical id
-    /// (Mobile splits Android/iOS; Other is "unknown"; Steam Deck / Switch 2
-    /// are newer and left to the in-memory filter). See
+    /// searches. Returns empty for platforms with no canonical id
+    /// (Mobile splits Android/iOS; Other is "unknown"). Note Steam Deck is no
+    /// longer a platform (#103) and Switch 2 maps back to id 508. See
     /// https://api-docs.igdb.com and the public platform id lists.
     ///
     /// PC is a family: IGDB has separate ids for PC / Microsoft Windows (6),
@@ -164,7 +164,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     /// before the in-memory <see cref="GameLookupResult.IsOn"/> filter runs.
     ///
     /// Apicalypse <c>where platforms = (6,3)</c> means "contains ANY of"
-    /// (the OR form); <c>[6,3]</c> would mean "contains ALL of" (exclusive-AND)
+    /// (the OR form); <c>[6,3]</c> would mean "contains ALL of" (inclusive-AND)
     /// and exclude Windows-only titles with no Linux port. Do NOT swap the
     /// bracket styles — the multi-id form relies on OR semantics.
     /// </summary>

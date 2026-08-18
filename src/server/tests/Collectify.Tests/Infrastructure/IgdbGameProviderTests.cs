@@ -217,6 +217,28 @@ public class IgdbGameProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchByPlatformAsync_Pc_LinuxOnlyTitleSurvivesToResult()
+    {
+        // The payoff of the (6,3) source filter (#102): a game released ONLY
+        // on Linux (IGDB id 3, no Windows id 6) is fetched, maps Linux->Pc via
+        // GamePlatformMapping, and must survive the in-memory IsOn(Pc) filter
+        // (it would have been excluded with the old (6)-only source filter).
+        const string json = """
+            [ { "id": 4242, "name": "Linux-Only Gem", "platforms": [ { "name": "Linux" } ] } ]
+            """;
+        var handler = new StubHandler(json);
+        var provider = NewProvider(handler);
+
+        var hit = Assert.Single(await provider.SearchByPlatformAsync("gem", GamePlatform.Pc));
+
+        Assert.Equal("Linux-Only Gem", hit.Title);
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
+        Assert.Contains(GamePlatform.Pc, hit.Platforms);
+        // The request asked IGDB for the PC family incl. Linux id 3.
+        Assert.Contains(" where platforms = (6,3);", Assert.Single(handler.Requests).Body);
+    }
+
+    [Fact]
     public async Task SearchByPlatformAsync_UsesPlatformScopedCacheKey_NotSharedWithUnscoped()
     {
         // The platform-scoped cache key must be distinct from the unscoped one:

@@ -75,7 +75,13 @@ public static class GamesEndpoints
             // (e.g. a bookmarked "?platform=Linux" from before Linux folded
             // into Pc, #102) degrades via GamePlatformMapping rather than
             // failing enum binding and 400-ing the whole list request.
-            var platformFilter = GamePlatformMapping.TryParse(platform);
+            // First try a direct member name (handles Other/Pc/Ps5/... as the
+            // enum binder did); otherwise fall back to the free-text mapping
+            // so aliases like "linux" -> Pc still resolve.
+            GamePlatform? platformFilter =
+                Enum.TryParse<GamePlatform>(platform, ignoreCase: true, out var direct)
+                    ? direct
+                    : GamePlatformMapping.TryParse(platform);
             if (platformFilter.HasValue) q = q.Where(g => g.Platform == platformFilter.Value);
             if (digital.HasValue) q = q.Where(g => g.IsDigital == digital.Value);
             if (year.HasValue) q = q.Where(g => g.Year == year);

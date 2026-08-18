@@ -275,6 +275,38 @@ public class GamesEndpointsTests
     }
 
     [Fact]
+    public async Task List_FiltersByPlatform_LegacyLinuxValue_ResolvesToPc()
+    {
+        // A stale "?platform=Linux" URL (e.g. bookmarked before #102 folded
+        // Linux into Pc) must degrade to Pc rather than 400 the whole list.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Hades", Platform = GamePlatform.Pc });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "BotW", Platform = GamePlatform.Switch });
+
+        var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?platform=Linux");
+
+        Assert.Single(hits!);
+        Assert.Equal("Hades", hits![0].Title);
+    }
+
+    [Fact]
+    public async Task List_FiltersByPlatform_Other_OnlyReturnsOther()
+    {
+        // "Other" is a real platform value (0) exposed in the client; the
+        // filter must return only Other rows, not every platform.
+        await using var factory = new CollectifyApiFactory();
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Oddball", Platform = GamePlatform.Other });
+        await factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Hades", Platform = GamePlatform.Pc });
+
+        var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?platform=Other");
+
+        Assert.Single(hits!);
+        Assert.Equal("Oddball", hits![0].Title);
+    }
+
+    [Fact]
     public async Task List_FiltersByDigital_ReturnsMatchingRows()
     {
         await using var factory = new CollectifyApiFactory();

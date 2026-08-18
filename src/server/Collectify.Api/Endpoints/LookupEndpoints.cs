@@ -137,13 +137,25 @@ public static class LookupEndpoints
 
         group.MapGet("/games", async (
             [FromQuery] string? q,
-            [FromQuery] GamePlatform? platform,
+            [FromQuery] string? platform,
             IGameMetadataProvider provider,
             CancellationToken ct) =>
         {
             if (Validate(q) is { } error) return error;
             if (!provider.IsConfigured)
                 return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, false, []));
+
+            // Bound as a raw string (not the enum) so a stale value from an
+            // older JS bundle (e.g. "?platform=Linux" from before Linux folded
+            // into Pc, #102) degrades via the resolver instead of failing enum
+            // binding and 400-ing the lookup. Exact member names (Pc/Ps5/...,
+            // incl. the no-filter sentinel Other) bind directly; aliases like
+            // "linux" fall through GamePlatformMapping -> Pc.
+            GamePlatform? resolved =
+                platform is null ? null :
+                Enum.TryParse<GamePlatform>(platform, ignoreCase: true, out var direct)
+                    ? direct
+                    : GamePlatformMapping.TryParse(platform);
 
             // Edit-page prefill: when the caller passes the game's already-set
             // platform, search AT THE SOURCE for that platform (IGDB appends
@@ -153,7 +165,7 @@ public static class LookupEndpoints
             // unscoped search when the scoped query comes back empty (e.g.
             // IGDB has no entry for that platform) or the caller's platform is
             // unset/Other, which has no filtering meaning.
-            if (platform is { } p && p != GamePlatform.Other)
+            if (resolved is { } p && p != GamePlatform.Other)
             {
                 var scoped = await provider.SearchByPlatformAsync(q!.Trim(), p, ct);
                 var results = scoped.Count > 0
