@@ -18,7 +18,13 @@ public class IgdbBackfillPlannerTests
     private static GameLookupResult Hit(string title, GamePlatform? platform = null, string key = "100", int? year = 2015)
         => new(Provider: "igdb", ProviderKey: key, Title: title, Platform: platform,
             Year: year, Publisher: "Pub", Developer: "Dev", Description: "Summary",
-            ImageUrl: "https://images.igdb.com/x.jpg", Genres: "RPG, Adventure");
+            ImageUrl: "https://images.igdb.com/x.jpg", Genres: "RPG, Adventure")
+        {
+            // Mirror IGDB: the Platforms set is authoritative for IsOn matching.
+            // When a test passes a platform, that platform must be in Platforms
+            // so the planner's platform-scoped comparisons behave correctly.
+            Platforms = platform is { } p ? new[] { p } : [],
+        };
 
     // ---- Normalisation (case / whitespace / punctuation / diacritic insensitive) ----
 

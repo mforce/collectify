@@ -147,15 +147,30 @@ public static class IgdbBackfillPlanner
         }
 
         // 2. Narrow by the local game's own platform (PC for Steam-imported,
-        //    console for a manually entered Switch/PS5 game). Only accept when
-        //    exactly one candidate survives — never blanket-pick the first of
-        //    several same-platform releases (DOOM 1993 vs DOOM 2016).
-        var byPlatform = group.Where(c => c.Platform == game.Platform).ToList();
+        //    console for a manually entered Switch/PS5 game). We compare against
+        //    the candidate's FULL platform set via IsOn (not the legacy singular
+        //    `Platform`, which only reflects IGDB's first-listed platform): a
+        //    candidate that lists the local platform anywhere is a real
+        //    platform match, while an identical title that lists other
+        //    platforms but NOT ours is not. Only accept when exactly one
+        //    candidate survives — never blanket-pick the first of several
+        //    same-platform releases (DOOM 1993 vs DOOM 2016).
+        var byPlatform = group.Where(c => c.IsOn(game.Platform)).ToList();
         if (byPlatform.Count == 1) return new BackfillMatch(byPlatform[0], MatchTier.Exact);
 
         // 3. Single unambiguous candidate is the common safe case (a game whose
-        //    IGDB entry has one exact title / no conflicting SKUs).
-        if (group.Count == 1) return new BackfillMatch(group[0], MatchTier.Exact);
+        //    IGDB entry has one exact title / no conflicting SKUs) — provided
+        //    its known platform doesn't contradict the local game's. Auto-linking
+        //    a lone PS3 entry to a PC game (Steam import) permanently writes the
+        //    wrong metadata + IgdbId, so decline when we can positively rule the
+        //    candidate out by platform.
+        if (group.Count == 1)
+        {
+            var only = group[0];
+            if (game.Platform != GamePlatform.Other && only.Platforms.Count > 0 && !only.IsOn(game.Platform))
+                return null;
+            return new BackfillMatch(only, MatchTier.Exact);
+        }
 
         // 4. Still ambiguous (identical titles, conflicting platform SKUs, no
         //    year to separate them) — decline rather than risk a wrong link.

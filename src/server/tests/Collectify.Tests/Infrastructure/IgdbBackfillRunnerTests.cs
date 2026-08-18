@@ -145,8 +145,12 @@ public class IgdbBackfillRunnerTests : IDisposable
         // IGDB would supply different values (and nulls in some spots). Year is
         // null here so the year-contradiction guard doesn't decline (the local
         // game's known year 2020 is deliberately not what IGDB reports, which is
-        // exactly the fill-only case being tested, not a matching concern).
-        var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Pc, "9", year: null, genres: null)] });
+        // exactly the fill-only case being tested, not a matching concern). The
+        // candidate is the SAME platform as the local game (Switch) so the
+        // platform-contradiction guard doesn't decline either — a lone
+        // wrong-platform SKU must NOT be auto-linked, but a same-platform one is
+        // a legitimate match and lets the fill-only merge be exercised.
+        var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [Hit("Hades", GamePlatform.Switch, "9", year: null, genres: null)] });
 
         await runner.RunSweepAsync(CancellationToken.None);
 
