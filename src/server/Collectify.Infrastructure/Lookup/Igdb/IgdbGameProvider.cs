@@ -30,6 +30,16 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     public const string ProviderName = "igdb";
     public const string HttpClientName = "igdb";
 
+    /// <summary>
+    /// Bumped when the cached <see cref="GameLookupResult"/> shape changes.
+    /// The lookup cache is keyed by (Provider, Key) with no schema guard, so a
+    /// DTO field added/removed/renamed would otherwise silently serve stale,
+    /// wrongly-shaped rows (e.g. a pre-<c>Platforms</c> JSON deserializes that
+    /// field to its default empty set). Versioning the key forces a refresh once
+    /// and prevents ever serving an out-of-shape cached result again.
+    /// </summary>
+    private const int CacheSchemaVersion = 2;
+
     // IGDB image URLs are "https://images.igdb.com/igdb/image/upload/{size}/{image_id}.jpg".
     // t_cover_big is the canonical "box art at form thumbnail size" preset.
     private const string CoverImageBase = "https://images.igdb.com/igdb/image/upload/t_cover_big";
@@ -71,25 +81,111 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         !string.IsNullOrWhiteSpace(_options.Igdb.TwitchClientSecret);
 
     public async Task<IReadOnlyList<GameLookupResult>> SearchAsync(string query, CancellationToken ct = default)
+        => await SearchCoreAsync(query, filter: null, ct);
+
+    public async Task<IReadOnlyList<GameLookupResult>> SearchByPlatformAsync(
+        string query,
+        GamePlatform platform,
+        CancellationToken ct = default)
+        => await SearchCoreAsync(query, platform, ct);
+
+    /// <summary>
+    /// Shared search. When <paramref name="filter"/> is set the cache key is
+    /// platform-scoped (so a PC-scoped search never reuses — or gets reused by —
+    /// a result set cached for an unscoped query) AND the query is filtered to
+    /// that platform AT THE SOURCE via Apicalypse <c>where platforms = (id)</c>.
+    ///
+    /// Filtering at the source matters: IGDB's fuzzy <c>search</c> ranks the
+    /// top N results across ALL platforms, and re-releases crowd out the exact
+    /// platform's release (a PC "The Witcher 3" gets buried under console and
+    /// bundled SKUs). A <c>where platforms = (6)</c> clause makes IGDB run the
+    /// fuzzy search within just that platform, so the right SKU is included.
+    /// The in-memory <see cref="GameLookupResult.IsOn"/> filter is kept as a
+    /// safety net for platforms we can't map to an IGDB id (and for
+    /// source-platforms that are multi-id, e.g. Android/iOS under Mobile).
+    /// </summary>
+    private async Task<IReadOnlyList<GameLookupResult>> SearchCoreAsync(
+        string query,
+        GamePlatform? filter,
+        CancellationToken ct)
     {
         if (!IsConfigured) return [];
         var trimmed = query.Trim();
         if (trimmed.Length == 0) return [];
 
-        var cacheKey = "search:" + trimmed.ToLowerInvariant();
+        // Platform-scoped searches must not share a cache entry with an
+        // unscoped (or other-platform) one, or the filter is silently wrong.
+        // Version prefix busts stale pre-Platforms rows (see CacheSchemaVersion).
+        var cacheKey = filter is { } p
+            ? $"v{CacheSchemaVersion}:search:{trimmed.ToLowerInvariant()}|{p}"
+            : $"v{CacheSchemaVersion}:search:" + trimmed.ToLowerInvariant();
         var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
         // Apicalypse "search" is a fuzzy match. Quotes are required around
         // the query and any embedded quotes have to be escaped or IGDB
-        // returns 400.
-        var body = $"search \"{Escape(trimmed)}\"; fields {Fields}; limit 10;";
+        // returns 400. When we know the platform's IGDB id we append a
+        // `where platforms = (id)` clause so IGDB filters the search to that
+        // platform rather than relying purely on post-hoc in-memory filtering
+        // of an all-platform top-N (which starves the exact SKU).
+        var platformClause = filter is { } f && TryGetIgdbPlatformId(f, out var platId)
+            ? $" where platforms = ({platId});"
+            : ";";
+        var body = $"search \"{Escape(trimmed)}\"; fields {Fields}; limit 10;{platformClause}";
         var games = await PostGamesAsync(body, ct);
         if (games is null) return [];
 
         var mapped = games.Select(Map).ToList();
+        if (filter is { } f2)
+            mapped = mapped.Where(r => r.IsOn(f2)).ToList();
         await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
         return mapped;
+    }
+
+    /// <summary>
+    /// Maps our <see cref="GamePlatform"/> enum to IGDB's numeric platform id
+    /// (stable, from IGDB's /platforms endpoint). Returns false for platforms
+    /// with no single canonical id (Mobile splits Android/iOS; Other is
+    /// "unknown"; Steam Deck / Switch 2 are newer and left to the in-memory
+    /// filter). See https://api-docs.igdb.com and the public platform id lists.
+    /// </summary>
+    private static bool TryGetIgdbPlatformId(GamePlatform platform, out int id)
+    {
+        id = platform switch
+        {
+            GamePlatform.Pc => 6,
+            GamePlatform.Linux => 3,
+            GamePlatform.Mac => 14,
+            GamePlatform.XboxOriginal => 11,
+            GamePlatform.Xbox360 => 12,
+            GamePlatform.XboxOne => 49,
+            GamePlatform.XboxSeriesXS => 169,
+            GamePlatform.Ps1 => 7,
+            GamePlatform.Ps2 => 8,
+            GamePlatform.Ps3 => 9,
+            GamePlatform.Ps4 => 48,
+            GamePlatform.Ps5 => 167,
+            GamePlatform.Psp => 38,
+            GamePlatform.PsVita => 46,
+            GamePlatform.Nes => 18,
+            GamePlatform.Snes => 19,
+            GamePlatform.N64 => 4,
+            GamePlatform.GameCube => 21,
+            GamePlatform.Wii => 5,
+            GamePlatform.WiiU => 41,
+            GamePlatform.Switch => 130,
+            GamePlatform.Switch2 => 508,
+            GamePlatform.GameBoy => 33,
+            GamePlatform.GameBoyColor => 22,
+            GamePlatform.GameBoyAdvance => 24,
+            GamePlatform.NintendoDs => 20,
+            GamePlatform.Nintendo3Ds => 37,
+            GamePlatform.SegaGenesis => 29,
+            GamePlatform.SegaSaturn => 32,
+            GamePlatform.SegaDreamcast => 23,
+            _ => -1, // Other (unknown) and Mobile (Android/iOS split) — no single canonical id
+        };
+        return id > 0;
     }
 
     public async Task<GameLookupResult?> GetByIdAsync(string providerKey, CancellationToken ct = default)
@@ -98,7 +194,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         if (string.IsNullOrWhiteSpace(providerKey)) return null;
         if (!long.TryParse(providerKey.Trim(), out var id) || id <= 0) return null;
 
-        var cacheKey = "id:" + id.ToString();
+        var cacheKey = $"v{CacheSchemaVersion}:id:" + id.ToString();
         var cached = await _cache.GetAsync<GameLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
@@ -117,7 +213,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         var trimmed = (barcode ?? string.Empty).Trim();
         if (trimmed.Length == 0) return [];
 
-        var cacheKey = "barcode:" + trimmed;
+        var cacheKey = $"v{CacheSchemaVersion}:barcode:" + trimmed;
         var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
         if (cached is not null) return cached;
 
@@ -199,19 +295,23 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         var pubs = g.InvolvedCompanies?.Where(c => c.Publisher && c.Company?.Name is not null)
                                        .Select(c => c.Company!.Name!).Distinct().ToList();
 
+        var mappedPlatforms = g.Platforms?
+            .Select(p => GamePlatformMapping.TryParse(p.Name))
+            .Where(v => v.HasValue)
+            .Select(v => v!.Value)
+            .Distinct()
+            .ToList() ?? [];
+
         return new GameLookupResult(
             Provider: ProviderName,
             ProviderKey: g.Id.ToString(),
             Title: g.Name ?? string.Empty,
-            // IGDB returns N platforms per release. Walk them in order
-            // and surface the first one that maps cleanly to our enum;
-            // if none does, leave it null so the form's dropdown stays
-            // unselected (better than auto-defaulting to Other). The
-            // mapping resolver is normalisation-tolerant -- "PlayStation
-            // 5", "playstation-5", " PS_5 " all hit the same value.
-            Platform: g.Platforms?
-                .Select(p => GamePlatformMapping.TryParse(p.Name))
-                .FirstOrDefault(v => v.HasValue),
+            // IGDB returns N platforms per release. Surface the first one that
+            // maps cleanly to our enum as `Platform` (for form dropdown compat);
+            // null when none map, so the dropdown stays unset rather than
+            // defaulting to Other. The mapping resolver is normalisation-tolerant
+            // -- "PlayStation 5", "playstation-5", " PS_5 " all hit one value.
+            Platform: mappedPlatforms.Count > 0 ? mappedPlatforms[0] : null,
             Year: ToYear(g.FirstReleaseDate),
             Publisher: pubs is { Count: > 0 } ? string.Join(", ", pubs) : null,
             Developer: devs is { Count: > 0 } ? string.Join(", ", devs) : null,
@@ -221,7 +321,12 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
                 : null,
             Genres: g.Genres is { Count: > 0 }
                 ? string.Join(", ", g.Genres.Where(x => x.Name is not null).Select(x => x.Name!))
-                : null);
+                : null)
+        {
+            // The full mapped platform set, not just the first — used for
+            // platform-scoped matching and edit-page prioritisation.
+            Platforms = mappedPlatforms,
+        };
     }
 
     private static int? ToYear(long? unixSeconds)

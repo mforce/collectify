@@ -35,6 +35,12 @@ export interface GameLookupResult {
   // shared GamePlatform enum; null when nothing in the source list
   // resolved (form leaves the dropdown unset rather than defaulting).
   platform: GamePlatform | null;
+  // The FULL set of canonical platforms the release appears on. IGDB reports
+  // several per release, and `platform` only reflects the first-listed one —
+  // which may not match the user's own platform (e.g. a PC game whose IGDB
+  // entry lists Xbox Series first). Use this to decide whether a candidate
+  // actually matches the local game's platform.
+  platforms: GamePlatform[];
   year: number | null;
   publisher: string | null;
   developer: string | null;
@@ -66,12 +72,13 @@ type ResultMap = {
  * Disabled until the query has at least 2 non-whitespace characters; the
  * server enforces the same minimum.
  */
-export function useLookup<T extends MediaType>(type: T, query: string) {
+export function useLookup<T extends MediaType>(type: T, query: string, platform?: string) {
   const trimmed = query.trim();
+  const platformParam = platform !== undefined ? `&platform=${encodeURIComponent(platform)}` : '';
   return useQuery({
-    queryKey: ['lookup', type, trimmed],
+    queryKey: ['lookup', type, trimmed, platform ?? null],
     queryFn: () =>
-      api<LookupResponse<ResultMap[T]>>(`/api/lookup/${type}?q=${encodeURIComponent(trimmed)}`),
+      api<LookupResponse<ResultMap[T]>>(`/api/lookup/${type}?q=${encodeURIComponent(trimmed)}${platformParam}`),
     enabled: trimmed.length >= 2,
     staleTime: 60_000,
   });

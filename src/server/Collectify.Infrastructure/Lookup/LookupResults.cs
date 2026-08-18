@@ -52,4 +52,21 @@ public record GameLookupResult(
     string? Developer,
     string? Description,
     string? ImageUrl,
-    string? Genres) : ILookupResult;
+    string? Genres) : ILookupResult
+{
+    /// <summary>
+    /// Every platform this result's source lists, mapped to our enum. This is
+    /// the authoritative platform set used for platform-scoped matching and
+    /// edit-page prioritisation — <see cref="Platform"/> is only the first one
+    /// (kept for form-dropdown compatibility). Populated by providers that know
+    /// multiple platforms (e.g. IGDB returns several per release).
+    /// </summary>
+    public IReadOnlyList<GamePlatform> Platforms { get; init; } = [];
+
+    /// <summary>
+    /// True when the result maps to <paramref name="platform"/>. When a source
+    /// lists no usable platform, <see cref="Platforms"/> is empty and this is
+    /// false so platform-scoped consumers don't misfilter unknown entries.
+    /// </summary>
+    public bool IsOn(GamePlatform platform) => Platforms.Contains(platform);
+}

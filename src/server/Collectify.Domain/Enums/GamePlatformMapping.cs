@@ -21,8 +21,13 @@ public static class GamePlatformMapping
         // A Steam Deck runs SteamOS (Linux) / Windows and plays desktop-PC
         // games, so it classifies as Pc. The "how you got it" dimension is
         // IsDigital + DigitalStore (Steam), not the platform.
-        (GamePlatform.Pc, new[] { "pc", "windows", "microsoft windows", "steam deck", "steamdeck" }),
-        (GamePlatform.Mac, new[] { "mac", "macos", "mac os", "macintosh", "osx" }),
+        // IGDB names its PC platform "PC (Microsoft Windows)" and Mac
+        // "Apple Macintosh". The normalizer strips parentheses/spaces, so
+        // those collapse to "pcmicrosoftwindows" / "applemacintosh" — which
+        // are NOT covered by the bare aliases below. Both variants are listed
+        // explicitly so an IGDB-sourced platform name maps to the right enum.
+        (GamePlatform.Pc, new[] { "pc", "windows", "microsoft windows", "steam deck", "steamdeck", "pc (microsoft windows)" }),
+        (GamePlatform.Mac, new[] { "mac", "macos", "mac os", "macintosh", "osx", "apple macintosh" }),
         (GamePlatform.Linux, new[] { "linux" }),
         (GamePlatform.Mobile, new[] { "mobile", "ios", "iphone", "ipad", "android" }),
 

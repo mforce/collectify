@@ -1,3 +1,4 @@
+using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Vision;
 using Microsoft.AspNetCore.Mvc;
@@ -136,14 +137,33 @@ public static class LookupEndpoints
 
         group.MapGet("/games", async (
             [FromQuery] string? q,
+            [FromQuery] GamePlatform? platform,
             IGameMetadataProvider provider,
             CancellationToken ct) =>
         {
             if (Validate(q) is { } error) return error;
             if (!provider.IsConfigured)
                 return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, false, []));
-            var results = await provider.SearchAsync(q!.Trim(), ct);
-            return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, results));
+
+            // Edit-page prefill: when the caller passes the game's already-set
+            // platform, search AT THE SOURCE for that platform (IGDB appends
+            // `where platforms = (id)`), so console re-releases are excluded
+            // from the window and the right SKU surfaces instead of being
+            // buried by IGDB's all-platform fuzzy ranking. Fall back to an
+            // unscoped search when the scoped query comes back empty (e.g.
+            // IGDB has no entry for that platform) or the caller's platform is
+            // unset/Other, which has no filtering meaning.
+            if (platform is { } p && p != GamePlatform.Other)
+            {
+                var scoped = await provider.SearchByPlatformAsync(q!.Trim(), p, ct);
+                var results = scoped.Count > 0
+                    ? scoped
+                    : await provider.SearchAsync(q!.Trim(), ct);
+                return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, results));
+            }
+
+            var all = await provider.SearchAsync(q!.Trim(), ct);
+            return Results.Ok(new LookupResponse<GameLookupResult>(provider.Name, true, all));
         });
 
         // Barcode lookup for games. IGDB doesn't index barcodes; the
