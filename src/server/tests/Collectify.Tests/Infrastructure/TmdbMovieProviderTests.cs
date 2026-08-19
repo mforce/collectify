@@ -9,17 +9,16 @@ namespace Collectify.Tests.Infrastructure;
 
 public class TmdbMovieProviderTests
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(30);
-
     private TmdbMovieProvider NewProvider(StubHandler handler, LookupCacheMockStorage storage, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
-        storage.SetupStorage<List<MovieLookupResult>>(CacheTtl);
-        storage.SetupStorage<MovieLookupResult>(CacheTtl);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
         };
+        var expectedTtl = options.CacheTtl;
+        storage.SetupStorage<List<MovieLookupResult>>(expectedTtl);
+        storage.SetupStorage<MovieLookupResult>(expectedTtl);
         return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), storage.Mock.Object, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
 
@@ -167,6 +166,7 @@ public class TmdbMovieProviderTests
     [Fact]
     public async Task SearchAsync_ForwardsConfiguredTtlOnWrite()
     {
+        var expectedTtl = TimeSpan.FromMinutes(17);
         // TTL is now a write-time contract owned by the cache; verify the
         // search write forwards the configured metadata TTL. Real expiry is
         // covered by DistributedCacheAdapterTests.
@@ -174,12 +174,16 @@ public class TmdbMovieProviderTests
             { "results": [ { "id": 1, "title": "X", "release_date": "1999-01-01" } ] }
             """);
         var storage = new LookupCacheMockStorage();
-        var provider = NewProvider(handler, storage);
+        var provider = NewProvider(handler, storage, new MetadataLookupOptions
+        {
+            CacheTtl = expectedTtl,
+            Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
+        });
 
         await provider.SearchAsync("x");
 
         Assert.NotEmpty(storage.Writes);
-        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
+        Assert.All(storage.Writes, w => Assert.Equal(expectedTtl, w.Ttl));
     }
 
     [Fact]
@@ -353,14 +357,13 @@ public class TmdbMovieProviderTests
         var searchHandler = new StubHandler("""
             { "results": [ { "id": 99, "title": "Different Movie", "release_date": "1990-01-01" } ] }
             """);
-        var searchStorage = new LookupCacheMockStorage();
-        var searchProvider = NewProvider(searchHandler, searchStorage);
+        var storage = new LookupCacheMockStorage();
+        var searchProvider = NewProvider(searchHandler, storage);
         await searchProvider.SearchAsync("27205");
         Assert.Single(searchHandler.RequestedUrls);
 
         var idHandler = new StubHandler(DetailJson);
-        var idStorage = new LookupCacheMockStorage();
-        var idProvider = NewProvider(idHandler, idStorage);
+        var idProvider = NewProvider(idHandler, storage);
         var byId = await idProvider.GetByIdAsync("27205");
 
         Assert.Equal("Inception", byId!.Title);
@@ -557,12 +560,16 @@ public class TmdbMovieProviderTests
         var upc = FakeUpcClient.Returning("Inception");
         var handler = new StubHandler(BarcodeSearchJson);
         var storage = new LookupCacheMockStorage();
-        var provider = NewProvider(handler, storage, upc: upc);
+        var options = new MetadataLookupOptions
+        {
+            Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
+        };
+        var provider = NewProvider(handler, storage, options, upc);
 
         await provider.SearchByBarcodeAsync("0883929473076");
 
         Assert.NotEmpty(storage.Writes);
-        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
+        Assert.All(storage.Writes, w => Assert.Equal(options.CacheTtl, w.Ttl));
     }
 
 
@@ -627,12 +634,13 @@ public class TmdbMovieProviderTests
     private TmdbMovieProvider NewProvider(RoutingStubHandler handler, LookupCacheMockStorage storage, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
-        storage.SetupStorage<List<MovieLookupResult>>(CacheTtl);
-        storage.SetupStorage<MovieLookupResult>(CacheTtl);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
         };
+        var expectedTtl = options.CacheTtl;
+        storage.SetupStorage<List<MovieLookupResult>>(expectedTtl);
+        storage.SetupStorage<MovieLookupResult>(expectedTtl);
         return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), storage.Mock.Object, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
 }

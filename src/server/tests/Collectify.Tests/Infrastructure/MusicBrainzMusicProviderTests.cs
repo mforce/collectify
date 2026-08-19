@@ -9,17 +9,16 @@ namespace Collectify.Tests.Infrastructure;
 
 public class MusicBrainzMusicProviderTests
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(30);
-
     private MusicBrainzMusicProvider NewProvider(StubHandler handler, LookupCacheMockStorage storage, MetadataLookupOptions? overrideOptions = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://musicbrainz.org/ws/2/") };
-        storage.SetupStorage<List<MusicLookupResult>>(CacheTtl);
-        storage.SetupStorage<MusicLookupResult>(CacheTtl);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             MusicBrainz = new MusicBrainzOptions { UserAgent = "Collectify/1.0 (test@example.com)" },
         };
+        var expectedTtl = options.CacheTtl;
+        storage.SetupStorage<List<MusicLookupResult>>(expectedTtl);
+        storage.SetupStorage<MusicLookupResult>(expectedTtl);
         return new MusicBrainzMusicProvider(http, storage.Mock.Object, Options.Create(options), NullLogger<MusicBrainzMusicProvider>.Instance);
     }
 
@@ -163,14 +162,19 @@ public class MusicBrainzMusicProviderTests
     [Fact]
     public async Task SearchAsync_ForwardsConfiguredTtlOnWrite()
     {
+        var expectedTtl = TimeSpan.FromMinutes(19);
         var handler = new StubHandler(SearchJson);
         var storage = new LookupCacheMockStorage();
-        var provider = NewProvider(handler, storage);
+        var provider = NewProvider(handler, storage, new MetadataLookupOptions
+        {
+            CacheTtl = expectedTtl,
+            MusicBrainz = new MusicBrainzOptions { UserAgent = "Collectify/1.0 (test@example.com)" },
+        });
 
         await provider.SearchAsync("ok computer");
 
         Assert.NotEmpty(storage.Writes);
-        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
+        Assert.All(storage.Writes, w => Assert.Equal(expectedTtl, w.Ttl));
     }
 
     [Fact]

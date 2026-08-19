@@ -10,7 +10,6 @@ namespace Collectify.Tests.Infrastructure;
 
 public class SteamClientTests
 {
-    private static readonly TimeSpan SteamTtl = TimeSpan.FromMinutes(5);
     private const string SteamId = "76561198000000000";
 
     private static SteamOptions SteamOptionsWithKey() => new()
@@ -21,9 +20,11 @@ public class SteamClientTests
     private SteamClient NewClient(StubHandler handler, LookupCacheMockStorage storage, SteamOptions? options = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.steampowered.com/") };
-        storage.SetupStorage<SteamGamesResult>(SteamTtl);
+        var effectiveOptions = options ?? SteamOptionsWithKey();
+        var expectedTtl = effectiveOptions.Steam.CacheTtl;
+        storage.SetupStorage<SteamGamesResult>(expectedTtl);
         var clock = new FakeTimeProvider(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
-        return new SteamClient(http, Options.Create(options ?? SteamOptionsWithKey()), storage.Mock.Object, clock, NullLogger<SteamClient>.Instance);
+        return new SteamClient(http, Options.Create(effectiveOptions), storage.Mock.Object, clock, NullLogger<SteamClient>.Instance);
     }
 
     private const string NonEmptyJson = """
@@ -62,9 +63,17 @@ public class SteamClientTests
     [Fact]
     public async Task GetOwnedGamesAsync_SuccessNonEmpty_PassesConfiguredTtlToCache()
     {
+        var expectedTtl = TimeSpan.FromMinutes(31);
         var handler = new StubHandler(NonEmptyJson);
         var storage = new LookupCacheMockStorage();
-        var client = NewClient(handler, storage);
+        var client = NewClient(handler, storage, new SteamOptions
+        {
+            Steam = new SteamOptions.SteamSubOptions
+            {
+                ApiKey = "steam-key",
+                CacheTtl = expectedTtl,
+            },
+        });
 
         var result = await client.GetOwnedGamesAsync(SteamId);
 
@@ -76,7 +85,7 @@ public class SteamClientTests
         var write = Assert.Single(storage.Writes);
         Assert.Equal("steam-owned", write.Provider);
         Assert.Equal("owned:" + SteamId, write.Key);
-        Assert.Equal(SteamTtl, write.Ttl);
+        Assert.Equal(expectedTtl, write.Ttl);
     }
 
     [Fact]
@@ -84,7 +93,8 @@ public class SteamClientTests
     {
         var handler = new StubHandler(EmptyJson);
         var storage = new LookupCacheMockStorage();
-        var client = NewClient(handler, storage);
+        var options = SteamOptionsWithKey();
+        var client = NewClient(handler, storage, options);
 
         var result = await client.GetOwnedGamesAsync(SteamId);
 
@@ -95,7 +105,7 @@ public class SteamClientTests
         var write = Assert.Single(storage.Writes);
         Assert.Equal("steam-owned", write.Provider);
         Assert.Equal("owned:" + SteamId, write.Key);
-        Assert.Equal(SteamTtl, write.Ttl);
+        Assert.Equal(options.Steam.CacheTtl, write.Ttl);
     }
 
     [Fact]

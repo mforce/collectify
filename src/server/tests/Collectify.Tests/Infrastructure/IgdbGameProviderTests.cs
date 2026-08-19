@@ -10,17 +10,16 @@ namespace Collectify.Tests.Infrastructure;
 
 public class IgdbGameProviderTests
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(30);
-
     private IgdbGameProvider NewProvider(HttpMessageHandler handler, LookupCacheMockStorage storage, FakeAuth? auth = null, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.igdb.com/v4/") };
-        storage.SetupStorage<List<GameLookupResult>>(CacheTtl);
-        storage.SetupStorage<GameLookupResult>(CacheTtl);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             Igdb = new IgdbOptions { TwitchClientId = "client", TwitchClientSecret = "secret" },
         };
+        var expectedTtl = options.CacheTtl;
+        storage.SetupStorage<List<GameLookupResult>>(expectedTtl);
+        storage.SetupStorage<GameLookupResult>(expectedTtl);
         return new IgdbGameProvider(http, auth ?? new FakeAuth("client", "tok"), upc ?? FakeUpcClient.NotRecognised(), storage.Mock.Object, Options.Create(options), NullLogger<IgdbGameProvider>.Instance);
     }
 
@@ -300,14 +299,19 @@ public class IgdbGameProviderTests
     [Fact]
     public async Task SearchAsync_ForwardsConfiguredTtlOnWrite()
     {
+        var expectedTtl = TimeSpan.FromMinutes(23);
         var handler = new StubHandler(SingleGameJson);
         var storage = new LookupCacheMockStorage();
-        var provider = NewProvider(handler, storage);
+        var provider = NewProvider(handler, storage, overrideOptions: new MetadataLookupOptions
+        {
+            CacheTtl = expectedTtl,
+            Igdb = new IgdbOptions { TwitchClientId = "client", TwitchClientSecret = "secret" },
+        });
 
         await provider.SearchAsync("witcher");
 
         Assert.NotEmpty(storage.Writes);
-        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
+        Assert.All(storage.Writes, w => Assert.Equal(expectedTtl, w.Ttl));
     }
 
     [Fact]
@@ -544,12 +548,16 @@ public class IgdbGameProviderTests
         var upc = FakeUpcClient.Returning("The Witcher 3");
         var handler = new StubHandler(SingleGameJson);
         var storage = new LookupCacheMockStorage();
-        var provider = NewProvider(handler, storage, upc: upc);
+        var options = new MetadataLookupOptions
+        {
+            Igdb = new IgdbOptions { TwitchClientId = "client", TwitchClientSecret = "secret" },
+        };
+        var provider = NewProvider(handler, storage, overrideOptions: options, upc: upc);
 
         await provider.SearchByBarcodeAsync("0883929473076");
 
         Assert.NotEmpty(storage.Writes);
-        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
+        Assert.All(storage.Writes, w => Assert.Equal(options.CacheTtl, w.Ttl));
     }
 
     private sealed class FakeAuth : IIgdbAuth

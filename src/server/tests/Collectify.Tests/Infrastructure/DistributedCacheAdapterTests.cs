@@ -4,6 +4,7 @@ using Collectify.Infrastructure.Lookup;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Internal;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -13,6 +14,11 @@ public class DistributedCacheAdapterTests
 {
     private static DistributedCacheAdapter NewAdapter(IDistributedCache cache)
         => new(cache, NullLogger<DistributedCacheAdapter>.Instance);
+
+    private static DistributedCacheAdapter NewAdapter(
+        IDistributedCache cache,
+        ILogger<DistributedCacheAdapter> logger)
+        => new(cache, logger);
 
     private record Sample(string Title, int Year);
     private record PlatformSample(GamePlatform? Platform);
@@ -36,6 +42,7 @@ public class DistributedCacheAdapterTests
         public Exception? ThrowOnGet { get; set; }
         public Exception? ThrowOnSet { get; set; }
         public Exception? ThrowOnRemove { get; set; }
+        public Action<CancellationToken>? OnRemove { get; set; }
 
         public Task<byte[]?> GetAsync(string key, CancellationToken token = default)
         {
@@ -58,6 +65,7 @@ public class DistributedCacheAdapterTests
 
         public Task RemoveAsync(string key, CancellationToken token = default)
         {
+            OnRemove?.Invoke(token);
             token.ThrowIfCancellationRequested();
             if (ThrowOnRemove is not null) return Task.FromException(ThrowOnRemove);
             Removed.Add(key);
@@ -245,6 +253,48 @@ public class DistributedCacheAdapterTests
     }
 
     [Fact]
+    public async Task Failures_DoNotLogRawCacheKeysOrIdentifiers()
+    {
+        const string steamId = "76561198000000000";
+        const string barcode = "0883929473076";
+        const string privateQuery = "private query";
+        var logger = new CapturingLogger<DistributedCacheAdapter>();
+
+        var readFailure = new RecordingDistributedCache
+        {
+            ThrowOnGet = new InvalidOperationException("backend down"),
+        };
+        await NewAdapter(readFailure, logger)
+            .GetAsync<Sample>("steam-owned", $"owned:{steamId}");
+
+        var writeFailure = new RecordingDistributedCache
+        {
+            ThrowOnSet = new InvalidOperationException("backend down"),
+        };
+        await NewAdapter(writeFailure, logger)
+            .SetAsync("upc", $"barcode:{barcode}", new Sample("Movie", 1999), TimeSpan.FromDays(1));
+
+        var corruptRemovalFailure = new RecordingDistributedCache
+        {
+            Store = { [$"lookup:tmdb:search:{privateQuery}"] = Encoding.UTF8.GetBytes("{ nope") },
+            ThrowOnRemove = new InvalidOperationException("backend down"),
+        };
+        await NewAdapter(corruptRemovalFailure, logger)
+            .GetAsync<Sample>("tmdb", $"search:{privateQuery}");
+
+        Assert.Equal(4, logger.Entries.Count);
+        foreach (var sensitiveValue in new[] { steamId, barcode, privateQuery })
+        {
+            Assert.All(logger.Entries, entry => Assert.DoesNotContain(sensitiveValue, entry.Message));
+            Assert.All(
+                logger.Entries,
+                entry => Assert.DoesNotContain(
+                    entry.State,
+                    property => property.Value?.ToString()?.Contains(sensitiveValue, StringComparison.Ordinal) == true));
+        }
+    }
+
+    [Fact]
     public async Task GetAsync_WithCancelledCallerToken_Propagates()
     {
         var backing = new RecordingDistributedCache();
@@ -273,13 +323,19 @@ public class DistributedCacheAdapterTests
     {
         var backing = new RecordingDistributedCache();
         backing.Store["lookup:igdb:search:witcher"] = Encoding.UTF8.GetBytes("{ nope");
-        var cache = NewAdapter(backing);
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        CancellationToken removalToken = default;
+        backing.OnRemove = token =>
+        {
+            removalToken = token;
+            cts.Cancel();
+        };
+        var cache = NewAdapter(backing);
 
         // The corrupt-entry removal path must still propagate caller cancellation.
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => cache.GetAsync<PlatformSample>("igdb", "search:witcher", cts.Token));
+        Assert.Equal(cts.Token, removalToken);
     }
 
     [Fact]
@@ -315,4 +371,29 @@ public class DistributedCacheAdapterTests
     {
         public string Boom => throw new InvalidOperationException("boom");
     }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<LogEntry> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            var properties = state as IEnumerable<KeyValuePair<string, object?>>
+                ?? Array.Empty<KeyValuePair<string, object?>>();
+            Entries.Add(new LogEntry(formatter(state, exception), properties.ToList()));
+        }
+    }
+
+    private sealed record LogEntry(
+        string Message,
+        IReadOnlyList<KeyValuePair<string, object?>> State);
 }

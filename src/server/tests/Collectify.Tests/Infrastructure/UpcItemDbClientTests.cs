@@ -9,13 +9,15 @@ namespace Collectify.Tests.Infrastructure;
 
 public class UpcItemDbClientTests
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(30);
-
-    private UpcItemDbClient NewClient(StubHandler handler, LookupCacheMockStorage storage)
+    private UpcItemDbClient NewClient(
+        StubHandler handler,
+        LookupCacheMockStorage storage,
+        MetadataLookupOptions? overrideOptions = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.upcitemdb.com/") };
-        storage.SetupStorage<UpcLookupResult>(CacheTtl);
-        var options = new MetadataLookupOptions();
+        var options = overrideOptions ?? new MetadataLookupOptions();
+        var expectedTtl = options.CacheTtl;
+        storage.SetupStorage<UpcLookupResult>(expectedTtl);
         return new UpcItemDbClient(http, storage.Mock.Object, Options.Create(options), NullLogger<UpcItemDbClient>.Instance);
     }
 
@@ -106,14 +108,15 @@ public class UpcItemDbClientTests
     [Fact]
     public async Task LookupAsync_ForwardsConfiguredTtlOnWrite()
     {
+        var expectedTtl = TimeSpan.FromMinutes(29);
         var handler = new StubHandler(MatchJson);
         var storage = new LookupCacheMockStorage();
-        var client = NewClient(handler, storage);
+        var client = NewClient(handler, storage, new MetadataLookupOptions { CacheTtl = expectedTtl });
 
         await client.LookupAsync("0883929473076");
 
         Assert.NotEmpty(storage.Writes);
-        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
+        Assert.All(storage.Writes, w => Assert.Equal(expectedTtl, w.Ttl));
     }
 
     [Fact]
