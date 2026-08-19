@@ -2,7 +2,14 @@ import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { Card, CoverPreview, StatusPill, TagChip } from './ui';
 import type { Album, Game, MediaType, Movie } from '../services/types';
-import { completionStatusLabel, gamePlatformLabel, MOVIE_FORMAT_FLAGS, watchStatusLabel } from '../services/types';
+import {
+  completionStatusLabel,
+  digitalStoreLabel,
+  gamePlatformLabel,
+  MOVIE_FORMAT_FLAGS,
+  musicFormatLabel,
+  watchStatusLabel,
+} from '../services/types';
 import MediaIcon from './MediaIcon';
 
 interface Props<T> {
@@ -229,7 +236,7 @@ function MusicDetail({ item }: { item: Album }) {
             {item.year && <span className="shrink-0">{item.year}</span>}
             {item.format && (
               <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.music.accent}`}>
-                {item.format === 'Cd' ? 'CD' : item.format === 'Vinyl' ? 'Vinyl' : 'Other'}
+                {musicFormatLabel(item.format) ?? item.format}
               </span>
             )}
           </div>
@@ -335,7 +342,7 @@ function GameDetail({ item }: { item: Game }) {
             {item.year && <span className="shrink-0">{item.year}</span>}
             {item.isDigital ? (
               <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.games.accent}`}>
-                Digital{item.digitalStore && <span className="min-w-0 truncate"> ({item.digitalStore})</span>}
+                Digital{item.digitalStore && <span className="min-w-0 truncate"> ({digitalStoreLabel(item.digitalStore) ?? item.digitalStore})</span>}
               </span>
             ) : (
               <span className="inline-flex items-center shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-pill-bg text-text-secondary border border-border">
