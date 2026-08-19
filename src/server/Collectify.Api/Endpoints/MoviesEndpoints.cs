@@ -167,6 +167,17 @@ public static class MoviesEndpoints
             return Results.BadRequest(new { error = "Title is required." });
         if (dto.PersonalRating is { } r && (r < 1 || r > 10))
             return Results.BadRequest(new { error = "PersonalRating must be between 1 and 10." });
+        // MovieFormats is bound as an int (the client sends the flags bitmask
+        // as a number), so the enum converters never see it. Guard the unchecked
+        // (MovieFormat)dto.Formats cast at the boundary (issue #115): an
+        // arbitrary integer with bits outside the defined flag set must not
+        // persist an undefined MovieFormat. None (0) and any combination of
+        // defined bits are valid.
+        const int validMovieFormatBits =
+            (int)MovieFormat.Dvd | (int)MovieFormat.BluRay | (int)MovieFormat.UhdBluRay
+            | (int)MovieFormat.Vhs | (int)MovieFormat.Digital;
+        if ((dto.Formats & ~validMovieFormatBits) != 0)
+            return Results.BadRequest(new { error = "Formats contains an undefined MovieFormat bit." });
         if (dto.AcquisitionCurrency is { Length: > 0 } c && c.Length != 3)
             return Results.BadRequest(new { error = "AcquisitionCurrency must be a 3-letter ISO 4217 code." });
         return null;
