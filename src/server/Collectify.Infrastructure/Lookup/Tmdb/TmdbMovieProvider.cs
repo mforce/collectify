@@ -9,7 +9,7 @@ namespace Collectify.Infrastructure.Lookup.Tmdb;
 /// <summary>
 /// IMovieMetadataProvider backed by themoviedb.org v3 /search/movie. Empty
 /// query strings and unconfigured installs short-circuit to an empty result.
-/// Every successful upstream call is cached in the LookupCacheEntry table
+/// Every successful upstream call is cached through <see cref="ILookupCache"/>
 /// keyed by the lowercased query string, so repeat searches don't burn rate
 /// limits or wait on the network.
 /// </summary>
@@ -48,7 +48,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
 
         var cacheKey = "search:" + trimmed.ToLowerInvariant();
 
-        var cached = await _cache.GetAsync<List<MovieLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<List<MovieLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         TmdbSearchResponse? body;
@@ -64,7 +64,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         }
 
         var mapped = (body?.Results ?? []).Select(Map).ToList();
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 
@@ -76,7 +76,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         // Separate cache namespace from search so the two flows can't poison
         // each other's results.
         var cacheKey = "id:" + providerKey;
-        var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         TmdbMovieDetail? detail;
@@ -100,7 +100,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
 
         if (detail is null) return null;
         var mapped = MapDetail(detail);
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 
@@ -114,7 +114,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         // string that happens to match (e.g. "tt27205") can't satisfy a
         // different lookup.
         var cacheKey = "imdb:" + trimmed;
-        var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         TmdbFindResponse? body;
@@ -143,7 +143,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         var detail = await GetByIdAsync(first.Id.ToString(), ct);
         if (detail is null) return null;
 
-        await _cache.SetAsync(ProviderName, cacheKey, detail, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, detail, _options.CacheTtl, ct);
         return detail;
     }
 
@@ -156,7 +156,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         // Cache the final list per barcode so a second scan of the same
         // disc is a single DB hit -- no UPC lookup, no TMDB title search.
         var cacheKey = "barcode:" + trimmed;
-        var cached = await _cache.GetAsync<List<MovieLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<List<MovieLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         // TMDB doesn't index barcodes. Resolve the UPC via UPCitemdb to a
@@ -167,7 +167,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         if (upcHit is null) return [];
 
         var hits = await SearchAsync(upcHit.Title, ct);
-        await _cache.SetAsync(ProviderName, cacheKey, hits.ToList(), ct);
+        await _cache.SetAsync(ProviderName, cacheKey, hits.ToList(), _options.CacheTtl, ct);
         return hits;
     }
 

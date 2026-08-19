@@ -33,7 +33,7 @@ All three media types (movies, music, games) ship together.
 | 7 | **Simple preview, no crop** | Vision API works on full image. Crop adds UX complexity for marginal gain |
 | 8 | **Multi-signal matching** | OCR text → web entities → known-domain URL routing. Covers textless covers |
 | 9 | **Cloud Vision TEXT_DETECTION + WEB_DETECTION** | Same API key, two features. OCR for text-heavy covers, web detection for visual matching |
-| 10 | **No caching (spike for image-hash cache later)** | Existing `LookupCache` covers the metadata search step. Image-hash cache impractical now; spike task added |
+| 10 | **No caching (spike for image-hash cache later)** | Existing `ILookupCache` (memory/Redis) covers the metadata search step. Image-hash cache impractical now; spike task added |
 | 11 | **Explicit "no match" feedback** | Return `hint` on response when all paths exhaust. Guides user to retake or try barcode/title search |
 | 12 | **All three media types** | Endpoint and component are generic over `MediaType`. Same cost as shipping one |
 | 13 | **Fake `IVisionClient` + integration tests** | Matches existing `FakeUpcClient` / `Stub*Provider` pattern. Full chain via `WebApplicationFactory<Program>` |
@@ -388,7 +388,7 @@ Unit tests for `PhotoLookup`:
 Track as a follow-up task: evaluate whether caching the full
 vision→candidates chain by image content hash is worthwhile. Approach:
 - Hash resized bytes (SHA-256, truncated to 16 hex chars, same as CoverImages)
-- Store in `LookupCache` with key `vision:{hash}`
+- Store in `ILookupCache` with key `vision:{hash}`
 - Measure hit rate in production before committing
 
 ### Spike: Local cover-art embedding index

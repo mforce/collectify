@@ -75,9 +75,24 @@ All provider keys are optional — lookups degrade gracefully when unconfigured.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `Collectify__Metadata__CacheTtl` | `30.00:00:00` | How long a cached lookup stays fresh (`.NET TimeSpan`). |
+| `Collectify__Metadata__CacheTtl` | `30.00:00:00` | How long each cached lookup stays fresh, applied **at write time** (`.NET TimeSpan`). Steam's owned-games cache uses its own short 5-minute TTL. |
+| `Collectify__Cache__Provider` | `memory` | Cache backend: unset/empty/`memory` (default, in-process, reset on restart) or `redis` (shared across instances; see `Collectify__Cache__Redis__Configuration` / `Collectify__Cache__Redis__InstanceName`). |
+| `Collectify__Cache__Redis__Configuration` | — | Required when `Provider=redis`. Redis endpoint/config. |
+| `Collectify__Cache__Redis__InstanceName` | `collectify:` | Key prefix. Separate deployments sharing one Redis DB **must** use unique prefixes so they can't read each other's cached payloads / Steam libraries. This uniqueness is documented, not enforced. |
 | `Collectify__Auth__AllowRegistration` | `false` | Flip to `true` to expose `/register` and allow sign-ups. |
 | `Collectify__IgdbBackfill__Enabled` | `true` | Background IGDB backfill (games with no IGDB id get developer/publisher/year/description/cover filled after a Steam import). Only active when IGDB credentials are configured; fill-only, so it never overwrites existing data. See `.env.example` for `Interval`, `PacingDelay`, `MaxGamesPerSweep`, `EmptyResultAbortThreshold`. |
+
+> **Cache notes.** The default cache is an in-process memory cache that is
+> empty on every cold start (so the first request after a restart re-queries
+> each provider — a cold-start burst — then warms up) and is **not persisted**.
+> With the opt-in Redis backend, cached provider payloads — **including a
+> user's private Steam owned-library results** — are stored at rest in Redis;
+> secure Redis accordingly. Both backends **fail open**: if the cache is
+> unreachable or returns corrupt data, the lookup simply re-queries the
+> provider rather than erroring. The old SQLite `LookupCache` table is dropped
+> by EF migration; an existing PostgreSQL install that predates this change
+> may still hold a dormant `LookupCache` table/data which is left untouched
+> (see issue #100).
 
 See [`.env.example`](.env.example) for the full list including optional base URL overrides.
 
@@ -167,7 +182,7 @@ Backend dispatch:
 - **Movies / Games** → UPCitemdb's free trial endpoint resolves the code
   to a product title, then TMDB / IGDB run their normal title search.
   UPCitemdb is rate-limited (~100 lookups/day on the free tier); every
-  result is cached in `LookupCache` so a re-scan is free.
+  result is cached through `ILookupCache` so a re-scan is free.
 
 ## Contributing
 

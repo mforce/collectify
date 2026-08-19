@@ -7,9 +7,9 @@ namespace Collectify.Infrastructure.Lookup.Upc;
 /// <summary>
 /// IUpcLookupClient backed by upcitemdb.com's free trial endpoint
 /// (/prod/trial/lookup). No API key, but rate-limited at ~100 lookups/day,
-/// so every call is cached in LookupCache under the "upcitemdb" provider
-/// name with a "barcode:" namespace -- a re-scan of the same code is then
-/// free and a cold scan stays well under the daily quota.
+/// so every call is cached through <see cref="ILookupCache"/> under the
+/// "upcitemdb" provider name with a "barcode:" namespace -- a re-scan of the
+/// same code is then free and a cold scan stays well under the daily quota.
 ///
 /// On any non-200 / parse error / "no items" we return null so the caller
 /// can decide whether to fall back to a per-type title search.
@@ -44,7 +44,7 @@ public sealed class UpcItemDbClient : IUpcLookupClient
         if (trimmed.Length == 0) return null;
 
         var cacheKey = "barcode:" + trimmed;
-        var cached = await _cache.GetAsync<UpcLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<UpcLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         UpcItemDbResponse? body;
@@ -67,7 +67,7 @@ public sealed class UpcItemDbClient : IUpcLookupClient
             Brand: string.IsNullOrWhiteSpace(first.Brand) ? null : first.Brand,
             Manufacturer: string.IsNullOrWhiteSpace(first.Manufacturer) ? null : first.Manufacturer);
 
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 }

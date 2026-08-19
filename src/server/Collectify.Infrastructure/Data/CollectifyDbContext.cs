@@ -13,7 +13,6 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
     public DbSet<MusicAlbum> MusicAlbums => Set<MusicAlbum>();
     public DbSet<Game> Games => Set<Game>();
     public DbSet<Tag> Tags => Set<Tag>();
-    public DbSet<LookupCacheEntry> LookupCache => Set<LookupCacheEntry>();
     public DbSet<CoverImage> CoverImages => Set<CoverImage>();
     public DbSet<GameStoreConnection> GameStoreConnections => Set<GameStoreConnection>();
     public DbSet<GameStoreOwnedTitle> GameStoreOwnedTitles => Set<GameStoreOwnedTitle>();
@@ -79,11 +78,6 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
         {
             e.Property(t => t.Name).HasMaxLength(100).IsRequired();
             e.HasIndex(t => new { t.OwnerId, t.Name }).IsUnique();
-        });
-
-        builder.Entity<LookupCacheEntry>(e =>
-        {
-            e.HasIndex(l => new { l.Provider, l.Key }).IsUnique();
         });
 
         builder.Entity<CoverImage>(e =>

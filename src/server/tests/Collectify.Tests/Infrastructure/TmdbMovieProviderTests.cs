@@ -1,42 +1,25 @@
 using System.Net;
 using System.Text;
-using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Tmdb;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
 
 namespace Collectify.Tests.Infrastructure;
 
-public class TmdbMovieProviderTests : IDisposable
+public class TmdbMovieProviderTests
 {
-    private readonly SqliteConnection _connection;
-    private readonly DbContextOptions<CollectifyDbContext> _dbOptions;
-    private readonly FakeTimeProvider _clock = new(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
-
-    public TmdbMovieProviderTests()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-        _dbOptions = new DbContextOptionsBuilder<CollectifyDbContext>().UseSqlite(_connection).Options;
-        using var seed = new CollectifyDbContext(_dbOptions);
-        seed.Database.EnsureCreated();
-    }
-
-    public void Dispose() => _connection.Dispose();
-
-    private TmdbMovieProvider NewProvider(StubHandler handler, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
+    private TmdbMovieProvider NewProvider(StubHandler handler, LookupCacheMockStorage storage, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
-        var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
         };
-        return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
+        var expectedTtl = options.CacheTtl;
+        storage.SetupStorage<List<MovieLookupResult>>(expectedTtl);
+        storage.SetupStorage<MovieLookupResult>(expectedTtl);
+        return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), storage.Mock.Object, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
 
     // Reused by the barcode tests below; the search-by-title pipeline that
@@ -60,8 +43,8 @@ public class TmdbMovieProviderTests : IDisposable
     [Fact]
     public async Task IsConfigured_ReflectsApiKeyPresence()
     {
-        var configured = NewProvider(new StubHandler("{ \"results\": [] }"));
-        var unconfigured = NewProvider(new StubHandler("never called"), new MetadataLookupOptions());
+        var configured = NewProvider(new StubHandler("{ \"results\": [] }"), new LookupCacheMockStorage());
+        var unconfigured = NewProvider(new StubHandler("never called"), new LookupCacheMockStorage(), new MetadataLookupOptions());
 
         Assert.True(configured.IsConfigured);
         Assert.False(unconfigured.IsConfigured);
@@ -71,7 +54,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task SearchAsync_WithoutApiKey_ShortCircuitsToEmpty_AndDoesNotCallTmdb()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, new MetadataLookupOptions());
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), new MetadataLookupOptions());
 
         var results = await provider.SearchAsync("inception");
 
@@ -83,7 +66,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task SearchAsync_WithBlankQuery_ReturnsEmptyWithoutCalling()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         var results = await provider.SearchAsync("   ");
 
@@ -95,7 +78,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task SearchAsync_HitsTmdbWithUrlEncodedQuery_AndIncludesApiKey()
     {
         var handler = new StubHandler("{ \"results\": [] }");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchAsync("the matrix");
 
@@ -123,7 +106,7 @@ public class TmdbMovieProviderTests : IDisposable
           ]
         }
         """;
-        var provider = NewProvider(new StubHandler(body));
+        var provider = NewProvider(new StubHandler(body), new LookupCacheMockStorage());
 
         var results = await provider.SearchAsync("inception");
 
@@ -144,7 +127,7 @@ public class TmdbMovieProviderTests : IDisposable
     {
         var provider = NewProvider(new StubHandler("""
             { "results": [ { "id": 1, "title": "X", "release_date": "1999-01-01" } ] }
-            """));
+            """), new LookupCacheMockStorage());
 
         var results = await provider.SearchAsync("x");
 
@@ -156,7 +139,7 @@ public class TmdbMovieProviderTests : IDisposable
     {
         var provider = NewProvider(new StubHandler("""
             { "results": [ { "id": 1, "title": "X", "release_date": "" } ] }
-            """));
+            """), new LookupCacheMockStorage());
 
         var results = await provider.SearchAsync("x");
 
@@ -169,11 +152,11 @@ public class TmdbMovieProviderTests : IDisposable
         var handler = new StubHandler("""
             { "results": [ { "id": 1, "title": "X", "release_date": "1999-01-01" } ] }
             """);
-        var provider1 = NewProvider(handler);
-        var provider2 = NewProvider(handler); // same cache (shared sqlite), fresh provider instance
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage);
 
-        var first = await provider1.SearchAsync("x");
-        var second = await provider2.SearchAsync("X"); // case-insensitive cache key
+        var first = await provider.SearchAsync("x");
+        var second = await provider.SearchAsync("X"); // case-insensitive cache key
 
         Assert.Single(first);
         Assert.Single(second);
@@ -181,25 +164,33 @@ public class TmdbMovieProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task SearchAsync_AfterTtlExpires_RefreshesFromTmdb()
+    public async Task SearchAsync_ForwardsConfiguredTtlOnWrite()
     {
+        var expectedTtl = TimeSpan.FromMinutes(17);
+        // TTL is now a write-time contract owned by the cache; verify the
+        // search write forwards the configured metadata TTL. Real expiry is
+        // covered by DistributedCacheAdapterTests.
         var handler = new StubHandler("""
             { "results": [ { "id": 1, "title": "X", "release_date": "1999-01-01" } ] }
             """);
-        var provider = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage, new MetadataLookupOptions
+        {
+            CacheTtl = expectedTtl,
+            Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
+        });
 
         await provider.SearchAsync("x");
-        _clock.Advance(TimeSpan.FromDays(31));
-        await provider.SearchAsync("x");
 
-        Assert.Equal(2, handler.RequestedUrls.Count);
+        Assert.NotEmpty(storage.Writes);
+        Assert.All(storage.Writes, w => Assert.Equal(expectedTtl, w.Ttl));
     }
 
     [Fact]
     public async Task SearchAsync_OnUpstreamFailure_ReturnsEmpty_AndDoesNotCache()
     {
         var handler = new StubHandler("error", HttpStatusCode.InternalServerError);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         var results = await provider.SearchAsync("x");
         Assert.Empty(results);
@@ -235,7 +226,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task GetByIdAsync_WithoutApiKey_ShortCircuitsToNull_AndDoesNotCallTmdb()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, new MetadataLookupOptions());
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), new MetadataLookupOptions());
 
         var result = await provider.GetByIdAsync("27205");
 
@@ -247,7 +238,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task GetByIdAsync_WithBlankProviderKey_ReturnsNullWithoutCalling()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Null(await provider.GetByIdAsync(""));
         Assert.Null(await provider.GetByIdAsync("   "));
@@ -258,7 +249,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task GetByIdAsync_HitsTmdbWithAppendCredits_AndApiKey()
     {
         var handler = new StubHandler(DetailJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.GetByIdAsync("27205");
 
@@ -271,7 +262,7 @@ public class TmdbMovieProviderTests : IDisposable
     [Fact]
     public async Task GetByIdAsync_MapsDetailIncludingDirectorAndRuntime()
     {
-        var provider = NewProvider(new StubHandler(DetailJson));
+        var provider = NewProvider(new StubHandler(DetailJson), new LookupCacheMockStorage());
 
         var result = await provider.GetByIdAsync("27205");
 
@@ -303,7 +294,7 @@ public class TmdbMovieProviderTests : IDisposable
               }
             }
             """;
-        var provider = NewProvider(new StubHandler(body));
+        var provider = NewProvider(new StubHandler(body), new LookupCacheMockStorage());
 
         var result = await provider.GetByIdAsync("1");
 
@@ -321,7 +312,7 @@ public class TmdbMovieProviderTests : IDisposable
               "credits": { "crew": [{ "job": "Editor", "name": "Some Editor" }] }
             }
             """;
-        var provider = NewProvider(new StubHandler(body));
+        var provider = NewProvider(new StubHandler(body), new LookupCacheMockStorage());
 
         var result = await provider.GetByIdAsync("1");
 
@@ -332,7 +323,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task GetByIdAsync_With404FromTmdb_ReturnsNullWithoutCaching()
     {
         var handler = new StubHandler("not found", HttpStatusCode.NotFound);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Null(await provider.GetByIdAsync("999999"));
 
@@ -345,8 +336,9 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task GetByIdAsync_RepeatedCallsServeFromCache()
     {
         var handler = new StubHandler(DetailJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler); // shared sqlite cache, fresh provider instance
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage); // shared mock storage, fresh provider instance
 
         var first = await p1.GetByIdAsync("27205");
         var second = await p2.GetByIdAsync("27205");
@@ -365,12 +357,13 @@ public class TmdbMovieProviderTests : IDisposable
         var searchHandler = new StubHandler("""
             { "results": [ { "id": 99, "title": "Different Movie", "release_date": "1990-01-01" } ] }
             """);
-        var searchProvider = NewProvider(searchHandler);
+        var storage = new LookupCacheMockStorage();
+        var searchProvider = NewProvider(searchHandler, storage);
         await searchProvider.SearchAsync("27205");
         Assert.Single(searchHandler.RequestedUrls);
 
         var idHandler = new StubHandler(DetailJson);
-        var idProvider = NewProvider(idHandler);
+        var idProvider = NewProvider(idHandler, storage);
         var byId = await idProvider.GetByIdAsync("27205");
 
         Assert.Equal("Inception", byId!.Title);
@@ -383,7 +376,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task GetByImdbIdAsync_WithoutApiKey_ShortCircuitsToNull()
     {
         var handler = new RoutingStubHandler();
-        var provider = NewProvider(handler, new MetadataLookupOptions());
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), new MetadataLookupOptions());
 
         Assert.Null(await provider.GetByImdbIdAsync("tt1375666"));
         Assert.Empty(handler.RequestedUrls);
@@ -393,7 +386,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task GetByImdbIdAsync_WithBlankImdbId_ReturnsNullWithoutCalling()
     {
         var handler = new RoutingStubHandler();
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Null(await provider.GetByImdbIdAsync(""));
         Assert.Null(await provider.GetByImdbIdAsync("   "));
@@ -406,7 +399,7 @@ public class TmdbMovieProviderTests : IDisposable
         var handler = new RoutingStubHandler()
             .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
             .When("movie/", DetailJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.GetByImdbIdAsync("tt1375666");
 
@@ -422,7 +415,7 @@ public class TmdbMovieProviderTests : IDisposable
         var handler = new RoutingStubHandler()
             .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
             .When("movie/", DetailJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         var result = await provider.GetByImdbIdAsync("tt1375666");
 
@@ -443,7 +436,7 @@ public class TmdbMovieProviderTests : IDisposable
     {
         var handler = new RoutingStubHandler()
             .When("find/", """{ "movie_results": [] }""");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Null(await provider.GetByImdbIdAsync("tt9999999"));
         Assert.Single(handler.RequestedUrls); // no chained /movie/{id} call
@@ -455,8 +448,9 @@ public class TmdbMovieProviderTests : IDisposable
         var handler = new RoutingStubHandler()
             .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
             .When("movie/", DetailJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage);
 
         var first = await p1.GetByImdbIdAsync("tt1375666");
         var second = await p2.GetByImdbIdAsync("tt1375666");
@@ -478,7 +472,8 @@ public class TmdbMovieProviderTests : IDisposable
         var handler = new RoutingStubHandler()
             .When("find/", """{ "movie_results": [ { "id": 27205, "title": "Inception", "release_date": "2010-07-15" } ] }""")
             .When("movie/", DetailJson);
-        var provider = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage);
 
         await provider.GetByImdbIdAsync("tt1375666");
         Assert.Equal(2, handler.RequestedUrls.Count);
@@ -494,7 +489,7 @@ public class TmdbMovieProviderTests : IDisposable
     public async Task SearchByBarcodeAsync_NotConfigured_ShortCircuitsAndDoesNotHitUpc()
     {
         var upc = FakeUpcClient.Returning("Inception");
-        var provider = NewProvider(new StubHandler(BarcodeSearchJson), new MetadataLookupOptions(), upc);
+        var provider = NewProvider(new StubHandler(BarcodeSearchJson), new LookupCacheMockStorage(), new MetadataLookupOptions(), upc);
 
         Assert.Empty(await provider.SearchByBarcodeAsync("0883929473076"));
         Assert.Empty(upc.RequestedBarcodes);
@@ -505,7 +500,7 @@ public class TmdbMovieProviderTests : IDisposable
     {
         var upc = FakeUpcClient.Returning("Inception");
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, upc: upc);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), upc: upc);
 
         Assert.Empty(await provider.SearchByBarcodeAsync("  "));
         Assert.Empty(upc.RequestedBarcodes);
@@ -519,7 +514,7 @@ public class TmdbMovieProviderTests : IDisposable
         // searching TMDB with an empty string.
         var upc = FakeUpcClient.NotRecognised();
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, upc: upc);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), upc: upc);
 
         Assert.Empty(await provider.SearchByBarcodeAsync("0000000000000"));
         Assert.Single(upc.RequestedBarcodes);
@@ -531,7 +526,7 @@ public class TmdbMovieProviderTests : IDisposable
     {
         var upc = FakeUpcClient.Returning("Inception");
         var handler = new StubHandler(BarcodeSearchJson);
-        var provider = NewProvider(handler, upc: upc);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), upc: upc);
 
         var hits = await provider.SearchByBarcodeAsync("0883929473076");
 
@@ -547,8 +542,9 @@ public class TmdbMovieProviderTests : IDisposable
     {
         var upc = FakeUpcClient.Returning("Inception");
         var handler = new StubHandler(BarcodeSearchJson);
-        var p1 = NewProvider(handler, upc: upc);
-        var p2 = NewProvider(handler, upc: upc); // shared sqlite cache
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage, upc: upc);
+        var p2 = NewProvider(handler, storage, upc: upc); // shared mock storage
 
         await p1.SearchByBarcodeAsync("0883929473076");
         await p2.SearchByBarcodeAsync("0883929473076");
@@ -556,6 +552,24 @@ public class TmdbMovieProviderTests : IDisposable
         // Single TMDB hit across both invocations -- the second call is
         // satisfied entirely by the barcode-namespaced cache entry.
         Assert.Single(handler.RequestedUrls);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_ForwardsConfiguredTtlOnWrite()
+    {
+        var upc = FakeUpcClient.Returning("Inception");
+        var handler = new StubHandler(BarcodeSearchJson);
+        var storage = new LookupCacheMockStorage();
+        var options = new MetadataLookupOptions
+        {
+            Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
+        };
+        var provider = NewProvider(handler, storage, options, upc);
+
+        await provider.SearchByBarcodeAsync("0883929473076");
+
+        Assert.NotEmpty(storage.Writes);
+        Assert.All(storage.Writes, w => Assert.Equal(options.CacheTtl, w.Ttl));
     }
 
 
@@ -617,14 +631,16 @@ public class TmdbMovieProviderTests : IDisposable
         }
     }
 
-    private TmdbMovieProvider NewProvider(RoutingStubHandler handler, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
+    private TmdbMovieProvider NewProvider(RoutingStubHandler handler, LookupCacheMockStorage storage, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.themoviedb.org/3/") };
-        var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             Tmdb = new TmdbOptions { ApiKey = "key-xyz" },
         };
-        return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), cache, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
+        var expectedTtl = options.CacheTtl;
+        storage.SetupStorage<List<MovieLookupResult>>(expectedTtl);
+        storage.SetupStorage<MovieLookupResult>(expectedTtl);
+        return new TmdbMovieProvider(http, upc ?? FakeUpcClient.NotRecognised(), storage.Mock.Object, Options.Create(options), NullLogger<TmdbMovieProvider>.Instance);
     }
 }
