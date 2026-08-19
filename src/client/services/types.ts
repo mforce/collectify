@@ -205,6 +205,10 @@ export function musicFormatLabel(value: MusicFormat): string | undefined {
   return MUSIC_FORMATS.find((f) => f.value === value)?.label;
 }
 
+export function digitalStoreLabel(value: DigitalStore): string | undefined {
+  return DIGITAL_STORES.find((s) => s.value === value)?.label;
+}
+
 export interface Game extends CollectionItemBase {
   id?: number;
   title: string;
