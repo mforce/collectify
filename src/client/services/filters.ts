@@ -188,8 +188,9 @@ export function useFiltersState<T extends MediaType>(type: T) {
 
 /** Number of active (non-default) filter fields on the given object. */
 export function activeFilterCount(filters: Record<string, unknown>): number {
-  let n = 0;
-  for (const v of Object.values(filters)) {
+  let n = filters.yearFrom != null || filters.yearTo != null ? 1 : 0;
+  for (const [key, v] of Object.entries(filters)) {
+    if (key === 'yearFrom' || key === 'yearTo') continue;
     if (v === undefined || v === null || v === '') continue;
     if (Array.isArray(v) && v.length === 0) continue;
     n++;

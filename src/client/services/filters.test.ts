@@ -44,6 +44,13 @@ describe('activeFilterCount', () => {
     expect(activeFilterCount({ tag: ['scifi', 'noir'] })).toBe(1);
   });
 
+  it('treats a year range as one filter bucket', () => {
+    expect(activeFilterCount({ yearFrom: 2000, yearTo: 2020 })).toBe(1);
+    expect(activeFilterCount({ yearFrom: 2000 })).toBe(1);
+    expect(activeFilterCount({ yearTo: 2020 })).toBe(1);
+    expect(activeFilterCount({ yearFrom: 2000, yearTo: 2020, studio: 'Warner' })).toBe(2);
+  });
+
   it('ignores empty strings', () => {
     expect(activeFilterCount({ director: '', studio: 'Warner' })).toBe(1);
   });

@@ -7,6 +7,7 @@ import {
   SearchableSelect,
   Select,
   TagChip,
+  TagInput,
 } from './ui';
 import { activeFilterCount, type Filters } from '../services/filters';
 import {
@@ -70,6 +71,13 @@ export default function FiltersPanel<T extends MediaType>({ type, value, onChang
             {type === 'movies' && <MovieFields value={value as Filters<'movies'>} onChange={onChange as (v: Filters<'movies'>) => void} />}
             {type === 'music' && <AlbumFields value={value as Filters<'music'>} onChange={onChange as (v: Filters<'music'>) => void} />}
             {type === 'games' && <GameFields value={value as Filters<'games'>} onChange={onChange as (v: Filters<'games'>) => void} />}
+            <Field label="Tags">
+              <TagInput
+                value={value.tag ?? []}
+                onChange={(tag) => onChange({ ...value, tag } as Filters<T>)}
+                category={type}
+              />
+            </Field>
           </div>
         </Card>
       )}
@@ -274,7 +282,11 @@ function ActiveChips<T extends MediaType>({ type, value, onChange }: ChipProps<T
           <span className="text-text-secondary mr-1">{e.label}:</span> {e.display}
           <button
             type="button"
-            onClick={() => onChange({ ...value, [e.key]: undefined } as Filters<T>)}
+            onClick={() => onChange(
+              e.key === 'yearFrom'
+                ? { ...value, yearFrom: undefined, yearTo: undefined } as Filters<T>
+                : { ...value, [e.key]: undefined } as Filters<T>,
+            )}
             aria-label={`Remove ${e.label} filter`}
             className="ml-0.5 text-text-secondary hover:text-error"
           >
