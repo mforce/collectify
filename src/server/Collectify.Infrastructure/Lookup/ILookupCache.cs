@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Collectify.Domain.Entities;
 using Collectify.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -21,11 +20,6 @@ public interface ILookupCache
 
 public sealed class LookupCache : ILookupCache
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
-    {
-        Converters = { new JsonStringEnumConverter(allowIntegerValues: true) },
-    };
-
     private readonly CollectifyDbContext _db;
     private readonly TimeProvider _clock;
     private readonly ILogger<LookupCache> _log;
@@ -46,7 +40,7 @@ public sealed class LookupCache : ILookupCache
 
         try
         {
-            return JsonSerializer.Deserialize<T>(entry.JsonResponse, Json);
+            return JsonSerializer.Deserialize<T>(entry.JsonResponse, LookupCacheJson.Options);
         }
         catch (JsonException ex)
         {
@@ -63,7 +57,7 @@ public sealed class LookupCache : ILookupCache
 
     public async Task SetAsync<T>(string provider, string key, T value, CancellationToken ct = default)
     {
-        var json = JsonSerializer.Serialize(value, Json);
+        var json = JsonSerializer.Serialize(value, LookupCacheJson.Options);
         var existing = await _db.LookupCache
             .FirstOrDefaultAsync(e => e.Provider == provider && e.Key == key, ct);
         if (existing is null)
