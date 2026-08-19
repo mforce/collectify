@@ -82,7 +82,8 @@ public class LookupCacheMigrationTests
         try
         {
             await using var context = NewContext(connectionString);
-            // Migrate to the migration that precedes DropLookupCacheEntries.
+            await context.Database.MigrateAsync();
+            // Migrate down through DropLookupCacheEntries to the preceding migration.
             await context.GetService<IMigrator>().MigrateAsync("20260818193439_ConvertLinuxToPc");
 
             var indexes = GetIndexes(context, "LookupCache");
