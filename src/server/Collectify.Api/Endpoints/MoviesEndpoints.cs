@@ -11,6 +11,12 @@ namespace Collectify.Api.Endpoints;
 
 public static class MoviesEndpoints
 {
+    // Union of every defined MovieFormat flag bit. Derived from the enum so a
+    // future member is covered automatically (reviewer F1); computed once, not
+    // per write request.
+    private static readonly int ValidMovieFormatBits =
+        Enum.GetValues<MovieFormat>().Aggregate(0, (mask, f) => mask | (int)f);
+
     public record MovieDto(
         int? Id,
         string Title,
@@ -172,11 +178,8 @@ public static class MoviesEndpoints
         // (MovieFormat)dto.Formats cast at the boundary (issue #115): an
         // arbitrary integer with bits outside the defined flag set must not
         // persist an undefined MovieFormat. None (0) and any combination of
-        // defined bits are valid. Derive the mask from the enum so a future
-        // member is covered automatically (reviewer F1).
-        var validMovieFormatBits = Enum.GetValues<MovieFormat>()
-            .Aggregate(0, (mask, f) => mask | (int)f);
-        if ((dto.Formats & ~validMovieFormatBits) != 0)
+        // defined bits are valid (ValidMovieFormatBits, see above).
+        if ((dto.Formats & ~ValidMovieFormatBits) != 0)
             return Results.BadRequest(new { error = "Formats contains an undefined MovieFormat bit." });
         if (dto.AcquisitionCurrency is { Length: > 0 } c && c.Length != 3)
             return Results.BadRequest(new { error = "AcquisitionCurrency must be a 3-letter ISO 4217 code." });
