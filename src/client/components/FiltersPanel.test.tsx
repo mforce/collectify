@@ -42,4 +42,11 @@ describe('FiltersPanel', () => {
       director: 'Nolan',
     });
   });
+
+  it('renders the digital-store display label in the active-filter chip', () => {
+    renderPanel('games', { digitalStore: 'Psn' });
+
+    expect(screen.getByText('PlayStation Network')).toBeInTheDocument();
+    expect(screen.queryByText('Psn')).not.toBeInTheDocument();
+  });
 });

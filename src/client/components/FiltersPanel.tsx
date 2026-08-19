@@ -14,10 +14,12 @@ import {
   COLLECTION_STATUSES,
   COMPLETION_STATUSES,
   DIGITAL_STORES,
+  digitalStoreLabel,
   GAME_PLATFORMS,
   MOVIE_FORMAT_FLAGS,
   MUSIC_FORMATS,
   WATCH_STATUSES,
+  type DigitalStore,
   type MediaType,
 } from '../services/types';
 
@@ -325,7 +327,11 @@ function describeActive<T extends MediaType>(_type: T, filters: Filters<T>): { k
   for (const [key, value] of Object.entries(f)) {
     if (key === 'yearFrom' || key === 'yearTo' || key === 'tag') continue;
     if (value === undefined || value === null || value === '') continue;
-    const display = typeof value === 'boolean' ? (value ? 'Digital' : 'Physical') : String(value);
+    const display = key === 'digitalStore'
+      ? digitalStoreLabel(value as DigitalStore) ?? String(value)
+      : typeof value === 'boolean'
+        ? (value ? 'Digital' : 'Physical')
+        : String(value);
     out.push({ key, label: labels[key] ?? key, display });
   }
   if (Array.isArray(f.tag) && f.tag.length > 0) {
