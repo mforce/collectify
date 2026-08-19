@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using Collectify.Infrastructure.Identity;
+using Collectify.Infrastructure.Lookup.Igdb;
 using Collectify.Infrastructure.Store;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -157,6 +158,7 @@ public static class SteamStoreEndpoints
             UserManager<AppUser> users,
             SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
+            IgdbBackfillRunner backfill,
             Microsoft.Extensions.Options.IOptions<SteamOptions> options,
             CancellationToken ct) =>
         {
@@ -184,7 +186,36 @@ public static class SteamStoreEndpoints
             // req is guaranteed non-null here: the guards above returned a 400
             // unless ExternalGameIds had at least one non-whitespace item.
             var gameIds = req?.ExternalGameIds ?? [];
-            var (results, _) = await service.ImportAsync(ownerId, gameIds, ct);
+            var (results, createdGames) = await service.ImportAsync(ownerId, gameIds, ct);
+
+            // Imported games show up empty until the backfill sweep runs (which,
+            // even with the startup sweep, is only on the NEXT boot or a timer
+            // tick). Backfill the newly-created games IMMEDIATELY so metadata
+            // appears right after import rather than the user staring at empty
+            // fields. IgdbBackfillRunner is a no-op when IGDB/Twitch is
+            // unconfigured, and its fill-only merge never overwrites the Steam
+            // import's own data. Bounded by pacing (350ms/lookup) so a huge
+            // import doesn't blow IGDB's rate cap mid-request. Fail-soft: the
+            // runner logs and isolates per-game failures internally, so a metadata
+            // hiccup must never turn a successful import into an error response —
+            // the background sweep will retry anything left empty later.
+            var createdIds = createdGames.Select(g => g.Id).ToArray();
+            if (createdIds.Length > 0)
+            {
+                try
+                {
+                    await backfill.BackfillGamesAsync(createdIds, ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // Never fail the import over optional metadata enrichment.
+                }
+            }
+
             return Results.Ok(new SteamImportResultDto(
                 results.Count(r => r.Imported),
                 results.Count(r => r.AlreadyImported),

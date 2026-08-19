@@ -161,6 +161,115 @@ public class IgdbGameProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchByPlatformAsync_Pc_AppendsSourcePlatformWhereClause()
+    {
+        // The Witcher 3 case from production: IGDB's fuzzy search ranks console
+        // re-releases above the plain PC SKU, so a top-10 all-platform window
+        // never surfaces it. The platform-scoped search must filter AT THE
+        // SOURCE with `where platforms = (6,3)` (PC = 6, plus Linux = 3 since
+        // Linux folds into Pc, #102) so IGDB runs the fuzzy search within the
+        // PC family and the PC release appears.
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler);
+
+        await provider.SearchByPlatformAsync("The Witcher 3: Wild Hunt", GamePlatform.Pc);
+
+        var req = Assert.Single(handler.Requests);
+        Assert.Contains("search \"The Witcher 3: Wild Hunt\";", req.Body);
+        Assert.Contains("limit 10;", req.Body);
+        Assert.Contains(" where platforms = (6,3);", req.Body);
+    }
+
+    [Theory]
+    [InlineData(GamePlatform.Pc, "(6,3)")] // PC = Windows (6) + Linux (3), #102
+    [InlineData(GamePlatform.Mac, "(14)")]
+    [InlineData(GamePlatform.Ps4, "(48)")]
+    [InlineData(GamePlatform.Ps5, "(167)")]
+    [InlineData(GamePlatform.XboxSeriesXS, "(169)")]
+    [InlineData(GamePlatform.Switch, "(130)")]
+    [InlineData(GamePlatform.XboxOne, "(49)")]
+    public async Task SearchByPlatformAsync_KnownPlatform_AppendsIdClause(GamePlatform platform, string expectedClause)
+    {
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler);
+
+        await provider.SearchByPlatformAsync("witcher", platform);
+
+        var req = Assert.Single(handler.Requests);
+        Assert.Contains($" where platforms = {expectedClause};", req.Body);
+    }
+
+    [Theory]
+    [InlineData(GamePlatform.Other)]
+    [InlineData(GamePlatform.Mobile)] // Android/iOS split — no single id
+    public async Task SearchByPlatformAsync_NoCanonicalId_DoesNotAppendWhereClause_AndFiltersInMemory(GamePlatform platform)
+    {
+        // IGDB returns a PC + PS4 entry; neither maps to Mobile/Other,
+        // so the in-memory IsOn filter must leave the result set empty.
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler);
+
+        var results = await provider.SearchByPlatformAsync("witcher", platform);
+
+        Assert.Empty(results);
+        var req = Assert.Single(handler.Requests);
+        Assert.DoesNotContain(" where platforms =", req.Body);
+    }
+
+    [Fact]
+    public async Task SearchByPlatformAsync_Pc_LinuxOnlyTitleSurvivesToResult()
+    {
+        // The payoff of the (6,3) source filter (#102): a game released ONLY
+        // on Linux (IGDB id 3, no Windows id 6) is fetched, maps Linux->Pc via
+        // GamePlatformMapping, and must survive the in-memory IsOn(Pc) filter
+        // (it would have been excluded with the old (6)-only source filter).
+        const string json = """
+            [ { "id": 4242, "name": "Linux-Only Gem", "platforms": [ { "name": "Linux" } ] } ]
+            """;
+        var handler = new StubHandler(json);
+        var provider = NewProvider(handler);
+
+        var hit = Assert.Single(await provider.SearchByPlatformAsync("gem", GamePlatform.Pc));
+
+        Assert.Equal("Linux-Only Gem", hit.Title);
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
+        Assert.Contains(GamePlatform.Pc, hit.Platforms);
+        // The request asked IGDB for the PC family incl. Linux id 3.
+        Assert.Contains(" where platforms = (6,3);", Assert.Single(handler.Requests).Body);
+    }
+
+    [Fact]
+    public async Task SearchByPlatformAsync_UsesPlatformScopedCacheKey_NotSharedWithUnscoped()
+    {
+        // The platform-scoped cache key must be distinct from the unscoped one:
+        // an unscoped "v3:search:witcher" entry must NOT satisfy a PC-scoped
+        // "v3:search:witcher|Pc" request (or the platform filter would be wrong).
+        var handler = new StubHandler(SingleGameJson);
+        var p1 = NewProvider(handler);
+        var p2 = NewProvider(handler); // shared sqlite cache
+
+        await p1.SearchAsync("witcher");                            // unscoped: key "v3:search:witcher"
+        await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "v3:search:witcher|Pc"
+
+        // Two distinct cache keys -> two upstream calls, not a cache hit.
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.DoesNotContain(" where platforms =", handler.Requests[0].Body); // unscoped first call
+        Assert.Contains(" where platforms = (6,3);", handler.Requests[1].Body);  // scoped second call (PC = 6 + Linux 3)
+    }
+
+    [Fact]
+    public async Task SearchByPlatformAsync_RepeatedCall_ServesFromCache()
+    {
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler);
+
+        await provider.SearchByPlatformAsync("witcher", GamePlatform.Pc);
+        await provider.SearchByPlatformAsync("witcher", GamePlatform.Pc); // same scoped key
+
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
     public async Task SearchAsync_FirstPlatformUnmapped_FallsBackToNextRecognised()
     {
         // IGDB sometimes lists a region-specific or obscure platform
@@ -219,9 +328,12 @@ public class IgdbGameProviderTests : IDisposable
     [Fact]
     public async Task SearchAsync_WithStaleIncompatibleCachedResult_TreatsCacheAsMissAndRefreshes()
     {
+        // Seed a cache row under the v2 schema key. The provider now reads
+        // v3:search:..., so this v2 row is stale-schema and must be treated as
+        // a miss -> the provider hits IGDB afresh and returns the real row.
         await SeedRawCacheRowAsync(
             "igdb",
-            "search:witcher",
+            "v2:search:witcher",
             "[{\"provider\":\"igdb\",\"providerKey\":\"old\",\"title\":\"Old\",\"platform\":\"Windows 95\"}]");
         var handler = new StubHandler(SingleGameJson);
         var provider = NewProvider(handler);
@@ -231,6 +343,32 @@ public class IgdbGameProviderTests : IDisposable
         Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
         Assert.Equal(GamePlatform.Pc, hit.Platform);
         Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchAsync_UnversionedStaleCacheRow_IsNotServed_AndRefreshes()
+    {
+        // Regression for the stale-cache bug: a cached row written before the
+        // `Platforms` DTO field existed (key "search:witcher", no v-prefix)
+        // must NOT be served. The versioned key the current code reads
+        // (v3:search:witcher) won't match it, so the provider hits IGDB afresh
+        // and returns fully-shaped results — this is what fixes the prod case
+        // where every result came back `platforms: []`.
+        await SeedRawCacheRowAsync(
+            "igdb",
+            "search:witcher", // OLD schema key (unversioned)
+            "[{\"provider\":\"igdb\",\"providerKey\":\"old\",\"title\":\"Old\",\"platform\":\"Windows 95\"}]");
+        var handler = new StubHandler(SingleGameJson);
+        var provider = NewProvider(handler);
+
+        var hit = Assert.Single(await provider.SearchAsync("witcher"));
+
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+        Assert.Equal(GamePlatform.Pc, hit.Platform);
+        // The stale unversioned row was ignored -> one fresh upstream call.
+        Assert.Single(handler.Requests);
+        // And the fresh result carries the full platform set (would've been []).
+        Assert.Contains(GamePlatform.Pc, hit.Platforms);
     }
 
     [Fact]

@@ -131,7 +131,7 @@ export const DIGITAL_STORES: { value: DigitalStore; label: string }[] = [
 // since the JSON wire format uses the string names, not indices.
 export type GamePlatform =
   | 'Other'
-  | 'Pc' | 'Mac' | 'Linux' | 'Mobile'
+  | 'Pc' | 'Mac' | 'Mobile'
   | 'XboxOriginal' | 'Xbox360' | 'XboxOne' | 'XboxSeriesXS'
   | 'Ps1' | 'Ps2' | 'Ps3' | 'Ps4' | 'Ps5' | 'Psp' | 'PsVita'
   | 'Nes' | 'Snes' | 'N64' | 'GameCube' | 'Wii' | 'WiiU' | 'Switch' | 'Switch2'
@@ -141,7 +141,6 @@ export type GamePlatform =
 export const GAME_PLATFORMS: { value: GamePlatform; label: string; group?: string }[] = [
   { value: 'Pc',             label: 'PC',                       group: 'Computer' },
   { value: 'Mac',            label: 'Mac',                      group: 'Computer' },
-  { value: 'Linux',          label: 'Linux',                    group: 'Computer' },
   { value: 'Mobile',         label: 'Mobile',                   group: 'Computer' },
 
   { value: 'XboxOriginal',   label: 'Xbox (original)',          group: 'Xbox' },

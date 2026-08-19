@@ -6,7 +6,7 @@ import OnlineSearch from './OnlineSearch';
 // Swap the data layer with a controllable test double.
 const mockUseLookup = vi.fn();
 vi.mock('../services/lookup', () => ({
-  useLookup: (type: string, query: string) => mockUseLookup(type, query),
+  useLookup: (type: string, query: string, platform?: string) => mockUseLookup(type, query, platform),
 }));
 
 describe('OnlineSearch', () => {

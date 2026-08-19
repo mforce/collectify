@@ -109,7 +109,7 @@ public class EnumParityTests
             },
             ["GamePlatform"] = new Dictionary<string, int>
             {
-                ["Other"] = 0, ["Pc"] = 1, ["Mac"] = 2, ["Linux"] = 3, ["Mobile"] = 4,
+                ["Other"] = 0, ["Pc"] = 1, ["Mac"] = 2, ["Mobile"] = 4,
                 ["XboxOriginal"] = 10, ["Xbox360"] = 11, ["XboxOne"] = 12, ["XboxSeriesXS"] = 13,
                 ["Ps1"] = 20, ["Ps2"] = 21, ["Ps3"] = 22, ["Ps4"] = 23, ["Ps5"] = 24, ["Psp"] = 25, ["PsVita"] = 26,
                 ["Nes"] = 30, ["Snes"] = 31, ["N64"] = 32, ["GameCube"] = 33, ["Wii"] = 34, ["WiiU"] = 35,
@@ -126,7 +126,7 @@ public class EnumParityTests
     /// retired in the backfill, this picks it up automatically, so a new
     /// member reusing a retired value is caught here instead of being
     /// silently clobbered on every boot. 60 was GamePlatform.SteamDeck,
-    /// retired in #103.
+    /// retired in #103; 3 was GamePlatform.Linux, folded into Pc in #102.
     /// </summary>
     // The retired from-values all belong to GamePlatform (the backfill only
     // reclassifies GamePlatform.Platform rows), so key the reserved set by

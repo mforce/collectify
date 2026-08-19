@@ -10,12 +10,13 @@ namespace Collectify.Infrastructure.Data;
 ///
 /// 1. Retire removed enum values. Rows still carrying the integer of an
 ///    enum member that no longer exists are reset to a valid value.
-///    Currently <see cref="RetiredPlatformValues"/> = { 60 }: the
-///    <c>SteamDeck</c> member was removed (#103) and its rows reclassify
-///    as <c>Pc</c>. This lives here rather than only in the
-///    <c>ConvertSteamDeckToPc</c> migration because Postgres builds its
-///    schema with <c>EnsureCreated()</c> and never replays migrations,
-///    so a migration-only fix would never run there.
+///    Currently <see cref="RetiredPlatformValues"/> = { 3, 60 }: the
+///    <c>Linux</c> member (3) was folded into <c>Pc</c> (#102) and the
+///    <c>SteamDeck</c> member (60) was removed (#103); their rows reclassify
+///    as <c>Pc</c>. This lives here rather than only in a migration
+///    because Postgres builds its schema with <c>EnsureCreated()</c> and
+///    never replays migrations, so a migration-only fix would never run
+///    there.
 /// 2. Resolve the free-text values preserved in <c>Game.PlatformLegacy</c>
 ///    at the <c>ConvertGamePlatformToEnum</c> migration into proper
 ///    <see cref="GamePlatform"/> values, clearing the column on a hit.
@@ -27,7 +28,9 @@ public static class GamePlatformBackfill
     /// <summary>
     /// Persisted <c>Platform</c> integers whose enum member has been
     /// removed, mapped to the value their rows reclassify to. 60 was
-    /// <c>GamePlatform.SteamDeck</c> (a PC); see #103.
+    /// <c>GamePlatform.SteamDeck</c> (a PC); see #103. 3 was
+    /// <c>GamePlatform.Linux</c> — folded into <c>Pc</c> (#102); Mac (2)
+    /// remains its own platform.
     /// </summary>
     // Public so EnumParityTests can derive ReservedValues from this single
     // source of truth -- a second hand-maintained copy would drift: retiring
@@ -36,7 +39,8 @@ public static class GamePlatformBackfill
     public static readonly IReadOnlyDictionary<int, GamePlatform> RetiredPlatformValues =
         new Dictionary<int, GamePlatform>
         {
-            [60] = GamePlatform.Pc,
+            [3] = GamePlatform.Pc, // was Linux (folded into Pc, #102)
+            [60] = GamePlatform.Pc, // was SteamDeck (#103)
         };
 
     public static async Task<int> RunAsync(CollectifyDbContext db, CancellationToken ct = default)

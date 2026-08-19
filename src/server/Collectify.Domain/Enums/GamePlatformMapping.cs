@@ -19,11 +19,16 @@ public static class GamePlatformMapping
     private static readonly (GamePlatform Value, string[] Aliases)[] Aliases = new[]
     {
         // A Steam Deck runs SteamOS (Linux) / Windows and plays desktop-PC
-        // games, so it classifies as Pc. The "how you got it" dimension is
-        // IsDigital + DigitalStore (Steam), not the platform.
-        (GamePlatform.Pc, new[] { "pc", "windows", "microsoft windows", "steam deck", "steamdeck" }),
-        (GamePlatform.Mac, new[] { "mac", "macos", "mac os", "macintosh", "osx" }),
-        (GamePlatform.Linux, new[] { "linux" }),
+        // games, so it classifies as Pc (as does a bare Linux title; #102).
+        // The "how you got it" dimension is IsDigital + DigitalStore (Steam),
+        // not the platform. Desktop macOS is its own platform (Mac).
+        // IGDB names its PC platform "PC (Microsoft Windows)" and Mac
+        // "Apple Macintosh". The normalizer strips parentheses/spaces, so
+        // those collapse to "pcmicrosoftwindows" / "applemacintosh" — which
+        // are NOT covered by the bare aliases below. Both variants are listed
+        // explicitly so an IGDB-sourced platform name maps to the right enum.
+        (GamePlatform.Pc, new[] { "pc", "windows", "microsoft windows", "steam deck", "steamdeck", "pc (microsoft windows)", "linux" }),
+        (GamePlatform.Mac, new[] { "mac", "macos", "mac os", "macintosh", "osx", "apple macintosh" }),
         (GamePlatform.Mobile, new[] { "mobile", "ios", "iphone", "ipad", "android" }),
 
         (GamePlatform.XboxOriginal, new[] { "xbox", "xbox original", "original xbox" }),

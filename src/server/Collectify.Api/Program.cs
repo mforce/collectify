@@ -86,6 +86,9 @@ builder.Services.AddRateLimiter(rate =>
 });
 builder.Services.ConfigureHttpJsonOptions(opt =>
 {
+    // GamePlatform keeps its own converter so retired/write paths degrade
+    // (Linux -> Pc) instead of 400-ing; all other enums use the string form.
+    opt.SerializerOptions.Converters.Add(new GamePlatformJsonConverter());
     opt.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
@@ -97,6 +100,10 @@ builder.Services.AddTmdbMovieProvider(builder.Configuration);
 builder.Services.AddMusicBrainzMusicProvider(builder.Configuration);
 builder.Services.AddIgdbGameProvider(builder.Configuration);
 builder.Services.AddVisionClient(builder.Configuration);
+// Background IGDB metadata backfill (issue #132). Sweeps Game rows with
+// IgdbId == null after a Steam import (or any manual game) and fills metadata
+// + cover in the background. Skips itself when IGDB is unconfigured.
+builder.Services.AddIgdbBackfill(builder.Configuration);
 builder.Services.AddSteamStoreImport(builder.Configuration);
 
 // Cover-image cache. Bytes live in the CoverImages table alongside the
