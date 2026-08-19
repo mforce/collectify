@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Collectify.Api.Endpoints;
+using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup;
@@ -89,6 +90,17 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
     // GamePlatform keeps its own converter so retired/write paths degrade
     // (Linux -> Pc) instead of 400-ing; all other enums use the string form.
     opt.SerializerOptions.Converters.Add(new GamePlatformJsonConverter());
+    // Non-flags, write-boundary enums reject any value that is not a defined
+    // member (issue #115): a defined integer still binds (pre-existing wire
+    // contract), but an arbitrary/retired integer (e.g. 999) now 400s instead
+    // of persisting an unnamed enum value. Registered before the global
+    // converter below so each wins for its own type.
+    opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<CollectionStatus>());
+    opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<Condition>());
+    opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<WatchStatus>());
+    opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<CompletionStatus>());
+    opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<DigitalStore>());
+    opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<MusicFormat>());
     opt.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
