@@ -20,7 +20,7 @@ namespace Collectify.Tests.Api;
 public class EnumWriteBoundaryTests
 {
     private static string MovieBody(string fieldToken) =>
-        $@"{{""title"":""Inception"",""formats"":2,""watchStatus"":""Unwatched"",""watchCount"":0,{fieldToken}}}";
+        $@"{{""title"":""Inception"",""formats"":2,""watchCount"":0,{fieldToken}}}";
 
     private static string MusicBody(string fieldToken) =>
         $@"{{""title"":""Kind of Blue"",""artistName"":""Miles Davis"",{fieldToken}}}";
@@ -54,6 +54,10 @@ public class EnumWriteBoundaryTests
     public static IEnumerable<object[]> BadStringBodies => new List<object[]>
     {
         new object[] { "movie", "/api/movies/", MovieBody(@"""status"":""NotARealMember""") },
+        // A numeric-looking string ("999") is NOT a defined member name; the
+        // string branch's Enum.IsDefined must reject it, not TryParse-pass it
+        // into an unnamed enum value.
+        new object[] { "movie", "/api/movies/", MovieBody(@"""status"":""999""") },
         new object[] { "movie", "/api/movies/", MovieBody(@"""watchStatus"":""NotARealMember""") },
         new object[] { "movie", "/api/movies/", MovieBody(@"""condition"":""NotARealMember""") },
         new object[] { "music", "/api/music/",  MusicBody(@"""format"":""NotARealMember""") },

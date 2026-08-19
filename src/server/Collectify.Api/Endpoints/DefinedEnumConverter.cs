@@ -17,7 +17,14 @@ namespace Collectify.Api.Endpoints;
 /// clients send) still binds, exactly as it did before. What is newly rejected
 /// is an integer that corresponds to no declared member. Strings must name a
 /// defined member (the pre-existing behaviour of <c>JsonStringEnumConverter</c>
-/// for a bad string already threw).
+/// for a bad string already threw); note <c>Enum.TryParse</c> alone is NOT
+/// sufficient because it accepts numeric strings ("999") and comma lists, so
+/// the explicit <c>Enum.IsDefined</c> check below is load-bearing.
+///
+/// The converter assumes the enum is backed by <see cref="int"/> (it reads the
+/// token via <see cref="Utf8JsonReader.GetInt32"/>). The registered write-boundary
+/// enums are all <c>int</c>-backed; registering a <c>byte</c>/<c>long</c>-backed
+/// enum would change the failure mode to a 500 instead of a 400.
 ///
 /// <c>[Flags]</c> enums are NOT handled here — they carry bitmask combinations
 /// (e.g. <c>MovieFormats</c> is bound as an <c>int</c> and validated separately).
@@ -40,6 +47,9 @@ public sealed class DefinedEnumConverter<TEnum> : JsonConverter<TEnum>
         if (reader.TokenType == JsonTokenType.String)
         {
             var raw = reader.GetString();
+            // TryParse passes numeric-looking strings ("999") and comma lists
+            // ("Owned,OnOrder"); the IsDefined below is what stops those from
+            // binding as unnamed enum values. Do not "simplify" it away.
             if (!string.IsNullOrWhiteSpace(raw)
                 && Enum.TryParse(typeof(TEnum), raw, ignoreCase: true, out var parsed)
                 && parsed is TEnum value

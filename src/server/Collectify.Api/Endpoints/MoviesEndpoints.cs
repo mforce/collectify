@@ -172,10 +172,10 @@ public static class MoviesEndpoints
         // (MovieFormat)dto.Formats cast at the boundary (issue #115): an
         // arbitrary integer with bits outside the defined flag set must not
         // persist an undefined MovieFormat. None (0) and any combination of
-        // defined bits are valid.
-        const int validMovieFormatBits =
-            (int)MovieFormat.Dvd | (int)MovieFormat.BluRay | (int)MovieFormat.UhdBluRay
-            | (int)MovieFormat.Vhs | (int)MovieFormat.Digital;
+        // defined bits are valid. Derive the mask from the enum so a future
+        // member is covered automatically (reviewer F1).
+        var validMovieFormatBits = Enum.GetValues<MovieFormat>()
+            .Aggregate(0, (mask, f) => mask | (int)f);
         if ((dto.Formats & ~validMovieFormatBits) != 0)
             return Results.BadRequest(new { error = "Formats contains an undefined MovieFormat bit." });
         if (dto.AcquisitionCurrency is { Length: > 0 } c && c.Length != 3)
