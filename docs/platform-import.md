@@ -185,9 +185,10 @@ IPlayerService/GetOwnedGames/v1?key=…&steamid=<steamid64>&include_appinfo=true
 - **Trusted source of truth:** ownership + titles come **only** from this provider response; the
   server never trusts client-supplied titles or IDs for what the account owns.
 - **Caching (Claude S6):** route this via `ILookupCache`, keyed on **SteamID64** (never on
-  `OwnerId` alone — the cache table is global, unique on `(Provider, Key)`), with a **short TTL**
-  (minutes, e.g. 5), overriding the 30-day default. A user's private library must not sit in the
-  shared cache for 30 days (privacy + staleness).
+  `OwnerId` alone — the cache is a shared memory/Redis store keyed by `(Provider, Key)`), with a
+  **short TTL** (minutes, e.g. 5), overriding the 30-day default. A user's private library must not
+  sit in the shared cache for 30 days (privacy + staleness); with Redis the cached Steam library
+  payload at rest must be treated as private data.
 - **Profile-visibility caveat:** `GetOwnedGames` returns `{"response":{}}` for both a private
   profile and an empty library. Show a **qualified** message ("No games returned — your game
   details may be private"), not a hard diagnosis.
