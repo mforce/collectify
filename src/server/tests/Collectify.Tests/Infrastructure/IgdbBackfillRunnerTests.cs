@@ -24,7 +24,7 @@ public class IgdbBackfillRunnerTests : IDisposable
         _connection.Open();
         _options = new DbContextOptionsBuilder<CollectifyDbContext>().UseSqlite(_connection).Options;
         using var seed = new CollectifyDbContext(_options);
-        seed.Database.EnsureCreated();
+        seed.Database.Migrate();
     }
 
     public void Dispose() => _connection.Dispose();
