@@ -262,14 +262,14 @@ public class DistributedCacheAdapterTests
 
         var readFailure = new RecordingDistributedCache
         {
-            ThrowOnGet = new InvalidOperationException("backend down"),
+            ThrowOnGet = new InvalidOperationException($"backend failed for lookup:steam-owned:owned:{steamId}"),
         };
         await NewAdapter(readFailure, logger)
             .GetAsync<Sample>("steam-owned", $"owned:{steamId}");
 
         var writeFailure = new RecordingDistributedCache
         {
-            ThrowOnSet = new InvalidOperationException("backend down"),
+            ThrowOnSet = new InvalidOperationException($"backend failed for lookup:upc:barcode:{barcode}"),
         };
         await NewAdapter(writeFailure, logger)
             .SetAsync("upc", $"barcode:{barcode}", new Sample("Movie", 1999), TimeSpan.FromDays(1));
@@ -277,12 +277,13 @@ public class DistributedCacheAdapterTests
         var corruptRemovalFailure = new RecordingDistributedCache
         {
             Store = { [$"lookup:tmdb:search:{privateQuery}"] = Encoding.UTF8.GetBytes("{ nope") },
-            ThrowOnRemove = new InvalidOperationException("backend down"),
+            ThrowOnRemove = new InvalidOperationException($"backend failed for lookup:tmdb:search:{privateQuery}"),
         };
         await NewAdapter(corruptRemovalFailure, logger)
             .GetAsync<Sample>("tmdb", $"search:{privateQuery}");
 
         Assert.Equal(4, logger.Entries.Count);
+        Assert.All(logger.Entries, entry => Assert.Null(entry.Exception));
         foreach (var sensitiveValue in new[] { steamId, barcode, privateQuery })
         {
             Assert.All(logger.Entries, entry => Assert.DoesNotContain(sensitiveValue, entry.Message));
@@ -389,11 +390,12 @@ public class DistributedCacheAdapterTests
         {
             var properties = state as IEnumerable<KeyValuePair<string, object?>>
                 ?? Array.Empty<KeyValuePair<string, object?>>();
-            Entries.Add(new LogEntry(formatter(state, exception), properties.ToList()));
+            Entries.Add(new LogEntry(formatter(state, exception), properties.ToList(), exception));
         }
     }
 
     private sealed record LogEntry(
         string Message,
-        IReadOnlyList<KeyValuePair<string, object?>> State);
+        IReadOnlyList<KeyValuePair<string, object?>> State,
+        Exception? Exception);
 }

@@ -35,7 +35,10 @@ public sealed class DistributedCacheAdapter : ILookupCache
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "Lookup cache read failed for provider {Provider}", provider);
+            _log.LogWarning(
+                "Lookup cache read failed for provider {Provider} ({ErrorType})",
+                provider,
+                ex.GetType().Name);
             return default;
         }
 
@@ -49,10 +52,10 @@ public sealed class DistributedCacheAdapter : ILookupCache
         catch (JsonException ex)
         {
             _log.LogWarning(
-                ex,
-                "Ignoring stale or incompatible lookup cache entry for provider {Provider}, type {Type}",
+                "Ignoring stale or incompatible lookup cache entry for provider {Provider}, type {Type} ({ErrorType})",
                 provider,
-                typeof(T).FullName);
+                typeof(T).FullName,
+                ex.GetType().Name);
             await RemoveCorruptEntryAsync(provider, physicalKey, ct);
             return default;
         }
@@ -82,7 +85,10 @@ public sealed class DistributedCacheAdapter : ILookupCache
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "Lookup cache write failed for provider {Provider}", provider);
+            _log.LogWarning(
+                "Lookup cache write failed for provider {Provider} ({ErrorType})",
+                provider,
+                ex.GetType().Name);
         }
     }
 
@@ -101,7 +107,10 @@ public sealed class DistributedCacheAdapter : ILookupCache
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "Lookup cache removal failed for provider {Provider}", provider);
+            _log.LogWarning(
+                "Lookup cache removal failed for provider {Provider} ({ErrorType})",
+                provider,
+                ex.GetType().Name);
         }
     }
 

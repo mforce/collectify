@@ -171,6 +171,6 @@ public class MetadataLookupServiceCollectionExtensionsTests
             .Build();
 
         var ex = Assert.Throws<OptionsValidationException>(() => host.Start());
-        Assert.Contains("Collectify:Steam:CacheTtl", ex.Message);
+        Assert.Contains("Collectify:Platforms:Steam:CacheTtl must be greater than zero.", ex.Message);
     }
 }
