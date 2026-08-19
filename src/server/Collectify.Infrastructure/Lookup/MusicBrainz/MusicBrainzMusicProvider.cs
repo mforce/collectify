@@ -50,7 +50,7 @@ public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
         if (trimmed.Length == 0) return [];
 
         var cacheKey = "search:" + trimmed.ToLowerInvariant();
-        var cached = await _cache.GetAsync<List<MusicLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<List<MusicLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         MbReleaseSearchResponse? body;
@@ -68,7 +68,7 @@ public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
         }
 
         var mapped = (body?.Releases ?? []).Select(Map).ToList();
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 
@@ -78,7 +78,7 @@ public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
         if (string.IsNullOrWhiteSpace(providerKey)) return null;
 
         var cacheKey = "id:" + providerKey;
-        var cached = await _cache.GetAsync<MusicLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<MusicLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         MbRelease? release;
@@ -101,7 +101,7 @@ public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
 
         if (release is null) return null;
         var mapped = Map(release);
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 
@@ -116,7 +116,7 @@ public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
         // Cache key is namespaced "barcode:" so it can't collide with
         // free-text searches whose content happens to be a 12-digit number.
         var cacheKey = "barcode:" + trimmed;
-        var cached = await _cache.GetAsync<List<MusicLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<List<MusicLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         MbReleaseSearchResponse? body;
@@ -132,7 +132,7 @@ public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
         }
 
         var mapped = (body?.Releases ?? []).Select(Map).ToList();
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 

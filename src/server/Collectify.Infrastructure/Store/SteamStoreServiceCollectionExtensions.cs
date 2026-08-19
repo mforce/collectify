@@ -24,7 +24,9 @@ public static class SteamStoreServiceCollectionExtensions
     public static IServiceCollection AddSteamStoreImport(this IServiceCollection services, IConfiguration config)
     {
         services.AddOptions<SteamOptions>()
-            .Bind(config.GetSection(SteamOptions.SectionName));
+            .Bind(config.GetSection(SteamOptions.SectionName))
+            .Validate(options => options.Steam.CacheTtl > TimeSpan.Zero, "Collectify:Steam:CacheTtl must be greater than zero.")
+            .ValidateOnStart();
 
         services.AddHttpClient(SteamClient.HttpClientName, (sp, client) =>
         {

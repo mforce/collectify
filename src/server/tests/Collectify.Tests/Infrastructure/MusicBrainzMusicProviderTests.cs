@@ -1,42 +1,26 @@
 using System.Net;
 using System.Text;
-using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.MusicBrainz;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
 
 namespace Collectify.Tests.Infrastructure;
 
-public class MusicBrainzMusicProviderTests : IDisposable
+public class MusicBrainzMusicProviderTests
 {
-    private readonly SqliteConnection _connection;
-    private readonly DbContextOptions<CollectifyDbContext> _dbOptions;
-    private readonly FakeTimeProvider _clock = new(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(30);
 
-    public MusicBrainzMusicProviderTests()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-        _dbOptions = new DbContextOptionsBuilder<CollectifyDbContext>().UseSqlite(_connection).Options;
-        using var seed = new CollectifyDbContext(_dbOptions);
-        seed.Database.EnsureCreated();
-    }
-
-    public void Dispose() => _connection.Dispose();
-
-    private MusicBrainzMusicProvider NewProvider(StubHandler handler, MetadataLookupOptions? overrideOptions = null)
+    private MusicBrainzMusicProvider NewProvider(StubHandler handler, LookupCacheMockStorage storage, MetadataLookupOptions? overrideOptions = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://musicbrainz.org/ws/2/") };
-        var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
+        storage.SetupStorage<List<MusicLookupResult>>(CacheTtl);
+        storage.SetupStorage<MusicLookupResult>(CacheTtl);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             MusicBrainz = new MusicBrainzOptions { UserAgent = "Collectify/1.0 (test@example.com)" },
         };
-        return new MusicBrainzMusicProvider(http, cache, Options.Create(options), NullLogger<MusicBrainzMusicProvider>.Instance);
+        return new MusicBrainzMusicProvider(http, storage.Mock.Object, Options.Create(options), NullLogger<MusicBrainzMusicProvider>.Instance);
     }
 
     private const string SearchJson = """
@@ -74,8 +58,8 @@ public class MusicBrainzMusicProviderTests : IDisposable
     [Fact]
     public async Task IsConfigured_ReflectsUserAgentPresence()
     {
-        var configured = NewProvider(new StubHandler("{ \"releases\": [] }"));
-        var unconfigured = NewProvider(new StubHandler("never called"), new MetadataLookupOptions());
+        var configured = NewProvider(new StubHandler("{ \"releases\": [] }"), new LookupCacheMockStorage());
+        var unconfigured = NewProvider(new StubHandler("never called"), new LookupCacheMockStorage(), new MetadataLookupOptions());
 
         Assert.True(configured.IsConfigured);
         Assert.False(unconfigured.IsConfigured);
@@ -85,7 +69,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchAsync_WithoutUserAgent_ShortCircuitsToEmpty_AndDoesNotCallMb()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, new MetadataLookupOptions());
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), new MetadataLookupOptions());
 
         var results = await provider.SearchAsync("ok computer");
 
@@ -97,7 +81,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchAsync_WithBlankQuery_ReturnsEmptyWithoutCalling()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Empty(await provider.SearchAsync("   "));
         Assert.Empty(handler.RequestedUrls);
@@ -107,7 +91,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchAsync_HitsReleaseEndpoint_WithFmtJsonAndLimit()
     {
         var handler = new StubHandler(SearchJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchAsync("ok computer");
 
@@ -121,7 +105,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     [Fact]
     public async Task SearchAsync_MapsRelease_IncludingArtistAndLabelAndCoverArtUrl()
     {
-        var provider = NewProvider(new StubHandler(SearchJson));
+        var provider = NewProvider(new StubHandler(SearchJson), new LookupCacheMockStorage());
 
         var results = await provider.SearchAsync("ok computer");
 
@@ -155,7 +139,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
               ]
             }
             """;
-        var provider = NewProvider(new StubHandler(body));
+        var provider = NewProvider(new StubHandler(body), new LookupCacheMockStorage());
 
         var hit = (await provider.SearchAsync("watch")).Single();
 
@@ -166,8 +150,9 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchAsync_RepeatedQuery_ServesFromCache()
     {
         var handler = new StubHandler(SearchJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler); // shared sqlite cache
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage); // shared mock storage
 
         await p1.SearchAsync("ok computer");
         await p2.SearchAsync("OK Computer"); // case-insensitive cache key
@@ -176,10 +161,23 @@ public class MusicBrainzMusicProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchAsync_ForwardsConfiguredTtlOnWrite()
+    {
+        var handler = new StubHandler(SearchJson);
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage);
+
+        await provider.SearchAsync("ok computer");
+
+        Assert.NotEmpty(storage.Writes);
+        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
+    }
+
+    [Fact]
     public async Task SearchAsync_OnUpstreamFailure_ReturnsEmptyAndDoesNotCache()
     {
         var handler = new StubHandler("nope", HttpStatusCode.InternalServerError);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Empty(await provider.SearchAsync("x"));
         await provider.SearchAsync("x"); // should retry, not serve a cached []
@@ -190,7 +188,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task GetByIdAsync_HitsReleaseEndpoint_WithIncArtistAndLabels()
     {
         var handler = new StubHandler(ReleaseJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.GetByIdAsync("f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
 
@@ -206,7 +204,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task GetByIdAsync_With404FromMb_ReturnsNullWithoutCaching()
     {
         var handler = new StubHandler("not found", HttpStatusCode.NotFound);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Null(await provider.GetByIdAsync("00000000-0000-0000-0000-000000000000"));
         await provider.GetByIdAsync("00000000-0000-0000-0000-000000000000");
@@ -217,8 +215,9 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task GetByIdAsync_RepeatedCallsServeFromCache()
     {
         var handler = new StubHandler(ReleaseJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage);
 
         var first = await p1.GetByIdAsync("f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
         var second = await p2.GetByIdAsync("f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
@@ -237,11 +236,11 @@ public class MusicBrainzMusicProviderTests : IDisposable
         var searchHandler = new StubHandler("""
             { "releases": [ { "id": "different", "title": "Other", "date": "1990-01-01" } ] }
             """);
-        await NewProvider(searchHandler).SearchAsync("f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
+        await NewProvider(searchHandler, new LookupCacheMockStorage()).SearchAsync("f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
         Assert.Single(searchHandler.RequestedUrls);
 
         var idHandler = new StubHandler(ReleaseJson);
-        var byId = await NewProvider(idHandler).GetByIdAsync("f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
+        var byId = await NewProvider(idHandler, new LookupCacheMockStorage()).GetByIdAsync("f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
 
         Assert.Equal("OK Computer", byId!.Title);
         Assert.Single(idHandler.RequestedUrls);
@@ -253,7 +252,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchByBarcodeAsync_NotConfigured_ReturnsEmptyWithoutCalling()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, new MetadataLookupOptions());
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), new MetadataLookupOptions());
 
         Assert.Empty(await provider.SearchByBarcodeAsync("0883929473076"));
         Assert.Empty(handler.RequestedUrls);
@@ -263,7 +262,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchByBarcodeAsync_BlankBarcode_ReturnsEmptyWithoutCalling()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Empty(await provider.SearchByBarcodeAsync("   "));
         Assert.Empty(handler.RequestedUrls);
@@ -273,7 +272,7 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchByBarcodeAsync_HitsReleaseEndpointWithBarcodeQuery()
     {
         var handler = new StubHandler(SearchJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchByBarcodeAsync("634904012623");
 
@@ -290,8 +289,9 @@ public class MusicBrainzMusicProviderTests : IDisposable
     public async Task SearchByBarcodeAsync_RepeatedCallsServeFromCache()
     {
         var handler = new StubHandler(SearchJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage);
 
         await p1.SearchByBarcodeAsync("634904012623");
         await p2.SearchByBarcodeAsync("634904012623");
@@ -307,11 +307,11 @@ public class MusicBrainzMusicProviderTests : IDisposable
         var searchHandler = new StubHandler("""
             { "releases": [ { "id": "different", "title": "Different", "date": "2000-01-01" } ] }
             """);
-        await NewProvider(searchHandler).SearchAsync("634904012623");
+        await NewProvider(searchHandler, new LookupCacheMockStorage()).SearchAsync("634904012623");
         Assert.Single(searchHandler.RequestedUrls);
 
         var barcodeHandler = new StubHandler(SearchJson);
-        var barcodeHits = await NewProvider(barcodeHandler).SearchByBarcodeAsync("634904012623");
+        var barcodeHits = await NewProvider(barcodeHandler, new LookupCacheMockStorage()).SearchByBarcodeAsync("634904012623");
 
         Assert.Single(barcodeHits);
         Assert.Equal("OK Computer", barcodeHits[0].Title);

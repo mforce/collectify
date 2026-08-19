@@ -1,44 +1,27 @@
 using System.Net;
 using System.Text;
-using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
-using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Igdb;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Time.Testing;
 
 namespace Collectify.Tests.Infrastructure;
 
-public class IgdbGameProviderTests : IDisposable
+public class IgdbGameProviderTests
 {
-    private readonly SqliteConnection _connection;
-    private readonly DbContextOptions<CollectifyDbContext> _dbOptions;
-    private readonly FakeTimeProvider _clock = new(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(30);
 
-    public IgdbGameProviderTests()
-    {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-        _dbOptions = new DbContextOptionsBuilder<CollectifyDbContext>().UseSqlite(_connection).Options;
-        using var seed = new CollectifyDbContext(_dbOptions);
-        seed.Database.EnsureCreated();
-    }
-
-    public void Dispose() => _connection.Dispose();
-
-    private IgdbGameProvider NewProvider(HttpMessageHandler handler, FakeAuth? auth = null, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
+    private IgdbGameProvider NewProvider(HttpMessageHandler handler, LookupCacheMockStorage storage, FakeAuth? auth = null, MetadataLookupOptions? overrideOptions = null, FakeUpcClient? upc = null)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://api.igdb.com/v4/") };
-        var cache = new LookupCache(new CollectifyDbContext(_dbOptions), _clock);
+        storage.SetupStorage<List<GameLookupResult>>(CacheTtl);
+        storage.SetupStorage<GameLookupResult>(CacheTtl);
         var options = overrideOptions ?? new MetadataLookupOptions
         {
             Igdb = new IgdbOptions { TwitchClientId = "client", TwitchClientSecret = "secret" },
         };
-        return new IgdbGameProvider(http, auth ?? new FakeAuth("client", "tok"), upc ?? FakeUpcClient.NotRecognised(), cache, Options.Create(options), NullLogger<IgdbGameProvider>.Instance);
+        return new IgdbGameProvider(http, auth ?? new FakeAuth("client", "tok"), upc ?? FakeUpcClient.NotRecognised(), storage.Mock.Object, Options.Create(options), NullLogger<IgdbGameProvider>.Instance);
     }
 
     private const string SingleGameJson = """
@@ -59,28 +42,15 @@ public class IgdbGameProviderTests : IDisposable
         ]
         """;
 
-    private async Task SeedRawCacheRowAsync(string provider, string key, string json)
-    {
-        using var ctx = new CollectifyDbContext(_dbOptions);
-        ctx.LookupCache.Add(new LookupCacheEntry
-        {
-            Provider = provider,
-            Key = key,
-            JsonResponse = json,
-            FetchedAt = _clock.GetUtcNow().UtcDateTime,
-        });
-        await ctx.SaveChangesAsync();
-    }
-
     [Fact]
     public void IsConfigured_ReflectsBothCredentials()
     {
-        var both = NewProvider(new StubHandler("[]"));
-        var missingSecret = NewProvider(new StubHandler("[]"), overrideOptions: new MetadataLookupOptions
+        var both = NewProvider(new StubHandler("[]"), new LookupCacheMockStorage());
+        var missingSecret = NewProvider(new StubHandler("[]"), new LookupCacheMockStorage(), overrideOptions: new MetadataLookupOptions
         {
             Igdb = new IgdbOptions { TwitchClientId = "client", TwitchClientSecret = null },
         });
-        var missingId = NewProvider(new StubHandler("[]"), overrideOptions: new MetadataLookupOptions
+        var missingId = NewProvider(new StubHandler("[]"), new LookupCacheMockStorage(), overrideOptions: new MetadataLookupOptions
         {
             Igdb = new IgdbOptions { TwitchClientId = "  ", TwitchClientSecret = "secret" },
         });
@@ -94,7 +64,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchAsync_WithoutCredentials_ShortCircuitsToEmpty_AndDoesNotCallIgdb()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, overrideOptions: new MetadataLookupOptions());
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), overrideOptions: new MetadataLookupOptions());
 
         Assert.Empty(await provider.SearchAsync("witcher"));
         Assert.Empty(handler.Requests);
@@ -104,7 +74,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchAsync_BlankQuery_ReturnsEmptyWithoutCalling()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Empty(await provider.SearchAsync("   "));
         Assert.Empty(handler.Requests);
@@ -114,7 +84,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchAsync_PostsApicalypseBodyWithSearchAndFields_AndAuthHeaders()
     {
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchAsync("witcher");
 
@@ -131,7 +101,7 @@ public class IgdbGameProviderTests : IDisposable
     [Fact]
     public async Task SearchAsync_MapsGame_IncludingDeveloperPublisherCoverPlatformAndYear()
     {
-        var provider = NewProvider(new StubHandler(SingleGameJson));
+        var provider = NewProvider(new StubHandler(SingleGameJson), new LookupCacheMockStorage());
 
         var hit = Assert.Single(await provider.SearchAsync("witcher"));
 
@@ -152,7 +122,7 @@ public class IgdbGameProviderTests : IDisposable
         const string json = """
             [ { "id": 1, "name": "Indie", "platforms": [ { "name": "PC" } ] } ]
             """;
-        var hit = (await NewProvider(new StubHandler(json)).SearchAsync("indie")).Single();
+        var hit = (await NewProvider(new StubHandler(json), new LookupCacheMockStorage()).SearchAsync("indie")).Single();
 
         Assert.Null(hit.ImageUrl);
         Assert.Null(hit.Year);
@@ -170,7 +140,7 @@ public class IgdbGameProviderTests : IDisposable
         // Linux folds into Pc, #102) so IGDB runs the fuzzy search within the
         // PC family and the PC release appears.
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchByPlatformAsync("The Witcher 3: Wild Hunt", GamePlatform.Pc);
 
@@ -191,7 +161,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchByPlatformAsync_KnownPlatform_AppendsIdClause(GamePlatform platform, string expectedClause)
     {
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchByPlatformAsync("witcher", platform);
 
@@ -207,7 +177,7 @@ public class IgdbGameProviderTests : IDisposable
         // IGDB returns a PC + PS4 entry; neither maps to Mobile/Other,
         // so the in-memory IsOn filter must leave the result set empty.
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         var results = await provider.SearchByPlatformAsync("witcher", platform);
 
@@ -227,7 +197,7 @@ public class IgdbGameProviderTests : IDisposable
             [ { "id": 4242, "name": "Linux-Only Gem", "platforms": [ { "name": "Linux" } ] } ]
             """;
         var handler = new StubHandler(json);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         var hit = Assert.Single(await provider.SearchByPlatformAsync("gem", GamePlatform.Pc));
 
@@ -245,8 +215,9 @@ public class IgdbGameProviderTests : IDisposable
         // an unscoped "v3:search:witcher" entry must NOT satisfy a PC-scoped
         // "v3:search:witcher|Pc" request (or the platform filter would be wrong).
         var handler = new StubHandler(SingleGameJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler); // shared sqlite cache
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage); // shared mock storage
 
         await p1.SearchAsync("witcher");                            // unscoped: key "v3:search:witcher"
         await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "v3:search:witcher|Pc"
@@ -261,7 +232,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchByPlatformAsync_RepeatedCall_ServesFromCache()
     {
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchByPlatformAsync("witcher", GamePlatform.Pc);
         await provider.SearchByPlatformAsync("witcher", GamePlatform.Pc); // same scoped key
@@ -284,7 +255,7 @@ public class IgdbGameProviderTests : IDisposable
                 ]
             } ]
             """;
-        var hit = (await NewProvider(new StubHandler(json)).SearchAsync("spelunky")).Single();
+        var hit = (await NewProvider(new StubHandler(json), new LookupCacheMockStorage()).SearchAsync("spelunky")).Single();
         Assert.Equal(GamePlatform.Pc, hit.Platform);
     }
 
@@ -294,7 +265,7 @@ public class IgdbGameProviderTests : IDisposable
         const string json = """
             [ { "id": 1, "name": "X", "platforms": [ { "name": "3DO" }, { "name": "Atari Jaguar" } ] } ]
             """;
-        var hit = (await NewProvider(new StubHandler(json)).SearchAsync("x")).Single();
+        var hit = (await NewProvider(new StubHandler(json), new LookupCacheMockStorage()).SearchAsync("x")).Single();
         // Null (not Other) so the form's dropdown stays unset and the
         // user notices they need to pick one.
         Assert.Null(hit.Platform);
@@ -304,7 +275,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchAsync_EscapesQuotesInQuery()
     {
         var handler = new StubHandler("[]");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.SearchAsync("foo \"bar\" baz");
 
@@ -316,8 +287,9 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchAsync_RepeatedQuery_ServesFromCache()
     {
         var handler = new StubHandler(SingleGameJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler); // shared sqlite cache
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage); // shared mock storage
 
         await p1.SearchAsync("witcher");
         await p2.SearchAsync("WITCHER"); // case-insensitive cache key
@@ -326,56 +298,62 @@ public class IgdbGameProviderTests : IDisposable
     }
 
     [Fact]
-    public async Task SearchAsync_WithStaleIncompatibleCachedResult_TreatsCacheAsMissAndRefreshes()
+    public async Task SearchAsync_ForwardsConfiguredTtlOnWrite()
     {
-        // Seed a cache row under the v2 schema key. The provider now reads
-        // v3:search:..., so this v2 row is stale-schema and must be treated as
-        // a miss -> the provider hits IGDB afresh and returns the real row.
-        await SeedRawCacheRowAsync(
-            "igdb",
-            "v2:search:witcher",
-            "[{\"provider\":\"igdb\",\"providerKey\":\"old\",\"title\":\"Old\",\"platform\":\"Windows 95\"}]");
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage);
 
-        var hit = Assert.Single(await provider.SearchAsync("witcher"));
+        await provider.SearchAsync("witcher");
 
-        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
-        Assert.Equal(GamePlatform.Pc, hit.Platform);
-        Assert.Single(handler.Requests);
+        Assert.NotEmpty(storage.Writes);
+        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
     }
 
     [Fact]
-    public async Task SearchAsync_UnversionedStaleCacheRow_IsNotServed_AndRefreshes()
+    public async Task SearchAsync_RequestsCurrentVersionedKey_AndRefreshesFromHttp()
     {
-        // Regression for the stale-cache bug: a cached row written before the
-        // `Platforms` DTO field existed (key "search:witcher", no v-prefix)
-        // must NOT be served. The versioned key the current code reads
-        // (v3:search:witcher) won't match it, so the provider hits IGDB afresh
-        // and returns fully-shaped results — this is what fixes the prod case
-        // where every result came back `platforms: []`.
-        await SeedRawCacheRowAsync(
-            "igdb",
-            "search:witcher", // OLD schema key (unversioned)
-            "[{\"provider\":\"igdb\",\"providerKey\":\"old\",\"title\":\"Old\",\"platform\":\"Windows 95\"}]");
+        // After the persisted SQLite table is dropped, a cache miss (there is
+        // no old row to serve) must refresh the search from IGDB and write the
+        // current v3: logical key. The stale v2/unversioned rows of the past no
+        // longer exist post-migration; only the current v3: key may be read.
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage);
 
         var hit = Assert.Single(await provider.SearchAsync("witcher"));
 
         Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
         Assert.Equal(GamePlatform.Pc, hit.Platform);
-        // The stale unversioned row was ignored -> one fresh upstream call.
-        Assert.Single(handler.Requests);
-        // And the fresh result carries the full platform set (would've been []).
         Assert.Contains(GamePlatform.Pc, hit.Platforms);
+        Assert.Single(handler.Requests);
+
+        // The logical write used the current versioned key (physical
+        // lookup:igdb: prefix is proven separately by the adapter tests).
+        Assert.Contains(storage.Writes, w => w.Provider == "igdb" && w.Key == "v3:search:witcher");
+    }
+
+    [Fact]
+    public async Task SearchByPlatformAsync_RequestsCurrentVersionedScopedKey_AndRefreshesFromHttp()
+    {
+        // Platform-scoped searches read/write the versioned, platform-scoped
+        // logical key (v3:search:<query>|<platform>), not a legacy row.
+        var handler = new StubHandler(SingleGameJson);
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage);
+
+        var hit = Assert.Single(await provider.SearchByPlatformAsync("witcher", GamePlatform.Pc));
+
+        Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
+        Assert.Single(handler.Requests);
+        Assert.Contains(storage.Writes, w => w.Provider == "igdb" && w.Key == "v3:search:witcher|Pc");
     }
 
     [Fact]
     public async Task SearchAsync_OnUpstreamFailure_ReturnsEmptyAndDoesNotCache()
     {
         var handler = new StubHandler("nope", HttpStatusCode.InternalServerError);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Empty(await provider.SearchAsync("x"));
         await provider.SearchAsync("x"); // should retry, not serve a cached []
@@ -386,7 +364,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task GetByIdAsync_PostsApicalypseWhereClause()
     {
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         await provider.GetByIdAsync("1942");
 
@@ -400,7 +378,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task GetByIdAsync_WithEmptyResponse_ReturnsNullWithoutCaching()
     {
         var handler = new StubHandler("[]");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Null(await provider.GetByIdAsync("1942"));
         await provider.GetByIdAsync("1942");
@@ -411,7 +389,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task GetByIdAsync_WithNonNumericKey_ReturnsNullWithoutCalling()
     {
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler);
+        var provider = NewProvider(handler, new LookupCacheMockStorage());
 
         Assert.Null(await provider.GetByIdAsync("not-a-number"));
         Assert.Empty(handler.Requests);
@@ -421,8 +399,9 @@ public class IgdbGameProviderTests : IDisposable
     public async Task GetByIdAsync_RepeatedCallsServeFromCache()
     {
         var handler = new StubHandler(SingleGameJson);
-        var p1 = NewProvider(handler);
-        var p2 = NewProvider(handler);
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage);
+        var p2 = NewProvider(handler, storage);
 
         var first = await p1.GetByIdAsync("1942");
         var second = await p2.GetByIdAsync("1942");
@@ -441,11 +420,11 @@ public class IgdbGameProviderTests : IDisposable
         var searchHandler = new StubHandler("""
             [ { "id": 9999, "name": "Different", "platforms": [ { "name": "PC" } ] } ]
             """);
-        await NewProvider(searchHandler).SearchAsync("1942");
+        await NewProvider(searchHandler, new LookupCacheMockStorage()).SearchAsync("1942");
         Assert.Single(searchHandler.Requests);
 
         var idHandler = new StubHandler(SingleGameJson);
-        var byId = await NewProvider(idHandler).GetByIdAsync("1942");
+        var byId = await NewProvider(idHandler, new LookupCacheMockStorage()).GetByIdAsync("1942");
 
         Assert.Equal("The Witcher 3: Wild Hunt", byId!.Title);
         Assert.Single(idHandler.Requests);
@@ -458,7 +437,7 @@ public class IgdbGameProviderTests : IDisposable
             (HttpStatusCode.Unauthorized, "{}"),
             (HttpStatusCode.OK, SingleGameJson));
         var auth = new FakeAuth("client", "stale-tok") { OnRefresh = "fresh-tok" };
-        var provider = NewProvider(handler, auth);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), auth);
 
         var hits = await provider.SearchAsync("witcher");
 
@@ -476,7 +455,7 @@ public class IgdbGameProviderTests : IDisposable
             (HttpStatusCode.Unauthorized, "{}"),
             (HttpStatusCode.Unauthorized, "{}"));
         var auth = new FakeAuth("client", "bad");
-        var provider = NewProvider(handler, auth);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), auth);
 
         Assert.Empty(await provider.SearchAsync("witcher"));
         Assert.Equal(2, handler.Requests.Count);
@@ -487,7 +466,7 @@ public class IgdbGameProviderTests : IDisposable
     {
         var handler = new StubHandler("never called");
         var auth = new FakeAuth("client", token: null);
-        var provider = NewProvider(handler, auth);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), auth);
 
         Assert.Empty(await provider.SearchAsync("witcher"));
         Assert.Empty(handler.Requests);
@@ -499,7 +478,7 @@ public class IgdbGameProviderTests : IDisposable
     public async Task SearchByBarcodeAsync_NotConfigured_ShortCircuitsAndDoesNotHitUpc()
     {
         var upc = FakeUpcClient.Returning("Hades");
-        var provider = NewProvider(new StubHandler(SingleGameJson), overrideOptions: new MetadataLookupOptions(), upc: upc);
+        var provider = NewProvider(new StubHandler(SingleGameJson), new LookupCacheMockStorage(), overrideOptions: new MetadataLookupOptions(), upc: upc);
 
         Assert.Empty(await provider.SearchByBarcodeAsync("0123456789012"));
         Assert.Empty(upc.RequestedBarcodes);
@@ -510,7 +489,7 @@ public class IgdbGameProviderTests : IDisposable
     {
         var upc = FakeUpcClient.Returning("Hades");
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, upc: upc);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), upc: upc);
 
         Assert.Empty(await provider.SearchByBarcodeAsync("   "));
         Assert.Empty(upc.RequestedBarcodes);
@@ -522,7 +501,7 @@ public class IgdbGameProviderTests : IDisposable
     {
         var upc = FakeUpcClient.NotRecognised();
         var handler = new StubHandler("never called");
-        var provider = NewProvider(handler, upc: upc);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), upc: upc);
 
         Assert.Empty(await provider.SearchByBarcodeAsync("0000000000000"));
         Assert.Single(upc.RequestedBarcodes);
@@ -534,7 +513,7 @@ public class IgdbGameProviderTests : IDisposable
     {
         var upc = FakeUpcClient.Returning("The Witcher 3");
         var handler = new StubHandler(SingleGameJson);
-        var provider = NewProvider(handler, upc: upc);
+        var provider = NewProvider(handler, new LookupCacheMockStorage(), upc: upc);
 
         var hits = await provider.SearchByBarcodeAsync("0883929473076");
 
@@ -549,13 +528,28 @@ public class IgdbGameProviderTests : IDisposable
     {
         var upc = FakeUpcClient.Returning("The Witcher 3");
         var handler = new StubHandler(SingleGameJson);
-        var p1 = NewProvider(handler, upc: upc);
-        var p2 = NewProvider(handler, upc: upc); // shared sqlite cache
+        var storage = new LookupCacheMockStorage();
+        var p1 = NewProvider(handler, storage, upc: upc);
+        var p2 = NewProvider(handler, storage, upc: upc); // shared mock storage
 
         await p1.SearchByBarcodeAsync("0883929473076");
         await p2.SearchByBarcodeAsync("0883929473076");
 
         Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task SearchByBarcodeAsync_ForwardsConfiguredTtlOnWrite()
+    {
+        var upc = FakeUpcClient.Returning("The Witcher 3");
+        var handler = new StubHandler(SingleGameJson);
+        var storage = new LookupCacheMockStorage();
+        var provider = NewProvider(handler, storage, upc: upc);
+
+        await provider.SearchByBarcodeAsync("0883929473076");
+
+        Assert.NotEmpty(storage.Writes);
+        Assert.All(storage.Writes, w => Assert.Equal(CacheTtl, w.Ttl));
     }
 
     private sealed class FakeAuth : IIgdbAuth

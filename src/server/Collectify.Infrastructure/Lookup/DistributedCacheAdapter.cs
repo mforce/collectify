@@ -4,9 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Collectify.Infrastructure.Lookup;
 
-// NOTE: the `: ILookupCache` declaration is deferred to Increment 3, when the
-// interface is swapped to the final TTL-on-write shape the adapter targets.
-public sealed class DistributedCacheAdapter
+public sealed class DistributedCacheAdapter : ILookupCache
 {
     private readonly IDistributedCache _cache;
     private readonly ILogger<DistributedCacheAdapter> _log;

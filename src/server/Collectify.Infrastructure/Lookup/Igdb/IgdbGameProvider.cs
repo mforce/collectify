@@ -124,7 +124,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         var cacheKey = filter is { } p
             ? $"v{CacheSchemaVersion}:search:{trimmed.ToLowerInvariant()}|{p}"
             : $"v{CacheSchemaVersion}:search:" + trimmed.ToLowerInvariant();
-        var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         // Apicalypse "search" is a fuzzy match. Quotes are required around
@@ -144,7 +144,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         var mapped = games.Select(Map).ToList();
         if (filter is { } f2)
             mapped = mapped.Where(r => r.IsOn(f2)).ToList();
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 
@@ -214,7 +214,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         if (!long.TryParse(providerKey.Trim(), out var id) || id <= 0) return null;
 
         var cacheKey = $"v{CacheSchemaVersion}:id:" + id.ToString();
-        var cached = await _cache.GetAsync<GameLookupResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<GameLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         var body = $"where id = {id}; fields {Fields}; limit 1;";
@@ -222,7 +222,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         if (games is null || games.Count == 0) return null;
 
         var mapped = Map(games[0]);
-        await _cache.SetAsync(ProviderName, cacheKey, mapped, ct);
+        await _cache.SetAsync(ProviderName, cacheKey, mapped, _options.CacheTtl, ct);
         return mapped;
     }
 
@@ -233,7 +233,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         if (trimmed.Length == 0) return [];
 
         var cacheKey = $"v{CacheSchemaVersion}:barcode:" + trimmed;
-        var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<List<GameLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         // IGDB has no barcode field; resolve via UPCitemdb to a product
@@ -244,7 +244,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
         if (upcHit is null) return [];
 
         var hits = await SearchAsync(upcHit.Title, ct);
-        await _cache.SetAsync(ProviderName, cacheKey, hits.ToList(), ct);
+        await _cache.SetAsync(ProviderName, cacheKey, hits.ToList(), _options.CacheTtl, ct);
         return hits;
     }
 
