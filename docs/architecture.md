@@ -110,7 +110,7 @@ public interface IMovieMetadataProvider
 
 - DI is set up by `services.AddMetadataLookup(config)` (called from `Program.cs`). It binds `MetadataLookupOptions` from `Collectify:Metadata`, registers `IHttpClientFactory`, and wires a `Stub*Provider` for each slot via `TryAddScoped`.
 - A real provider PR (TMDB / MusicBrainz / IGDB) registers its typed `HttpClient` and its `IXxxMetadataProvider` implementation. `Replace()` (or running its registration before `AddMetadataLookup`) swaps the stub out.
-- Outbound calls go through `ILookupCache` (`Provider`, `Key`) which round-trips a JSON payload through the existing `LookupCacheEntry` table. TTL comes from `MetadataLookupOptions.CacheTtl` (default 30 days).
+- Outbound calls go through `ILookupCache` (`Provider`, `Key`), a memory/Redis distributed cache backed by `DistributedCacheAdapter`. TTL is applied **at write time** and comes from `MetadataLookupOptions.CacheTtl` (default 30 days, Steam uses its own short 5-minute TTL). The cache is ephemeral: an unconfigured install uses an in-process memory cache that resets on restart (cold-start provider burst); opt-in Redis (`Collectify:Cache:Provider=redis`) shares cached payloads across instances. Redis outages fail open — a missing/erroring cache simply re-queries the provider.
 - Fail-soft: if not configured, `IsConfigured = false`. The lookup endpoint replies with `{ provider, configured: false, results: [] }` so the UI can show a clear "set TMDB__ApiKey to enable" hint instead of an error toast.
 
 ### Vision client (Phase 5)

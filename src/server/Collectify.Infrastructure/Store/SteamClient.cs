@@ -56,14 +56,14 @@ public sealed class SteamClient : ISteamClient
             return new SteamGamesResult(SteamFetchStatus.Unavailable, []);
 
         var cacheKey = "owned:" + steamId;
-        var cached = await _cache.GetAsync<SteamGamesResult>(ProviderName, cacheKey, _options.CacheTtl, ct);
+        var cached = await _cache.GetAsync<SteamGamesResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
         var result = await FetchOwnedGamesAsync(steamId, ct);
         // Only cache successful responses (Ok, even if empty — a private/empty
         // library is still a valid state and shouldn't be re-fetched every 5s).
         if (result.Status == SteamFetchStatus.Ok)
-            await _cache.SetAsync(ProviderName, cacheKey, result, ct);
+            await _cache.SetAsync(ProviderName, cacheKey, result, _options.CacheTtl, ct);
 
         return result;
     }

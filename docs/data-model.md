@@ -214,5 +214,5 @@ Tracked separately from Phase 1 in its own GitHub issue (filed as a follow-up to
 - **Loan tracking** (`LoanedTo` / return date / history) — the `Status` enum doesn't include `Loaned` for that reason. Add later if you want it.
 - **Goldmine media + sleeve grading for music** — sticking with one generic `Condition` field.
 - **Region / Edition / Packaging / DiscCount / HasManual / HasBox / vinyl color / RPM / weight** — collector-tier fields, deferred.
-- **Cast list for movies, tracklist for music, full company-roles for games** — providers expose these; we'll keep the full provider response in `LookupCacheEntry.JsonResponse` so we can mine it later without re-hitting the API.
+- **Cast list for movies, tracklist for music, full company-roles for games** — providers expose these. Full provider payloads are not persisted in the application database. The memory cache is restart-ephemeral; opted-in Redis stores TTL-bounded payloads at rest and must be secured. A full re-fetch after cache expiry re-queries the provider.
 - **Many-to-many `Genre`** — staying with CSV until a filter UI demands it.
