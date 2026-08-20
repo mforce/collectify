@@ -2,7 +2,7 @@ using Collectify.Domain.Enums;
 
 namespace Collectify.Domain.Entities;
 
-public class MusicAlbum
+public class MusicAlbum : ICollectionEntry
 {
     public int Id { get; set; }
     public string OwnerId { get; set; } = string.Empty;

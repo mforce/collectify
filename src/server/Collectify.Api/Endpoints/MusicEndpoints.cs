@@ -1,10 +1,6 @@
 using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
-using Collectify.Infrastructure.Identity;
-using Collectify.Infrastructure.Lookup.Images;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Collectify.Api.Endpoints;
@@ -36,117 +32,56 @@ public static class MusicEndpoints
         DateOnly? LastPlayedOn,
         string[]? Tags,
         DateTime? AddedAt,
-        DateTime? UpdatedAt);
+        DateTime? UpdatedAt) : ICollectionEntryDto;
 
-    public static IEndpointRouteBuilder MapMusicEndpoints(this IEndpointRouteBuilder app)
+    private static readonly CollectionEndpointConfig<MusicAlbum, AlbumDto> Config = new()
     {
-        var group = app.MapGroup("/api/music").RequireAuthorization();
-
-        group.MapGet("/", async (
-            [FromQuery] string? query,
-            [FromQuery] MusicFormat? format,
-            [FromQuery] int? year,
-            [FromQuery] int? yearFrom,
-            [FromQuery] int? yearTo,
-            [FromQuery] string? artist,
-            [FromQuery] string? label,
-            [FromQuery] string? genre,
-            [FromQuery] CollectionStatus? status,
-            [FromQuery] int? ratingMin,
-            [FromQuery(Name = "tag")] string[]? tag,
-            CollectifyDbContext db,
-            UserManager<AppUser> users,
-            HttpContext ctx) =>
+        RoutePrefix = "/api/music",
+        Set = db => db.MusicAlbums,
+        ToDto = ToDto,
+        Apply = ApplyDto,
+        Validate = Validate,
+        SearchFilter = (q, query) =>
         {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var q = db.MusicAlbums.AsNoTracking().Include(a => a.Tags).Where(a => a.OwnerId == ownerId);
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var like = $"%{query}%";
-                q = q.Where(a => EF.Functions.Like(a.Title, like)
+            var like = $"%{query}%";
+            return q.Where(a => EF.Functions.Like(a.Title, like)
                               || EF.Functions.Like(a.ArtistName, like)
                               || (a.Label != null && EF.Functions.Like(a.Label, like)));
-            }
-            if (format.HasValue) q = q.Where(a => a.Format == format.Value);
-            if (year.HasValue) q = q.Where(a => a.Year == year);
-            if (yearFrom.HasValue) q = q.Where(a => a.Year != null && a.Year >= yearFrom);
-            if (yearTo.HasValue) q = q.Where(a => a.Year != null && a.Year <= yearTo);
+        },
+        ExtraFilters = (q, request) =>
+        {
+            if (Enum.TryParse<MusicFormat>(request.Query["format"], ignoreCase: true, out var format)
+                && Enum.IsDefined(format))
+                q = q.Where(a => a.Format == format);
+
+            var artist = request.Query["artist"].ToString();
             if (!string.IsNullOrWhiteSpace(artist))
             {
                 var like = $"%{artist}%";
                 q = q.Where(a => EF.Functions.Like(a.ArtistName, like));
             }
+
+            var label = request.Query["label"].ToString();
             if (!string.IsNullOrWhiteSpace(label))
             {
                 var like = $"%{label}%";
                 q = q.Where(a => a.Label != null && EF.Functions.Like(a.Label, like));
             }
+
+            var genre = request.Query["genre"].ToString();
             if (!string.IsNullOrWhiteSpace(genre))
             {
                 var like = $"%{genre}%";
                 q = q.Where(a => a.Genres != null && EF.Functions.Like(a.Genres, like));
             }
-            if (status.HasValue) q = q.Where(a => a.Status == status.Value);
-            if (ratingMin is { } rm) q = q.Where(a => a.PersonalRating != null && a.PersonalRating >= rm);
-            if (tag is { Length: > 0 })
-            {
-                var normalised = tag.Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToArray();
-                if (normalised.Length > 0)
-                    q = q.Where(a => a.Tags.Any(t => normalised.Contains(t.Name)));
-            }
 
-            var items = await q.OrderByDescending(a => a.AddedAt).Take(500).ToListAsync();
-            return Results.Ok(items.Select(ToDto));
-        });
+            return q;
+        },
+        OnDelete = null,
+    };
 
-        group.MapGet("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
-        {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var a = await db.MusicAlbums.AsNoTracking().Include(x => x.Tags)
-                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
-            return a is null ? Results.NotFound() : Results.Ok(ToDto(a));
-        });
-
-        group.MapPost("/", async ([FromBody] AlbumDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
-        {
-            if (Validate(dto) is { } error) return error;
-            var ownerId = users.GetUserId(ctx.User)!;
-            var a = new MusicAlbum { OwnerId = ownerId };
-            ApplyDto(a, dto);
-            a.ImagePath = await covers.EnsureLocalAsync(a.ImagePath, ct);
-            a.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
-            db.MusicAlbums.Add(a);
-            await db.SaveChangesAsync(ct);
-            return Results.Created($"/api/music/{a.Id}", ToDto(a));
-        });
-
-        group.MapPut("/{id:int}", async (int id, [FromBody] AlbumDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
-        {
-            if (Validate(dto) is { } error) return error;
-            var ownerId = users.GetUserId(ctx.User)!;
-            var a = await db.MusicAlbums.Include(x => x.Tags)
-                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, ct);
-            if (a is null) return Results.NotFound();
-            ApplyDto(a, dto);
-            a.ImagePath = await covers.EnsureLocalAsync(a.ImagePath, ct);
-            a.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
-            a.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
-            return Results.Ok(ToDto(a));
-        });
-
-        group.MapDelete("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
-        {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var a = await db.MusicAlbums.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
-            if (a is null) return Results.NotFound();
-            db.MusicAlbums.Remove(a);
-            await db.SaveChangesAsync();
-            return Results.NoContent();
-        });
-
-        return app;
-    }
+    public static IEndpointRouteBuilder MapMusicEndpoints(this IEndpointRouteBuilder app) =>
+        app.MapCollectionEndpoints(Config);
 
     private static IResult? Validate(AlbumDto dto)
     {
