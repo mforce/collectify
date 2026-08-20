@@ -34,7 +34,7 @@ public class IgdbBackfillServiceTests : IDisposable
         // Game fails with "no such table: Games".)
         using var setup = new CollectifyDbContext(
             new DbContextOptionsBuilder<CollectifyDbContext>().UseSqlite(_connection).Options);
-        setup.Database.EnsureCreated();
+        setup.Database.Migrate();
     }
 
     public void Dispose() => _connection.Dispose();
