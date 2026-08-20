@@ -76,6 +76,16 @@ export default function MovieDetail({ item }: { item: Movie }) {
           </dl>
         </ThemedCard>
       )}
+      {(item.barcode || item.tmdbId || item.imdbId) && (
+        <ThemedCard type="movies" className="p-4">
+          <h3>IDs</h3>
+          <dl>
+            <InfoRow label="Barcode" value={item.barcode} />
+            <InfoRow label="TMDB ID" value={item.tmdbId} />
+            <InfoRow label="IMDB ID" value={item.imdbId} />
+          </dl>
+        </ThemedCard>
+      )}
       {(item.personalRating != null || item.providerRating != null) && (
         <ThemedCard type="movies" className="p-4">
           <h3>Ratings</h3>

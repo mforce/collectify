@@ -44,6 +44,17 @@ export default function MusicDetail({ item }: { item: Album }) {
           <InfoRow label="Label" value={item.label} />
         </ThemedCard>
       )}
+      {(item.barcode || item.musicBrainzReleaseId || item.discogsId) && (
+        <ThemedCard type="music" className="p-4">
+          <h3>IDs</h3>
+          <InfoRow label="Barcode" value={item.barcode} />
+          <InfoRow
+            label="MusicBrainz ID"
+            value={item.musicBrainzReleaseId}
+          />
+          <InfoRow label="Discogs ID" value={item.discogsId} />
+        </ThemedCard>
+      )}
       <ThemedCard type="music" className="p-4">
         <h3>Personal</h3>
         <InfoRow

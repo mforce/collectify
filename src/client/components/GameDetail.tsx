@@ -12,6 +12,13 @@ export default function GameDetail({ item }: { item: Game }) {
     {(item.releaseDate || item.year) && <ThemedCard type="games" className="p-4"><h3>Release</h3><InfoRow label="Release date" value={formatDate(item.releaseDate)} /><InfoRow label="Year" value={item.year?.toString()} /></ThemedCard>}
     {(item.developer || item.publisher) && <ThemedCard type="games" className="p-4"><h3>Credits</h3><InfoRow label="Developer" value={item.developer} /><InfoRow label="Publisher" value={item.publisher} /></ThemedCard>}
     {item.ageRating && <ThemedCard type="games" className="p-4"><h3>Metadata</h3><InfoRow label="Age rating" value={item.ageRating} /></ThemedCard>}
+    {(item.barcode || item.igdbId) && (
+      <ThemedCard type="games" className="p-4">
+        <h3>IDs</h3>
+        <InfoRow label="Barcode" value={item.barcode} />
+        <InfoRow label="IGDB ID" value={item.igdbId} />
+      </ThemedCard>
+    )}
     <ThemedCard type="games" className="p-4"><h3>Personal</h3><InfoRow label="Rating" value={item.personalRating != null ? `★ ${item.personalRating}/10` : null} /><InfoRow label="Completion" value={completionStatusLabel(item.completionStatus)} /><InfoRow label="Hours played" value={item.hoursPlayed != null ? `${Number(item.hoursPlayed).toFixed(1)}h` : null} /><InfoRow label="Last played" value={formatDate(item.lastPlayedOn)} /></ThemedCard>
     {item.description && <ThemedCard type="games" className="p-4"><h3>Description</h3>{item.description}</ThemedCard>}{item.notes && <ThemedCard type="games" className="p-4"><h3>Notes</h3>{item.notes}</ThemedCard>}
     {!!item.tags?.length && <div>{item.tags.map(t => <TagChip key={t} name={t} category="games" />)}</div>}
