@@ -1,21 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLookup } from '../services/lookup';
-import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
+import type { MediaResultMap } from '../services/mediaRegistry';
 import type { MediaType, GamePlatform } from '../services/types';
 import { Field, Input, Label } from './ui';
-
-type ResultMap = {
-  movies: MovieLookupResult;
-  music: MusicLookupResult;
-  games: GameLookupResult;
-};
+import CandidateList from './CandidateList';
 
 interface Props<T extends MediaType> {
   type: T;
   /** How to render a single suggestion row in the dropdown. */
-  renderItem: (item: ResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
+  renderItem: (item: MediaResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
   /** Called when the user clicks a suggestion. The form converts the result into its own state shape. */
-  onPick: (item: ResultMap[T]) => void;
+  onPick: (item: MediaResultMap[T]) => void;
   /** Optional label shown above the input. */
   label?: string;
   placeholder?: string;
@@ -52,7 +47,7 @@ export default function OnlineSearch<T extends MediaType>({
   const lookup = useLookup(type, debounced, platform);
   const data = lookup.data;
 
-  const results = (data?.results ?? []) as ResultMap[T][];
+  const results = (data?.results ?? []) as MediaResultMap[T][];
   const showDropdown = open && debounced.trim().length >= 2;
 
   return (
@@ -84,30 +79,9 @@ export default function OnlineSearch<T extends MediaType>({
             <div className="px-3 py-2 text-sm text-text-secondary">No matches.</div>
           )}
 
-          {results.map((item, i) => {
-            const r = renderItem(item);
-            return (
-              <button
-                type="button"
-                key={`${(item as { providerKey: string }).providerKey ?? i}`}
-                onClick={() => {
-                  onPick(item);
-                  setOpen(false);
-                  setQuery('');
-                  setDebounced('');
-                }}
-                className="category-hover-soft flex w-full items-start gap-3 border-b border-border px-3 py-2 text-left transition-colors last:border-b-0"
-              >
-                {r.image && (
-                  <img src={r.image} alt="" className="w-10 h-14 object-cover rounded flex-none" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm text-text-primary truncate">{r.primary}</div>
-                  {r.secondary && <div className="text-xs text-text-secondary truncate">{r.secondary}</div>}
-                </div>
-              </button>
-            );
-          })}
+          <CandidateList type={type} items={results} renderItem={renderItem} onPick={(item) => {
+            onPick(item); setOpen(false); setQuery(''); setDebounced('');
+          }} />
         </div>
       )}
 

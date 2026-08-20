@@ -3,30 +3,24 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth, useLogout } from '../services/auth';
 import { useToast } from './toaster';
 import DarkModeToggle from './DarkModeToggle';
+import { MEDIA } from '../services/mediaRegistry';
+import type { MediaType } from '../services/types';
 
-type NavCategory = 'movies' | 'music' | 'games';
+type NavCategory = MediaType;
 
 const navItems: { to: string; label: string; category: NavCategory | null; icon: ReactNode }[] = [
   { to: '/', label: 'Home', category: null, icon: <BrandIcon src="/brand/media-home.svg" alt="" /> },
-  { to: '/movies', label: 'Movies', category: 'movies', icon: <BrandIcon src="/brand/media-movies.svg" alt="" /> },
-  { to: '/music', label: 'Music', category: 'music', icon: <BrandIcon src="/brand/media-music.svg" alt="" /> },
-  { to: '/games', label: 'Games', category: 'games', icon: <BrandIcon src="/brand/media-games.svg" alt="" /> },
+  ...(['movies', 'music', 'games'] as MediaType[]).map((category) => ({
+    to: MEDIA[category].paths.list, label: MEDIA[category].pluralLabel, category,
+    icon: <BrandIcon src={MEDIA[category].iconSrc} alt="" />,
+  })),
   { to: '/tags', label: 'Tags', category: null, icon: <TagIcon /> },
 ];
 
-const NAV_ACTIVE_DESKTOP: Record<string, string> = {
-  movies: 'bg-movies-light text-movies border-movies-border shadow-sm',
-  music: 'bg-music-light text-music border-music-border shadow-sm',
-  games: 'bg-games-light text-games border-games-border shadow-sm',
-  default: 'bg-brand/10 text-brand border-brand/20 shadow-sm',
-};
-
-const NAV_ACTIVE_MOBILE: Record<string, string> = {
-  movies: 'bg-movies-light text-movies border-movies-border',
-  music: 'bg-music-light text-music border-music-border',
-  games: 'bg-games-light text-games border-games-border',
-  default: 'bg-brand/10 text-brand border-brand/20',
-};
+const navActiveDesktop = (category: NavCategory | null) => category
+  ? MEDIA[category].theme.navActiveDesktop : 'bg-brand/10 text-brand border-brand/20 shadow-sm';
+const navActiveMobile = (category: NavCategory | null) => category
+  ? MEDIA[category].theme.navActiveMobile : 'bg-brand/10 text-brand border-brand/20';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { data: auth } = useAuth();
@@ -79,7 +73,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `inline-flex h-10 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition-colors ${
                     isActive
-                      ? NAV_ACTIVE_DESKTOP[item.category ?? 'default'] ?? ''
+                      ? navActiveDesktop(item.category)
                       : 'border-transparent text-text-secondary hover:bg-pill-bg hover:text-text-primary'
                   }`
                 }
@@ -140,7 +134,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) =>
                   `flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-colors ${
                     isActive
-                      ? NAV_ACTIVE_MOBILE[item.category ?? 'default'] ?? ''
+                      ? navActiveMobile(item.category)
                       : 'border-transparent text-text-secondary hover:bg-pill-bg hover:text-text-primary'
                   }`
                 }

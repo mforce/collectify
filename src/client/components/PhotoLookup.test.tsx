@@ -3,6 +3,12 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PhotoLookup from './PhotoLookup';
 import type { MovieLookupResult, LookupResponse } from '../services/lookup';
+import type { CameraStatus } from '../hooks/useCamera';
+
+let cameraStatus: CameraStatus = 'streaming';
+vi.mock('../hooks/useCamera', () => ({
+  useCamera: () => ({ status: cameraStatus, videoRef: { current: null }, stop: vi.fn(), stream: null }),
+}));
 
 // ---------- lookup mock ----------
 
@@ -81,6 +87,7 @@ function restoreImage() {
 }
 
 beforeEach(() => {
+  cameraStatus = 'streaming';
   Object.defineProperty(globalThis.navigator, 'mediaDevices', {
     value: {
       getUserMedia: vi.fn().mockResolvedValue(mockStream),
@@ -113,6 +120,17 @@ async function patchVideoAndSnap() {
 }
 
 describe('PhotoLookup', () => {
+  it.each([
+    ['denied', 'Camera permission denied.'],
+    ['no-camera', 'No camera available on this device.'],
+    ['no-https', 'requires a secure context'],
+  ] as const)('reports %s distinctly', async (status, message) => {
+    cameraStatus = status;
+    render(<PhotoLookup type="movies" onPick={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /Snap cover photo/i }));
+    expect(await screen.findByText(new RegExp(message))).toBeInTheDocument();
+  });
+
   it('renders "Snap cover photo" and "Upload image" buttons in idle state', () => {
     render(<PhotoLookup type="movies" onPick={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Snap cover photo/i })).toBeInTheDocument();
@@ -225,6 +243,7 @@ describe('PhotoLookup', () => {
   });
 
   it('shows HTTPS hint when getUserMedia unavailable', async () => {
+    cameraStatus = 'no-https';
     Object.defineProperty(globalThis.navigator, 'mediaDevices', {
       value: undefined,
       configurable: true,

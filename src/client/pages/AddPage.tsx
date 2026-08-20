@@ -1,16 +1,16 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCreate } from '../services/collection';
 import { useToast } from '../components/toaster';
-import type { Album, Game, MediaType, Movie } from '../services/types';
-import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
+import type { MediaType } from '../services/types';
 import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
 import { Card } from '../components/ui';
 import MediaIcon from '../components/MediaIcon';
+import { MEDIA, type MediaResultMap } from '../services/mediaRegistry';
 
-interface PrefillState {
-  prefill?: MovieLookupResult | MusicLookupResult | GameLookupResult;
+interface PrefillState<T extends MediaType> {
+  prefill?: MediaResultMap[T];
   /**
    * Soft-fallback hint from the list-page scanner: a barcode the user
    * scanned that didn't match any provider. We seed only the barcode
@@ -20,43 +20,21 @@ interface PrefillState {
   barcodeOnly?: string;
 }
 
-const titleByType: Record<MediaType, string> = {
-  movies: 'Add a movie',
-  music: 'Add an album',
-  games: 'Add a game',
-};
-
-const successByType: Record<MediaType, string> = {
-  movies: 'Movie added.',
-  music: 'Album added.',
-  games: 'Game added.',
-};
-
-const themeByType: Record<MediaType, { title: string }> = {
-  movies: {
-    title: 'text-movies',
-  },
-  music: {
-    title: 'text-music',
-  },
-  games: {
-    title: 'text-games',
-  },
-};
-
 export default function AddPage<T extends MediaType>({ type }: { type: T }) {
-  const create = useCreate(type);
+  const createMovie = useCreate('movies');
+  const createAlbum = useCreate('music');
+  const createGame = useCreate('games');
   const nav = useNavigate();
   const location = useLocation();
+  const movieState: PrefillState<'movies'> | null = location.state;
+  const albumState: PrefillState<'music'> | null = location.state;
+  const gameState: PrefillState<'games'> | null = location.state;
   const toast = useToast();
-  const navState = location.state as PrefillState | null;
-  const prefill = navState?.prefill;
-  const prefillBarcode = navState?.barcodeOnly;
 
   const onSuccess = (id?: number) => {
     // Toast survives the navigate so the user gets a confirmation on
     // the detail page they land on.
-    toast.success(successByType[type]);
+    toast.success(MEDIA[type].addSuccess);
     if (id) nav(`/${type}/${id}`);
     else nav(`/${type}`);
   };
@@ -71,19 +49,19 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
           <MediaIcon type={type} className="h-7 w-7" />
         </span>
-        <h1 className={`text-3xl font-extrabold tracking-tight ${themeByType[type].title}`}>{titleByType[type]}</h1>
+        <h1 className={`text-3xl font-extrabold tracking-tight ${MEDIA[type].theme.heading}`}>{MEDIA[type].addTitle}</h1>
       </div>
 
       <Card className={`theme-${type}`}>
         {type === 'movies' && (
           <MovieForm
-            prefillLookup={prefill as MovieLookupResult | undefined}
-            prefillBarcode={prefillBarcode}
-            submitting={create.isPending}
+            prefillLookup={movieState?.prefill}
+            prefillBarcode={movieState?.barcodeOnly}
+            submitting={createMovie.isPending}
             submitLabel="Create"
             onSubmit={(m) =>
-              create.mutate(m as Movie & Album & Game, {
-                onSuccess: (created: any) => onSuccess(created?.id),
+              createMovie.mutate(m, {
+                onSuccess: (created) => onSuccess(created?.id),
                 onError: onFailure,
               })
             }
@@ -91,13 +69,13 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         )}
         {type === 'music' && (
           <AlbumForm
-            prefillLookup={prefill as MusicLookupResult | undefined}
-            prefillBarcode={prefillBarcode}
-            submitting={create.isPending}
+            prefillLookup={albumState?.prefill}
+            prefillBarcode={albumState?.barcodeOnly}
+            submitting={createAlbum.isPending}
             submitLabel="Create"
             onSubmit={(a) =>
-              create.mutate(a as Movie & Album & Game, {
-                onSuccess: (created: any) => onSuccess(created?.id),
+              createAlbum.mutate(a, {
+                onSuccess: (created) => onSuccess(created?.id),
                 onError: onFailure,
               })
             }
@@ -105,13 +83,13 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         )}
         {type === 'games' && (
           <GameForm
-            prefillLookup={prefill as GameLookupResult | undefined}
-            prefillBarcode={prefillBarcode}
-            submitting={create.isPending}
+            prefillLookup={gameState?.prefill}
+            prefillBarcode={gameState?.barcodeOnly}
+            submitting={createGame.isPending}
             submitLabel="Create"
             onSubmit={(g) =>
-              create.mutate(g as Movie & Album & Game, {
-                onSuccess: (created: any) => onSuccess(created?.id),
+              createGame.mutate(g, {
+                onSuccess: (created) => onSuccess(created?.id),
                 onError: onFailure,
               })
             }

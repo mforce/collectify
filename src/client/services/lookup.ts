@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError } from './client';
 import type { GamePlatform, MediaType } from './types';
+import type { MediaResultMap } from './mediaRegistry';
+export type { MediaResultMap } from './mediaRegistry';
 
 export interface MovieLookupResult {
   provider: string;
@@ -56,12 +58,6 @@ export interface LookupResponse<T> {
   hint?: string;
 }
 
-type ResultMap = {
-  movies: MovieLookupResult;
-  music: MusicLookupResult;
-  games: GameLookupResult;
-};
-
 /**
  * Search the configured external metadata provider for a media type. Returns
  * an empty result set when no provider is configured for that type yet --
@@ -78,7 +74,7 @@ export function useLookup<T extends MediaType>(type: T, query: string, platform?
   return useQuery({
     queryKey: ['lookup', type, trimmed, platform ?? null],
     queryFn: () =>
-      api<LookupResponse<ResultMap[T]>>(`/api/lookup/${type}?q=${encodeURIComponent(trimmed)}${platformParam}`),
+      api<LookupResponse<MediaResultMap[T]>>(`/api/lookup/${type}?q=${encodeURIComponent(trimmed)}${platformParam}`),
     enabled: trimmed.length >= 2,
     staleTime: 60_000,
   });
@@ -154,8 +150,8 @@ export async function lookupGameByIgdbId(igdbId: string): Promise<LookupByIdOutc
 export async function lookupByBarcode<T extends MediaType>(
   type: T,
   barcode: string,
-): Promise<LookupResponse<ResultMap[T]>> {
-  return api<LookupResponse<ResultMap[T]>>(
+): Promise<LookupResponse<MediaResultMap[T]>> {
+  return api<LookupResponse<MediaResultMap[T]>>(
     `/api/lookup/${type}/by-barcode/${encodeURIComponent(barcode.trim())}`,
   );
 }
@@ -172,7 +168,7 @@ export async function lookupByBarcode<T extends MediaType>(
 export async function lookupByImage<T extends MediaType>(
   type: T,
   file: Blob,
-): Promise<LookupResponse<ResultMap[T]>> {
+): Promise<LookupResponse<MediaResultMap[T]>> {
   const form = new FormData();
   form.append('file', file, 'cover.jpg');
 
@@ -191,5 +187,5 @@ export async function lookupByImage<T extends MediaType>(
     throw new ApiError(res.status, message);
   }
 
-  return res.json() as Promise<LookupResponse<ResultMap[T]>>;
+  return res.json() as Promise<LookupResponse<MediaResultMap[T]>>;
 }

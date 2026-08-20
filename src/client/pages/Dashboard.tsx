@@ -3,30 +3,8 @@ import { useDashboard, type DashboardRecent } from '../services/collection';
 import { Card, ViewSwitcher } from '../components/ui';
 import { useViewPreference, type ViewMode } from '../hooks/useViewPreference';
 import MediaIcon from '../components/MediaIcon';
-
-const TYPE_LABEL: Record<DashboardRecent['type'], string> = {
-  movies: 'Movie',
-  music: 'Album',
-  games: 'Game',
-};
-
-const TILE_BORDER: Record<string, string> = {
-  movies: 'border-movies-border bg-movies-light',
-  music: 'border-music-border bg-music-light',
-  games: 'border-games-border bg-games-light',
-};
-
-const TILE_ACCENT: Record<string, string> = {
-  movies: 'text-movies',
-  music: 'text-music',
-  games: 'text-games',
-};
-
-const RECENT_HOVER: Record<DashboardRecent['type'], string> = {
-  movies: 'group-hover:border-movies group-hover:bg-movies-light/70',
-  music: 'group-hover:border-music group-hover:bg-music-light/70',
-  games: 'group-hover:border-games group-hover:bg-games-light/70',
-};
+import { MEDIA } from '../services/mediaRegistry';
+import type { MediaType } from '../services/types';
 
 export default function Dashboard() {
   const dashboard = useDashboard();
@@ -35,11 +13,9 @@ export default function Dashboard() {
   // P3 fix: dashboard uses its own storage key, not coupled to movies
   const [viewMode, setViewMode] = useViewPreference('dashboard');
 
-  const tiles = [
-    { to: '/movies', label: 'Movies', count: counts?.movies, type: 'movies' as const },
-    { to: '/music', label: 'Music', count: counts?.music, type: 'music' as const },
-    { to: '/games', label: 'Games', count: counts?.games, type: 'games' as const },
-  ];
+  const tiles = (['movies', 'music', 'games'] as MediaType[]).map((type) => ({
+    to: MEDIA[type].paths.list, label: MEDIA[type].pluralLabel, count: counts?.[type], type,
+  }));
 
   return (
     <div className="space-y-6">
@@ -68,8 +44,8 @@ export default function Dashboard() {
       <div className="grid sm:grid-cols-3 gap-3">
         {tiles.map((t) => (
           <Link key={t.to} to={t.to} className="block">
-            <Card className={`border transition-colors hover:-translate-y-0.5 hover:border-brand/40 ${TILE_BORDER[t.type]}`}>
-              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-card shadow-sm ${TILE_ACCENT[t.type]}`}>
+            <Card className={`border transition-colors hover:-translate-y-0.5 hover:border-brand/40 ${MEDIA[t.type].theme.tileBorder}`}>
+              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-card shadow-sm ${MEDIA[t.type].theme.tileAccent}`}>
                 <MediaIcon type={t.type} className="h-7 w-7" />
               </div>
               <div className="text-sm font-semibold text-text-secondary">{t.label}</div>
@@ -136,7 +112,7 @@ function RecentSection({
 
 function ListRecentCard({ r }: { r: DashboardRecent }) {
   return (
-    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${RECENT_HOVER[r.type]}`}>
+    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${MEDIA[r.type].theme.recentHover}`}>
       <div className="flex items-center gap-3 p-2">
         <div className="w-16 shrink-0 bg-imgPlaceholder overflow-hidden rounded">
           {r.imagePath ? (
@@ -148,7 +124,7 @@ function ListRecentCard({ r }: { r: DashboardRecent }) {
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-text-primary leading-snug truncate">{r.title}</h3>
           <div className="text-xs uppercase tracking-wide text-text-tertiary">
-            {TYPE_LABEL[r.type]}{r.year != null ? ` · ${r.year}` : ''}
+            {MEDIA[r.type].label}{r.year != null ? ` · ${r.year}` : ''}
           </div>
         </div>
       </div>
@@ -158,7 +134,7 @@ function ListRecentCard({ r }: { r: DashboardRecent }) {
 
 function MediumRecentCard({ r }: { r: DashboardRecent }) {
   return (
-    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${RECENT_HOVER[r.type]}`}>
+    <Card className={`!p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${MEDIA[r.type].theme.recentHover}`}>
       <div className="flex gap-3 p-3">
         <div className="w-24 shrink-0 bg-imgPlaceholder overflow-hidden rounded">
           {r.imagePath ? (
@@ -170,7 +146,7 @@ function MediumRecentCard({ r }: { r: DashboardRecent }) {
         <div className="flex-1 min-w-0 flex flex-col gap-1.5">
           <h3 className="font-medium text-text-primary leading-snug line-clamp-2">{r.title}</h3>
           <div className="text-xs uppercase tracking-wide text-text-tertiary">
-            {TYPE_LABEL[r.type]}{r.year != null ? ` · ${r.year}` : ''}
+            {MEDIA[r.type].label}{r.year != null ? ` · ${r.year}` : ''}
           </div>
         </div>
       </div>
@@ -180,7 +156,7 @@ function MediumRecentCard({ r }: { r: DashboardRecent }) {
 
 function BigRecentCard({ r }: { r: DashboardRecent }) {
   return (
-    <Card className={`h-full !p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${RECENT_HOVER[r.type]}`}>
+    <Card className={`h-full !p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${MEDIA[r.type].theme.recentHover}`}>
       <div className="flex flex-col md:flex-row">
         <div className="relative w-full shrink-0 bg-imgPlaceholder overflow-hidden sm:w-24 md:w-36 lg:w-48">
           {r.imagePath ? (
@@ -192,7 +168,7 @@ function BigRecentCard({ r }: { r: DashboardRecent }) {
         <div className="flex-1 p-3 flex flex-col gap-1.5 min-w-0">
           <h3 className="font-medium text-text-primary leading-snug line-clamp-2">{r.title}</h3>
           <div className="text-xs uppercase tracking-wide text-text-tertiary">
-            {TYPE_LABEL[r.type]}{r.year != null ? ` · ${r.year}` : ''}
+            {MEDIA[r.type].label}{r.year != null ? ` · ${r.year}` : ''}
           </div>
         </div>
       </div>

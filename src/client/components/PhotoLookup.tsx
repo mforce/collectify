@@ -1,20 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { lookupByImage } from '../services/lookup';
+import type { MediaResultMap } from '../services/mediaRegistry';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
 import type { MediaType } from '../services/types';
 import { Button } from './ui';
-
-type ResultMap = {
-  movies: MovieLookupResult;
-  music: MusicLookupResult;
-  games: GameLookupResult;
-};
+import CandidateList from './CandidateList';
+import { useCamera } from '../hooks/useCamera';
 
 interface Props<T extends MediaType> {
   type: T;
-  onPick: (item: ResultMap[T]) => void;
+  onPick: (item: MediaResultMap[T]) => void;
   /** Optional row renderer; mirrors OnlineSearch so callers can share the same fn. */
-  renderItem?: (item: ResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
+  renderItem?: (item: MediaResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
 }
 
 type Phase =
@@ -50,8 +47,8 @@ export default function PhotoLookup<T extends MediaType>({
 }: Props<T>) {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [filterText, setFilterText] = useState('');
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const camera = useCamera(phase.kind === 'preview', { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+  const videoRef = camera.videoRef;
   // For camera path: keep the raw canvas frame so upload encodes from
   // lossless pixels, not from a decoded-and-re-encoded JPEG.
   const frameCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -60,52 +57,7 @@ export default function PhotoLookup<T extends MediaType>({
   const fileImageRef = useRef<HTMLImageElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-    } catch {
-      setPhase({
-        kind: 'error',
-        message:
-          'Camera access requires a secure context (HTTPS or localhost). Make sure you are on https:// or localhost.',
-      });
-    }
-  }, []);
-
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  }, []);
-
-  // Start camera when entering preview
-  useEffect(() => {
-    if (phase.kind === 'preview') {
-      startCamera();
-    }
-  }, [phase.kind, startCamera]);
-
-  // Cleanup stream on unmount
-  useEffect(() => {
-    return () => stopCamera();
-  }, [stopCamera]);
-
-  // Cleanup stream when leaving preview
-  useEffect(() => {
-    if (phase.kind !== 'preview' && streamRef.current) {
-      stopCamera();
-    }
-  }, [phase.kind, stopCamera]);
+  const stopCamera = camera.stop;
 
   // Escape key closes modal
   useEffect(() => {
@@ -287,13 +239,16 @@ export default function PhotoLookup<T extends MediaType>({
         {/* Camera preview */}
         {phase.kind === 'preview' && (
           <div className="space-y-4">
-            <video
-              ref={videoRef}
+          <video
+            ref={videoRef}
               autoPlay
               playsInline
               muted
               className="w-full rounded-lg bg-black"
-            />
+          />
+          {camera.status === 'denied' && <p className="text-sm text-error text-center">Camera permission denied.</p>}
+          {camera.status === 'no-camera' && <p className="text-sm text-error text-center">No camera available on this device.</p>}
+          {camera.status === 'no-https' && <p className="text-sm text-error text-center">Camera access requires a secure context (HTTPS or localhost).</p>}
             <div className="flex gap-2 justify-center">
               <Button type="button" variant="secondary" onClick={handleClose}>
                 Cancel
@@ -358,7 +313,7 @@ export default function PhotoLookup<T extends MediaType>({
 
         {/* Candidate list */}
         {phase.kind === 'results' && phase.results.length > 0 && (() => {
-          const items = phase.results as ResultMap[T][];
+          const items = phase.results as MediaResultMap[T][];
           const filtered = filterText.trim()
             ? items.filter(item => {
                 const r = item as Partial<MovieLookupResult & MusicLookupResult & GameLookupResult>;
@@ -394,36 +349,7 @@ export default function PhotoLookup<T extends MediaType>({
                     No matches for "{filterText}"
                   </div>
                 ) : (
-                  filtered.map((item, i) => {
-                    const view = renderItem?.(item) ?? defaultView(type, item);
-                    return (
-                      <button
-                        type="button"
-                        key={`${(item as { providerKey?: string }).providerKey ?? i}`}
-                        onClick={() => {
-                          onPick(item);
-                          handleClose();
-                        }}
-                        className="category-hover-soft flex w-full items-start gap-3 border-b border-border px-3 py-2 text-left transition-colors last:border-b-0"
-                      >
-                        {view.image && (
-                          <img
-                            src={view.image}
-                            alt=""
-                            className="w-10 h-14 object-cover rounded flex-none"
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm text-text-primary truncate">{view.primary}</div>
-                          {view.secondary && (
-                            <div className="text-xs text-text-secondary truncate">
-                              {view.secondary}
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })
+                  <CandidateList type={type} items={filtered} renderItem={renderItem} onPick={(item) => { onPick(item); handleClose(); }} />
                 )}
               </div>
             </div>
@@ -442,19 +368,4 @@ export default function PhotoLookup<T extends MediaType>({
       </div>
     </div>
   );
-}
-
-function defaultView<T extends MediaType>(
-  _type: T,
-  item: ResultMap[T],
-): { primary: string; secondary?: string; image?: string | null } {
-  const r = item as Partial<MovieLookupResult & MusicLookupResult & GameLookupResult>;
-  const primary = (r.title ?? '') + (r.year ? ` (${r.year})` : '');
-  const gameBits = [(r as GameLookupResult).developer, (r as GameLookupResult).platform]
-    .filter(Boolean)
-    .join(' · ');
-  const secondary =
-    (r as MusicLookupResult).artistName ??
-    (gameBits || r.description?.slice(0, 120) || undefined);
-  return { primary, secondary, image: r.imageUrl ?? null };
 }
