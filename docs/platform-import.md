@@ -207,7 +207,7 @@ IPlayerService/GetOwnedGames/v1?key=…&steamid=<steamid64>&include_appinfo=true
   trusted fetch. Re-fetches go through the same short-TTL cache as the preview.
 
 Processing, per ID, in one DB transaction (v1 SF3):
-- Create the `Game` row (`Title` = Steam name **truncated to 500`, `DigitalStores=Steam`,
+- Create the `Game` row (`Title` = Steam name **truncated to 500**, `DigitalStores=Steam`,
   `Platform=Pc`, `AcquisitionSource="Steam Import"`, and from the preview
   `HoursPlayed` = `playtime_forever` — Claude NI) **and** the `GameStoreOwnedTitle` row together.
 - Handle the unique-constraint race by re-reading the winning ledger row on conflict (reuse the

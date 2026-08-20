@@ -31,7 +31,7 @@ public class GamePlatformMappingTests
     [InlineData("Mega Drive", GamePlatform.SegaGenesis)]
     [InlineData("Sega Genesis", GamePlatform.SegaGenesis)]
     // A Steam Deck is a PC (SteamOS/Linux or Windows); it classifies as Pc.
-    // The delivery dimension is IsDigital + DigitalStore (Steam), not the
+    // The delivery dimension is DigitalStores (Steam), not the
     // platform (see #103).
     [InlineData("Steam Deck", GamePlatform.Pc)]
     [InlineData("Steamdeck", GamePlatform.Pc)]
