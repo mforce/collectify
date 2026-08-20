@@ -56,7 +56,7 @@ function ThemedCard({ type, children, className = '' }: { type: MediaType; child
   return <Card className={className}>{children}</Card>;
 }
 
-function HeroTitle({ type, title, subtitle }: { type: MediaType; title: string; subtitle?: string | null }) {
+function HeroTitle({ type, title, subtitle }: { type: MediaType; title: string; subtitle?: ReactNode }) {
   return (
     <div className="flex items-start gap-3 min-w-0">
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
@@ -322,16 +322,21 @@ function GameDetail({ item }: { item: Game }) {
         </div>
         <div className="min-w-0 flex-1 space-y-3">
           <div>
-            <HeroTitle type="games" title={item.title} subtitle={gamePlatformLabel(item.platform)} />
+            <HeroTitle
+              type="games"
+              title={item.title}
+              subtitle={
+                <span className="inline-flex items-center gap-1.5">
+                  <PlatformIcon platform={item.platform} className="h-4 w-4" />
+                  {gamePlatformLabel(item.platform)}
+                </span>
+              }
+            />
           </div>
 
           {/* Year / Platform row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span className="shrink-0">{item.year}</span>}
-            <span className="inline-flex items-center gap-1 shrink-0">
-              <PlatformIcon platform={item.platform} className="h-4 w-4" />
-              {gamePlatformLabel(item.platform)}
-            </span>
             {item.digitalStores ? (
               <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('games').accent}`}>
                 Digital <span className="min-w-0 truncate"> · {digitalStoresLabel(item.digitalStores)}</span>
