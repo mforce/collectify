@@ -184,6 +184,7 @@ public class TmdbMovieProviderTests
         await provider.SearchAsync("x");
 
         Assert.NotEmpty(storage.Writes);
+        Assert.Contains(storage.Writes, w => w.Provider == "tmdb" && w.Key == "v1:search:x");
         Assert.All(storage.Writes, w => Assert.Equal(expectedTtl, w.Ttl));
     }
 
@@ -360,6 +361,7 @@ public class TmdbMovieProviderTests
         Assert.NotNull(second);
         Assert.Equal(first!.Director, second!.Director);
         Assert.Single(handler.RequestedUrls);
+        Assert.Contains(storage.Writes, w => w.Provider == "tmdb" && w.Key == "v1:id:27205");
     }
 
     [Fact]
@@ -582,6 +584,7 @@ public class TmdbMovieProviderTests
         await provider.SearchByBarcodeAsync("0883929473076");
 
         Assert.NotEmpty(storage.Writes);
+        Assert.Contains(storage.Writes, w => w.Provider == "tmdb" && w.Key == "v1:barcode:0883929473076");
         Assert.All(storage.Writes, w => Assert.Equal(options.CacheTtl, w.Ttl));
     }
 
