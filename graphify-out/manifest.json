@@ -2,1406 +2,1406 @@
   ".githooks/commit-msg": {
     "mtime": 1786923732.5200815,
     "ast_hash": "83bdd702c87698dc0e4d988bc0909612",
-    "semantic_hash": ""
+    "semantic_hash": "83bdd702c87698dc0e4d988bc0909612"
   },
   ".githooks/pre-commit": {
     "mtime": 1786923732.52109,
     "ast_hash": "f39d1d0a26075d4d7700b3ccef32cd76",
-    "semantic_hash": ""
+    "semantic_hash": "f39d1d0a26075d4d7700b3ccef32cd76"
   },
   ".github/scripts/vuln-gate.mjs": {
     "mtime": 1786923732.5214274,
     "ast_hash": "9eec276275a59cc49bd5b6839647420f",
-    "semantic_hash": ""
+    "semantic_hash": "9eec276275a59cc49bd5b6839647420f"
   },
   ".github/scripts/vuln-gate.test.mjs": {
     "mtime": 1786923732.5219367,
     "ast_hash": "eac0f7db9488f17e49d852666f6acf72",
-    "semantic_hash": ""
+    "semantic_hash": "eac0f7db9488f17e49d852666f6acf72"
   },
   ".github/security-exceptions.json": {
     "mtime": 1786923732.5219367,
     "ast_hash": "f05af2b2131ecaf4358f5da690fd86e6",
-    "semantic_hash": ""
+    "semantic_hash": "f05af2b2131ecaf4358f5da690fd86e6"
   },
   ".release-please-manifest.json": {
     "mtime": 1786923732.523354,
     "ast_hash": "87243bb9ffa57e9ed4cc1e0818cf19d2",
-    "semantic_hash": ""
+    "semantic_hash": "87243bb9ffa57e9ed4cc1e0818cf19d2"
   },
   "docker/entrypoint.sh": {
     "mtime": 1779687833.2647178,
     "ast_hash": "46f3b6c71b9f9a86c34c3990fba2b411",
-    "semantic_hash": ""
+    "semantic_hash": "46f3b6c71b9f9a86c34c3990fba2b411"
   },
   "global.json": {
     "mtime": 1778048162.0574484,
     "ast_hash": "3e180a2ab404b0fcb501e67057f6e4aa",
-    "semantic_hash": ""
+    "semantic_hash": "3e180a2ab404b0fcb501e67057f6e4aa"
   },
   "release-please-config.json": {
     "mtime": 1786923732.525444,
     "ast_hash": "87f6108f3d707a90694c3509c11ce3b7",
-    "semantic_hash": ""
+    "semantic_hash": "87f6108f3d707a90694c3509c11ce3b7"
   },
   "scripts/ci-local.sh": {
     "mtime": 1787031296.1395223,
     "ast_hash": "71de2f3e3aaa39f4d47503fe9045df10",
-    "semantic_hash": ""
+    "semantic_hash": "71de2f3e3aaa39f4d47503fe9045df10"
   },
   "scripts/test-docker-entrypoint.sh": {
     "mtime": 1779687833.2647178,
     "ast_hash": "cab8aca74683ff2a7eb8a1e65116a106",
-    "semantic_hash": ""
+    "semantic_hash": "cab8aca74683ff2a7eb8a1e65116a106"
   },
   "src/client/App.tsx": {
     "mtime": 1787022287.5938656,
     "ast_hash": "86caf725c32fe59c742f3ecf373049ff",
-    "semantic_hash": ""
+    "semantic_hash": "86caf725c32fe59c742f3ecf373049ff"
   },
   "src/client/components/AlbumForm.test.tsx": {
     "mtime": 1778142643.3427017,
     "ast_hash": "a3a372de64eeb7221c5853486f8c655c",
-    "semantic_hash": ""
+    "semantic_hash": "a3a372de64eeb7221c5853486f8c655c"
   },
   "src/client/components/AlbumForm.tsx": {
     "mtime": 1780273964.2923415,
     "ast_hash": "35e0160d022aa8a042b3e84ba2cce4b9",
-    "semantic_hash": ""
+    "semantic_hash": "35e0160d022aa8a042b3e84ba2cce4b9"
   },
   "src/client/components/AuthBrandPanel.tsx": {
     "mtime": 1779747922.817834,
     "ast_hash": "f4fcf1653c3b4e11f3e63a724cf81ec0",
-    "semantic_hash": ""
+    "semantic_hash": "f4fcf1653c3b4e11f3e63a724cf81ec0"
   },
   "src/client/components/BarcodeLookup.test.tsx": {
     "mtime": 1779606264.383743,
     "ast_hash": "0a1832be6b3c8acd968aa99a5381cf7c",
-    "semantic_hash": ""
+    "semantic_hash": "0a1832be6b3c8acd968aa99a5381cf7c"
   },
   "src/client/components/BarcodeLookup.tsx": {
     "mtime": 1779698273.0302572,
     "ast_hash": "3399641068c812cc1d31a866c63e12e4",
-    "semantic_hash": ""
+    "semantic_hash": "3399641068c812cc1d31a866c63e12e4"
   },
   "src/client/components/BarcodeScanner.tsx": {
     "mtime": 1779698273.0302572,
     "ast_hash": "17086895a703f5ffa87aa5c869386a9b",
-    "semantic_hash": ""
+    "semantic_hash": "17086895a703f5ffa87aa5c869386a9b"
   },
   "src/client/components/CollectionList.tsx": {
     "mtime": 1780273964.2923415,
     "ast_hash": "08c12db1f1d0812078d431223f1d68b9",
-    "semantic_hash": ""
+    "semantic_hash": "08c12db1f1d0812078d431223f1d68b9"
   },
   "src/client/components/CoverEditor.test.tsx": {
     "mtime": 1779698273.0302572,
     "ast_hash": "4933b8b4415ba7ca8f916edcd46e4e80",
-    "semantic_hash": ""
+    "semantic_hash": "4933b8b4415ba7ca8f916edcd46e4e80"
   },
   "src/client/components/CoverEditor.tsx": {
     "mtime": 1779698273.0302572,
     "ast_hash": "c68f9544c57796e28fb6497b3585cd4b",
-    "semantic_hash": ""
+    "semantic_hash": "c68f9544c57796e28fb6497b3585cd4b"
   },
   "src/client/components/CoverFormLayout.test.tsx": {
     "mtime": 1779610614.4803178,
     "ast_hash": "0af88229d214153ed34f6851b4efa6ae",
-    "semantic_hash": ""
+    "semantic_hash": "0af88229d214153ed34f6851b4efa6ae"
   },
   "src/client/components/CoverFormLayout.tsx": {
     "mtime": 1779610614.4803178,
     "ast_hash": "3463441359240ca6d99bd332ded72e1a",
-    "semantic_hash": ""
+    "semantic_hash": "3463441359240ca6d99bd332ded72e1a"
   },
   "src/client/components/DarkModeToggle.test.tsx": {
     "mtime": 1779606737.058661,
     "ast_hash": "7cc9872a5758630fc5faa6cd0bae9562",
-    "semantic_hash": ""
+    "semantic_hash": "7cc9872a5758630fc5faa6cd0bae9562"
   },
   "src/client/components/DarkModeToggle.tsx": {
     "mtime": 1779698273.030386,
     "ast_hash": "35702ccaf704d254261c940607e9fa90",
-    "semantic_hash": ""
+    "semantic_hash": "35702ccaf704d254261c940607e9fa90"
   },
   "src/client/components/DetailView.test.tsx": {
     "mtime": 1787175608.1242275,
     "ast_hash": "38d2ff5439a8c77cc291265d61ac67df",
-    "semantic_hash": ""
+    "semantic_hash": "38d2ff5439a8c77cc291265d61ac67df"
   },
   "src/client/components/DetailView.tsx": {
     "mtime": 1787175608.1242275,
     "ast_hash": "228452e4a0890d92587296ba0d190a69",
-    "semantic_hash": ""
+    "semantic_hash": "228452e4a0890d92587296ba0d190a69"
   },
   "src/client/components/FiltersPanel.test.tsx": {
     "mtime": 1787175608.1242275,
     "ast_hash": "7a797d00229eb2c607b0e62a304c7d26",
-    "semantic_hash": ""
+    "semantic_hash": "7a797d00229eb2c607b0e62a304c7d26"
   },
   "src/client/components/FiltersPanel.tsx": {
     "mtime": 1787175608.1242275,
     "ast_hash": "91fe6582ca66fb9f3d57403256c2a7f9",
-    "semantic_hash": ""
+    "semantic_hash": "91fe6582ca66fb9f3d57403256c2a7f9"
   },
   "src/client/components/GameForm.test.tsx": {
     "mtime": 1787096119.487937,
     "ast_hash": "d3e703ddb195ba65a79fb835858d3622",
-    "semantic_hash": ""
+    "semantic_hash": "d3e703ddb195ba65a79fb835858d3622"
   },
   "src/client/components/GameForm.tsx": {
     "mtime": 1787096119.4950366,
     "ast_hash": "877164d7b9238d258cdc91607c5388b0",
-    "semantic_hash": ""
+    "semantic_hash": "877164d7b9238d258cdc91607c5388b0"
   },
   "src/client/components/Layout.test.tsx": {
     "mtime": 1779606737.0590105,
     "ast_hash": "7a856fc00b75e1f58b352f916cae4a63",
-    "semantic_hash": ""
+    "semantic_hash": "7a856fc00b75e1f58b352f916cae4a63"
   },
   "src/client/components/Layout.tsx": {
     "mtime": 1779698273.0304644,
     "ast_hash": "ce8a13d15d77f8a8cdc24aff96764fbf",
-    "semantic_hash": ""
+    "semantic_hash": "ce8a13d15d77f8a8cdc24aff96764fbf"
   },
   "src/client/components/MediaIcon.tsx": {
     "mtime": 1779698273.0304644,
     "ast_hash": "794ebe45aced4d6c416b0a4ccd57b1d8",
-    "semantic_hash": ""
+    "semantic_hash": "794ebe45aced4d6c416b0a4ccd57b1d8"
   },
   "src/client/components/MovieForm.test.tsx": {
     "mtime": 1785221048.424416,
     "ast_hash": "63dadbea7dd00a33b58e60d4249331aa",
-    "semantic_hash": ""
+    "semantic_hash": "63dadbea7dd00a33b58e60d4249331aa"
   },
   "src/client/components/MovieForm.tsx": {
     "mtime": 1780273964.2923415,
     "ast_hash": "4b622ca05cad23ae5c2b82ee28dd8e8d",
-    "semantic_hash": ""
+    "semantic_hash": "4b622ca05cad23ae5c2b82ee28dd8e8d"
   },
   "src/client/components/OnlineSearch.test.tsx": {
     "mtime": 1787031397.3613675,
     "ast_hash": "3bdef5ac812fb06975976e6df9f3e52f",
-    "semantic_hash": ""
+    "semantic_hash": "3bdef5ac812fb06975976e6df9f3e52f"
   },
   "src/client/components/OnlineSearch.tsx": {
     "mtime": 1787031397.3613675,
     "ast_hash": "5745981a200aca3462a5bb7e485a8c72",
-    "semantic_hash": ""
+    "semantic_hash": "5745981a200aca3462a5bb7e485a8c72"
   },
   "src/client/components/PersonalAcquisitionSection.tsx": {
     "mtime": 1779260635.4356544,
     "ast_hash": "ad33733ad11f2d65ef94e4c4a7850b41",
-    "semantic_hash": ""
+    "semantic_hash": "ad33733ad11f2d65ef94e4c4a7850b41"
   },
   "src/client/components/PhotoLookup.test.tsx": {
     "mtime": 1780273964.2923415,
     "ast_hash": "207264a5f233da4ab2328d3ac0b3daec",
-    "semantic_hash": ""
+    "semantic_hash": "207264a5f233da4ab2328d3ac0b3daec"
   },
   "src/client/components/PhotoLookup.tsx": {
     "mtime": 1780273964.2923415,
     "ast_hash": "2f11c4a513725a02069d054ab81ba765",
-    "semantic_hash": ""
+    "semantic_hash": "2f11c4a513725a02069d054ab81ba765"
   },
   "src/client/components/RatingInput.test.tsx": {
     "mtime": 1778051357.111927,
     "ast_hash": "f13506d09418f314b8f17c19d3b2bf76",
-    "semantic_hash": ""
+    "semantic_hash": "f13506d09418f314b8f17c19d3b2bf76"
   },
   "src/client/components/TagInput.test.tsx": {
     "mtime": 1778051357.111927,
     "ast_hash": "d9abe4d9359aec6c539812b6eacfe9c6",
-    "semantic_hash": ""
+    "semantic_hash": "d9abe4d9359aec6c539812b6eacfe9c6"
   },
   "src/client/components/toaster.test.tsx": {
     "mtime": 1779606264.384743,
     "ast_hash": "5dba2d04e4a1a693d8c63a0f067056ac",
-    "semantic_hash": ""
+    "semantic_hash": "5dba2d04e4a1a693d8c63a0f067056ac"
   },
   "src/client/components/toaster.tsx": {
     "mtime": 1779606737.0591483,
     "ast_hash": "f96ab5ee7db21d6306571cb96293bc9a",
-    "semantic_hash": ""
+    "semantic_hash": "f96ab5ee7db21d6306571cb96293bc9a"
   },
   "src/client/components/ui.test.tsx": {
     "mtime": 1779606264.384743,
     "ast_hash": "66675d42fb794816731638e9c11b4fd9",
-    "semantic_hash": ""
+    "semantic_hash": "66675d42fb794816731638e9c11b4fd9"
   },
   "src/client/components/ui.tsx": {
     "mtime": 1787031296.1398551,
     "ast_hash": "d8b97ed016d8458cdf236fdab9c15e23",
-    "semantic_hash": ""
+    "semantic_hash": "d8b97ed016d8458cdf236fdab9c15e23"
   },
   "src/client/hooks/useViewPreference.ts": {
     "mtime": 1779606737.0592988,
     "ast_hash": "20bf5c5ea0215f840f211ea8277c0162",
-    "semantic_hash": ""
+    "semantic_hash": "20bf5c5ea0215f840f211ea8277c0162"
   },
   "src/client/main.tsx": {
     "mtime": 1786923732.526224,
     "ast_hash": "c0365a29f8d92bbe672b608ae6755ec1",
-    "semantic_hash": ""
+    "semantic_hash": "c0365a29f8d92bbe672b608ae6755ec1"
   },
   "src/client/package.json": {
     "mtime": 1787175608.1242275,
     "ast_hash": "5dbf6f91d602c73261703473151df981",
-    "semantic_hash": ""
+    "semantic_hash": "5dbf6f91d602c73261703473151df981"
   },
   "src/client/pages/AddPage.tsx": {
     "mtime": 1779698273.030645,
     "ast_hash": "2e98ebed17df8fa73a1379bf5de9cac9",
-    "semantic_hash": ""
+    "semantic_hash": "2e98ebed17df8fa73a1379bf5de9cac9"
   },
   "src/client/pages/Dashboard.tsx": {
     "mtime": 1779698273.030645,
     "ast_hash": "d0bf1ba95ee25362c2fb0325e57b189a",
-    "semantic_hash": ""
+    "semantic_hash": "d0bf1ba95ee25362c2fb0325e57b189a"
   },
   "src/client/pages/EditPage.tsx": {
     "mtime": 1779698273.030645,
     "ast_hash": "6f133d7cdb7b5286d535dda4c17384d6",
-    "semantic_hash": ""
+    "semantic_hash": "6f133d7cdb7b5286d535dda4c17384d6"
   },
   "src/client/pages/GamesList.test.tsx": {
     "mtime": 1787175608.1242275,
     "ast_hash": "4ccf4a53e5d4ec5693dc55400326f2dc",
-    "semantic_hash": ""
+    "semantic_hash": "4ccf4a53e5d4ec5693dc55400326f2dc"
   },
   "src/client/pages/GamesList.tsx": {
     "mtime": 1787175608.1242275,
     "ast_hash": "f58e511be9e6230d120cd882aaea100f",
-    "semantic_hash": ""
+    "semantic_hash": "f58e511be9e6230d120cd882aaea100f"
   },
   "src/client/pages/ImportSteam.test.tsx": {
     "mtime": 1787022287.5940056,
     "ast_hash": "9cf8df8fde663599d2b8a7a979a8e3a1",
-    "semantic_hash": ""
+    "semantic_hash": "9cf8df8fde663599d2b8a7a979a8e3a1"
   },
   "src/client/pages/ImportSteam.tsx": {
     "mtime": 1787022287.594288,
     "ast_hash": "300ffc898c0a0fe791ef48c8f8870749",
-    "semantic_hash": ""
+    "semantic_hash": "300ffc898c0a0fe791ef48c8f8870749"
   },
   "src/client/pages/Login.tsx": {
     "mtime": 1779747922.817834,
     "ast_hash": "ad15439c44947956a0461d00977c7979",
-    "semantic_hash": ""
+    "semantic_hash": "ad15439c44947956a0461d00977c7979"
   },
   "src/client/pages/MoviesList.tsx": {
     "mtime": 1779606737.0592988,
     "ast_hash": "6c8c6071a2addf58492d5480401d0877",
-    "semantic_hash": ""
+    "semantic_hash": "6c8c6071a2addf58492d5480401d0877"
   },
   "src/client/pages/MusicList.tsx": {
     "mtime": 1787031296.1398551,
     "ast_hash": "e21aafc4038126eab471a8ec6668aa0e",
-    "semantic_hash": ""
+    "semantic_hash": "e21aafc4038126eab471a8ec6668aa0e"
   },
   "src/client/pages/Register.tsx": {
     "mtime": 1779747922.817834,
     "ast_hash": "5e5e5d88af5551ad570fd9dc8c9ee76d",
-    "semantic_hash": ""
+    "semantic_hash": "5e5e5d88af5551ad570fd9dc8c9ee76d"
   },
   "src/client/pages/Setup.tsx": {
     "mtime": 1779747922.817834,
     "ast_hash": "408e7b7612c14c32a0be880374d1b398",
-    "semantic_hash": ""
+    "semantic_hash": "408e7b7612c14c32a0be880374d1b398"
   },
   "src/client/pages/Tags.test.tsx": {
     "mtime": 1779606264.3861783,
     "ast_hash": "ef1a8f45a6ed7dea6291affad7a3da3f",
-    "semantic_hash": ""
+    "semantic_hash": "ef1a8f45a6ed7dea6291affad7a3da3f"
   },
   "src/client/pages/Tags.tsx": {
     "mtime": 1779698273.0308208,
     "ast_hash": "4ebb776d98b54e736f6bf67ec88565b3",
-    "semantic_hash": ""
+    "semantic_hash": "4ebb776d98b54e736f6bf67ec88565b3"
   },
   "src/client/postcss.config.js": {
     "mtime": 1787175608.1242275,
     "ast_hash": "6d787f7d4ddbb943db3480f724aa3fc5",
-    "semantic_hash": ""
+    "semantic_hash": "6d787f7d4ddbb943db3480f724aa3fc5"
   },
   "src/client/scripts/check-enum-parity.mjs": {
     "mtime": 1787031296.1399703,
     "ast_hash": "1cd1bfb6e82aeb9947eae12e927eb9d5",
-    "semantic_hash": ""
+    "semantic_hash": "1cd1bfb6e82aeb9947eae12e927eb9d5"
   },
   "src/client/services/auth.ts": {
     "mtime": 1779606264.3861783,
     "ast_hash": "36d548596b852516003c38c74839cd55",
-    "semantic_hash": ""
+    "semantic_hash": "36d548596b852516003c38c74839cd55"
   },
   "src/client/services/client.ts": {
     "mtime": 1779335306.9755805,
     "ast_hash": "8d4855f34aa920bc46d8ca60177e8c87",
-    "semantic_hash": ""
+    "semantic_hash": "8d4855f34aa920bc46d8ca60177e8c87"
   },
   "src/client/services/collection.ts": {
     "mtime": 1779606264.3861783,
     "ast_hash": "60395f168b2d8c9bc12185f280ee2215",
-    "semantic_hash": ""
+    "semantic_hash": "60395f168b2d8c9bc12185f280ee2215"
   },
   "src/client/services/filters.test.ts": {
     "mtime": 1787175608.1252277,
     "ast_hash": "1da9d2f8fa543e0b490222d4bb2941bb",
-    "semantic_hash": ""
+    "semantic_hash": "1da9d2f8fa543e0b490222d4bb2941bb"
   },
   "src/client/services/filters.ts": {
     "mtime": 1787175608.1252277,
     "ast_hash": "9c47feef5988e823fd9cf9c859d2da78",
-    "semantic_hash": ""
+    "semantic_hash": "9c47feef5988e823fd9cf9c859d2da78"
   },
   "src/client/services/lookup.ts": {
     "mtime": 1787096119.4951074,
     "ast_hash": "f8c5ba1eab28c6ca2695c28119f774a1",
-    "semantic_hash": ""
+    "semantic_hash": "f8c5ba1eab28c6ca2695c28119f774a1"
   },
   "src/client/services/steam.ts": {
     "mtime": 1787022287.5944016,
     "ast_hash": "7f2ea7748381bae0fa4b65ef775f9c5c",
-    "semantic_hash": ""
+    "semantic_hash": "7f2ea7748381bae0fa4b65ef775f9c5c"
   },
   "src/client/services/tags.ts": {
     "mtime": 1778115250.4703763,
     "ast_hash": "fa6ae3408038a074155fa18e96b3e6ad",
-    "semantic_hash": ""
+    "semantic_hash": "fa6ae3408038a074155fa18e96b3e6ad"
   },
   "src/client/services/types.test.ts": {
     "mtime": 1787175608.1252277,
     "ast_hash": "96348767bcebaee15f823c4088982c90",
-    "semantic_hash": ""
+    "semantic_hash": "96348767bcebaee15f823c4088982c90"
   },
   "src/client/services/types.ts": {
     "mtime": 1787175608.1252277,
     "ast_hash": "e844bbed51ca9557bc980bd25be40377",
-    "semantic_hash": ""
+    "semantic_hash": "e844bbed51ca9557bc980bd25be40377"
   },
   "src/client/tailwind.config.js": {
     "mtime": 1779698273.0381184,
     "ast_hash": "f98b65e40cd1c099cd82ef2c314396fa",
-    "semantic_hash": ""
+    "semantic_hash": "f98b65e40cd1c099cd82ef2c314396fa"
   },
   "src/client/test/setup.ts": {
     "mtime": 1778048162.057763,
     "ast_hash": "28f28b341b7e818f5be726a38dea37a8",
-    "semantic_hash": ""
+    "semantic_hash": "28f28b341b7e818f5be726a38dea37a8"
   },
   "src/client/tsconfig.json": {
     "mtime": 1778046274.8539488,
     "ast_hash": "10cce6b660e078aecbb011a32cd4cdc4",
-    "semantic_hash": ""
+    "semantic_hash": "10cce6b660e078aecbb011a32cd4cdc4"
   },
   "src/client/vite-env.d.ts": {
     "mtime": 1787175608.1252277,
     "ast_hash": "0352474ba2918efe13895edbc3780d94",
-    "semantic_hash": ""
+    "semantic_hash": "0352474ba2918efe13895edbc3780d94"
   },
   "src/client/vite.config.ts": {
     "mtime": 1779606264.3866093,
     "ast_hash": "17288305ea633224c2879b5bdf0d1d6f",
-    "semantic_hash": ""
+    "semantic_hash": "17288305ea633224c2879b5bdf0d1d6f"
   },
   "src/server/Collectify.Api/Collectify.Api.csproj": {
     "mtime": 1778136242.0388002,
     "ast_hash": "a0d62bdcd363ebed54ad224a26844021",
-    "semantic_hash": ""
+    "semantic_hash": "a0d62bdcd363ebed54ad224a26844021"
   },
   "src/server/Collectify.Api/Endpoints/AuthEndpoints.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "8256f672df55f2fae3242cbb2c6f3fa4",
-    "semantic_hash": ""
+    "semantic_hash": "8256f672df55f2fae3242cbb2c6f3fa4"
   },
   "src/server/Collectify.Api/Endpoints/CoversEndpoints.cs": {
     "mtime": 1780273964.2926967,
     "ast_hash": "085ef9531bff9b22614194a0e0656561",
-    "semantic_hash": ""
+    "semantic_hash": "085ef9531bff9b22614194a0e0656561"
   },
   "src/server/Collectify.Api/Endpoints/DashboardEndpoints.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "95f698787b5500a68fad36fa56553f2e",
-    "semantic_hash": ""
+    "semantic_hash": "95f698787b5500a68fad36fa56553f2e"
   },
   "src/server/Collectify.Api/Endpoints/DefinedEnumConverter.cs": {
     "mtime": 1787175608.1252277,
     "ast_hash": "57a16aef0a339e7344687415a7334743",
-    "semantic_hash": ""
+    "semantic_hash": "57a16aef0a339e7344687415a7334743"
   },
   "src/server/Collectify.Api/Endpoints/GamePlatformJsonConverter.cs": {
     "mtime": 1787096119.495201,
     "ast_hash": "fbdb4386cf3a8e8a7e6dda318bb1e83e",
-    "semantic_hash": ""
+    "semantic_hash": "fbdb4386cf3a8e8a7e6dda318bb1e83e"
   },
   "src/server/Collectify.Api/Endpoints/GamesEndpoints.cs": {
     "mtime": 1787096119.4952648,
     "ast_hash": "7b8561d688314d9afbf32583471e2b5d",
-    "semantic_hash": ""
+    "semantic_hash": "7b8561d688314d9afbf32583471e2b5d"
   },
   "src/server/Collectify.Api/Endpoints/HealthEndpoints.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "cfcced95cd4b7a5590f134d1ea7f226b",
-    "semantic_hash": ""
+    "semantic_hash": "cfcced95cd4b7a5590f134d1ea7f226b"
   },
   "src/server/Collectify.Api/Endpoints/ImageUploadValidator.cs": {
     "mtime": 1780273964.2926967,
     "ast_hash": "a2fd17a6bdaba4fa88f0abc0a62e8afa",
-    "semantic_hash": ""
+    "semantic_hash": "a2fd17a6bdaba4fa88f0abc0a62e8afa"
   },
   "src/server/Collectify.Api/Endpoints/LookupEndpoints.cs": {
     "mtime": 1787096119.4953403,
     "ast_hash": "edd05f8a11663b524d24eefed8aa8b26",
-    "semantic_hash": ""
+    "semantic_hash": "edd05f8a11663b524d24eefed8aa8b26"
   },
   "src/server/Collectify.Api/Endpoints/MoviesEndpoints.cs": {
     "mtime": 1787175608.1252277,
     "ast_hash": "ba268e06cfb42118153e425a32eda265",
-    "semantic_hash": ""
+    "semantic_hash": "ba268e06cfb42118153e425a32eda265"
   },
   "src/server/Collectify.Api/Endpoints/MusicEndpoints.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "b62819ad25aa4113806e42b80ca71ba2",
-    "semantic_hash": ""
+    "semantic_hash": "b62819ad25aa4113806e42b80ca71ba2"
   },
   "src/server/Collectify.Api/Endpoints/SteamStoreEndpoints.cs": {
     "mtime": 1787096119.4953883,
     "ast_hash": "2989120211802a65ab52d5890cf35c5d",
-    "semantic_hash": ""
+    "semantic_hash": "2989120211802a65ab52d5890cf35c5d"
   },
   "src/server/Collectify.Api/Endpoints/TagEndpoints.cs": {
     "mtime": 1778136242.0388477,
     "ast_hash": "edf1d3572ac436964f84cf233a278aa5",
-    "semantic_hash": ""
+    "semantic_hash": "edf1d3572ac436964f84cf233a278aa5"
   },
   "src/server/Collectify.Api/Endpoints/TagResolver.cs": {
     "mtime": 1778136242.0388477,
     "ast_hash": "b1c2177bedceab2af3b8f07e6646d5ce",
-    "semantic_hash": ""
+    "semantic_hash": "b1c2177bedceab2af3b8f07e6646d5ce"
   },
   "src/server/Collectify.Api/Program.cs": {
     "mtime": 1787175608.1252277,
     "ast_hash": "00452ccb333fd0b8485375de28618dab",
-    "semantic_hash": ""
+    "semantic_hash": "00452ccb333fd0b8485375de28618dab"
   },
   "src/server/Collectify.Api/Properties/launchSettings.json": {
     "mtime": 1778136242.0388477,
     "ast_hash": "a87e1448d18a60adbb8239d9c45867e1",
-    "semantic_hash": ""
+    "semantic_hash": "a87e1448d18a60adbb8239d9c45867e1"
   },
   "src/server/Collectify.Api/appsettings.json": {
     "mtime": 1779689857.9718807,
     "ast_hash": "732f4d75514e890746f0170256ed9654",
-    "semantic_hash": ""
+    "semantic_hash": "732f4d75514e890746f0170256ed9654"
   },
   "src/server/Collectify.Api/packages.lock.json": {
     "mtime": 1787175608.1252277,
     "ast_hash": "0535e79819fb68cf339723e6016bea37",
-    "semantic_hash": ""
+    "semantic_hash": "0535e79819fb68cf339723e6016bea37"
   },
   "src/server/Collectify.Domain/Collectify.Domain.csproj": {
     "mtime": 1778046274.8540695,
     "ast_hash": "4258e11a2b535b27f62d0cc8ecdeccc5",
-    "semantic_hash": ""
+    "semantic_hash": "4258e11a2b535b27f62d0cc8ecdeccc5"
   },
   "src/server/Collectify.Domain/Entities/CoverImage.cs": {
     "mtime": 1778135227.6535819,
     "ast_hash": "039ce6b2686a39f0d7b640cd18ddac83",
-    "semantic_hash": ""
+    "semantic_hash": "039ce6b2686a39f0d7b640cd18ddac83"
   },
   "src/server/Collectify.Domain/Entities/Game.cs": {
     "mtime": 1787022287.5948772,
     "ast_hash": "1402e3a75f79ab073a0df495583d758d",
-    "semantic_hash": ""
+    "semantic_hash": "1402e3a75f79ab073a0df495583d758d"
   },
   "src/server/Collectify.Domain/Entities/GameStoreConnection.cs": {
     "mtime": 1787022287.5948892,
     "ast_hash": "5e4233b3ecc6cec1a15301280b6cf6eb",
-    "semantic_hash": ""
+    "semantic_hash": "5e4233b3ecc6cec1a15301280b6cf6eb"
   },
   "src/server/Collectify.Domain/Entities/GameStoreOwnedTitle.cs": {
     "mtime": 1787022287.594906,
     "ast_hash": "3279e5237fa6dd6a6c77276a12e96f07",
-    "semantic_hash": ""
+    "semantic_hash": "3279e5237fa6dd6a6c77276a12e96f07"
   },
   "src/server/Collectify.Domain/Entities/Movie.cs": {
     "mtime": 1778046274.854199,
     "ast_hash": "6186876729647fe0bc1898c3e0cd34d9",
-    "semantic_hash": ""
+    "semantic_hash": "6186876729647fe0bc1898c3e0cd34d9"
   },
   "src/server/Collectify.Domain/Entities/MusicAlbum.cs": {
     "mtime": 1778046274.854199,
     "ast_hash": "d787625baaa109788e2c967c07fa2d49",
-    "semantic_hash": ""
+    "semantic_hash": "d787625baaa109788e2c967c07fa2d49"
   },
   "src/server/Collectify.Domain/Entities/SteamAuthRequest.cs": {
     "mtime": 1787022287.5949173,
     "ast_hash": "8d17ecd73c836463e5c579b303f542ed",
-    "semantic_hash": ""
+    "semantic_hash": "8d17ecd73c836463e5c579b303f542ed"
   },
   "src/server/Collectify.Domain/Entities/Tag.cs": {
     "mtime": 1778046274.854199,
     "ast_hash": "973116e9b7cff6b41101312cc8677bb6",
-    "semantic_hash": ""
+    "semantic_hash": "973116e9b7cff6b41101312cc8677bb6"
   },
   "src/server/Collectify.Domain/Enums/CollectionStatus.cs": {
     "mtime": 1778046274.854199,
     "ast_hash": "0604cadd4e522176b223f8b3975f207c",
-    "semantic_hash": ""
+    "semantic_hash": "0604cadd4e522176b223f8b3975f207c"
   },
   "src/server/Collectify.Domain/Enums/CompletionStatus.cs": {
     "mtime": 1778046274.8542535,
     "ast_hash": "499eb60294335850e8a5d05eae6fcfab",
-    "semantic_hash": ""
+    "semantic_hash": "499eb60294335850e8a5d05eae6fcfab"
   },
   "src/server/Collectify.Domain/Enums/Condition.cs": {
     "mtime": 1786779618.0439918,
     "ast_hash": "81a599d525444ae3b9dec76e81e409d1",
-    "semantic_hash": ""
+    "semantic_hash": "81a599d525444ae3b9dec76e81e409d1"
   },
   "src/server/Collectify.Domain/Enums/DigitalStore.cs": {
     "mtime": 1778046274.8542535,
     "ast_hash": "7518a5b6a8d8b9e1aef0802f0fa93a20",
-    "semantic_hash": ""
+    "semantic_hash": "7518a5b6a8d8b9e1aef0802f0fa93a20"
   },
   "src/server/Collectify.Domain/Enums/GamePlatform.cs": {
     "mtime": 1787096119.495481,
     "ast_hash": "715b43fbd425887bb3b56bd5d3dfabe9",
-    "semantic_hash": ""
+    "semantic_hash": "715b43fbd425887bb3b56bd5d3dfabe9"
   },
   "src/server/Collectify.Domain/Enums/GamePlatformMapping.cs": {
     "mtime": 1787096119.4955149,
     "ast_hash": "7ddedf8270cb354c84db48c8c81947c7",
-    "semantic_hash": ""
+    "semantic_hash": "7ddedf8270cb354c84db48c8c81947c7"
   },
   "src/server/Collectify.Domain/Enums/MovieFormat.cs": {
     "mtime": 1785221048.4244602,
     "ast_hash": "b1c1848bda5c70830eaacce12f337016",
-    "semantic_hash": ""
+    "semantic_hash": "b1c1848bda5c70830eaacce12f337016"
   },
   "src/server/Collectify.Domain/Enums/MusicFormat.cs": {
     "mtime": 1786786759.4231946,
     "ast_hash": "545f8c70473a141ae789d41f0b6ef042",
-    "semantic_hash": ""
+    "semantic_hash": "545f8c70473a141ae789d41f0b6ef042"
   },
   "src/server/Collectify.Domain/Enums/WatchStatus.cs": {
     "mtime": 1778046274.8542535,
     "ast_hash": "92168c14b25a9123bb646dd0a8a717ce",
-    "semantic_hash": ""
+    "semantic_hash": "92168c14b25a9123bb646dd0a8a717ce"
   },
   "src/server/Collectify.Domain/OcrNoiseWords.cs": {
     "mtime": 1780273964.2926967,
     "ast_hash": "da73664a1fa6ccd2bcbdf1dc8be7990e",
-    "semantic_hash": ""
+    "semantic_hash": "da73664a1fa6ccd2bcbdf1dc8be7990e"
   },
   "src/server/Collectify.Domain/packages.lock.json": {
     "mtime": 1786923732.5269752,
     "ast_hash": "7775d7ed0c14a6f23d84af2d83a88ad1",
-    "semantic_hash": ""
+    "semantic_hash": "7775d7ed0c14a6f23d84af2d83a88ad1"
   },
   "src/server/Collectify.Infrastructure/Collectify.Infrastructure.csproj": {
     "mtime": 1787175608.1252277,
     "ast_hash": "f339cec790e1c09a5bf1fc41c87be79f",
-    "semantic_hash": ""
+    "semantic_hash": "f339cec790e1c09a5bf1fc41c87be79f"
   },
   "src/server/Collectify.Infrastructure/Data/CollectifyDbContext.cs": {
     "mtime": 1787175608.1252277,
     "ast_hash": "8a0598e39e86240c476b29041c5f15d6",
-    "semantic_hash": ""
+    "semantic_hash": "8a0598e39e86240c476b29041c5f15d6"
   },
   "src/server/Collectify.Infrastructure/Data/CollectifyDbContextExtensions.cs": {
     "mtime": 1780036977.1091278,
     "ast_hash": "68b70e40512349ba551aa1ddace48a72",
-    "semantic_hash": ""
+    "semantic_hash": "68b70e40512349ba551aa1ddace48a72"
   },
   "src/server/Collectify.Infrastructure/Data/GamePlatformBackfill.cs": {
     "mtime": 1787096119.4955587,
     "ast_hash": "1c1db894469c2b1324ee3adcfaa79379",
-    "semantic_hash": ""
+    "semantic_hash": "1c1db894469c2b1324ee3adcfaa79379"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260505174247_InitialCreate.Designer.cs": {
     "mtime": 1778046274.8543262,
     "ast_hash": "d9d08b0a48f39a0b96c7d2778681a98a",
-    "semantic_hash": ""
+    "semantic_hash": "d9d08b0a48f39a0b96c7d2778681a98a"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260505174247_InitialCreate.cs": {
     "mtime": 1778046274.8543496,
     "ast_hash": "aa6c2d74c7e3f647fa1469ba7dc6679f",
-    "semantic_hash": ""
+    "semantic_hash": "aa6c2d74c7e3f647fa1469ba7dc6679f"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.Designer.cs": {
     "mtime": 1778046274.8543496,
     "ast_hash": "d9ac0a6158798bf558494111488a98b8",
-    "semantic_hash": ""
+    "semantic_hash": "d9ac0a6158798bf558494111488a98b8"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260506051007_AddPersonalAcquisitionAndTagFields.cs": {
     "mtime": 1778046274.8543496,
     "ast_hash": "a74ad44e248c2613b4321e9db155fefd",
-    "semantic_hash": ""
+    "semantic_hash": "a74ad44e248c2613b4321e9db155fefd"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260507055526_AddCoverImages.Designer.cs": {
     "mtime": 1778135227.6535819,
     "ast_hash": "843db6895af14f80e3e9a971d972cce5",
-    "semantic_hash": ""
+    "semantic_hash": "843db6895af14f80e3e9a971d972cce5"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260507055526_AddCoverImages.cs": {
     "mtime": 1778135227.6535819,
     "ast_hash": "66ffde408133bccd445b1e35a3c208a1",
-    "semantic_hash": ""
+    "semantic_hash": "66ffde408133bccd445b1e35a3c208a1"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260511060124_ConvertGamePlatformToEnum.Designer.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "d7ae4961aa6f11d253d63a19691566b7",
-    "semantic_hash": ""
+    "semantic_hash": "d7ae4961aa6f11d253d63a19691566b7"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260511060124_ConvertGamePlatformToEnum.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "0d0673507ed8639061a24de91b6e6d6c",
-    "semantic_hash": ""
+    "semantic_hash": "0d0673507ed8639061a24de91b6e6d6c"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260815061613_AddStoreImport.Designer.cs": {
     "mtime": 1787022287.5950387,
     "ast_hash": "867e36581aed8371160f7e7a08712f77",
-    "semantic_hash": ""
+    "semantic_hash": "867e36581aed8371160f7e7a08712f77"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260815061613_AddStoreImport.cs": {
     "mtime": 1787022287.595057,
     "ast_hash": "f70b934c253fcfbb84c70cb9f1605653",
-    "semantic_hash": ""
+    "semantic_hash": "f70b934c253fcfbb84c70cb9f1605653"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260815070314_ConvertSteamDeckToPc.Designer.cs": {
     "mtime": 1787031296.1402228,
     "ast_hash": "f9c536c9fdf51120eee3ccba7c53233b",
-    "semantic_hash": ""
+    "semantic_hash": "f9c536c9fdf51120eee3ccba7c53233b"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260815070314_ConvertSteamDeckToPc.cs": {
     "mtime": 1787031296.1402228,
     "ast_hash": "327bdb5a4fe195518386c1bd6f6e8808",
-    "semantic_hash": ""
+    "semantic_hash": "327bdb5a4fe195518386c1bd6f6e8808"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260815075456_AddGameDlcParent.Designer.cs": {
     "mtime": 1787022287.5951161,
     "ast_hash": "868d90112194bfc014a7ec8837fc1470",
-    "semantic_hash": ""
+    "semantic_hash": "868d90112194bfc014a7ec8837fc1470"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260815075456_AddGameDlcParent.cs": {
     "mtime": 1787022287.5951335,
     "ast_hash": "3882fd6912e4d0db03c451363e76c4c7",
-    "semantic_hash": ""
+    "semantic_hash": "3882fd6912e4d0db03c451363e76c4c7"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260816203845_FixDlcFkOwnerScoping.Designer.cs": {
     "mtime": 1787022287.5951533,
     "ast_hash": "7cbfa00e4d1db924f0b00ee15390384c",
-    "semantic_hash": ""
+    "semantic_hash": "7cbfa00e4d1db924f0b00ee15390384c"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260816203845_FixDlcFkOwnerScoping.cs": {
     "mtime": 1787022287.5951533,
     "ast_hash": "b69f6b0c702f9ca846d6165407e66eaa",
-    "semantic_hash": ""
+    "semantic_hash": "b69f6b0c702f9ca846d6165407e66eaa"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260818193439_ConvertLinuxToPc.Designer.cs": {
     "mtime": 1787096119.4955952,
     "ast_hash": "39dfa9fc448e3f77c537e025dbb266f1",
-    "semantic_hash": ""
+    "semantic_hash": "39dfa9fc448e3f77c537e025dbb266f1"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260818193439_ConvertLinuxToPc.cs": {
     "mtime": 1787096119.4956229,
     "ast_hash": "3f8e3b51e5998ba167eab73c49ed44a5",
-    "semantic_hash": ""
+    "semantic_hash": "3f8e3b51e5998ba167eab73c49ed44a5"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260819014459_DropLookupCacheEntries.Designer.cs": {
     "mtime": 1787175608.1252277,
     "ast_hash": "f3a81066b3e669df3ae85d731f310993",
-    "semantic_hash": ""
+    "semantic_hash": "f3a81066b3e669df3ae85d731f310993"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/20260819014459_DropLookupCacheEntries.cs": {
     "mtime": 1787175608.1252277,
     "ast_hash": "2093add0b089a6b52a9f66911eb598fd",
-    "semantic_hash": ""
+    "semantic_hash": "2093add0b089a6b52a9f66911eb598fd"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/CollectifyDbContextModelSnapshot.cs": {
     "mtime": 1787175608.1252277,
     "ast_hash": "fd467e69d338aa996c3292ce861f8fbe",
-    "semantic_hash": ""
+    "semantic_hash": "fd467e69d338aa996c3292ce861f8fbe"
   },
   "src/server/Collectify.Infrastructure/DatabaseOptions.cs": {
     "mtime": 1780036977.1091278,
     "ast_hash": "48c264af74f7e6fb33c9cddd318fca5c",
-    "semantic_hash": ""
+    "semantic_hash": "48c264af74f7e6fb33c9cddd318fca5c"
   },
   "src/server/Collectify.Infrastructure/Identity/AppUser.cs": {
     "mtime": 1778046274.8543496,
     "ast_hash": "c28246e0603b43fd6b30b0ff011ff127",
-    "semantic_hash": ""
+    "semantic_hash": "c28246e0603b43fd6b30b0ff011ff127"
   },
   "src/server/Collectify.Infrastructure/Identity/AuthOptions.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "a1309bef9acd9bd7eb5921b7012c4d58",
-    "semantic_hash": ""
+    "semantic_hash": "a1309bef9acd9bd7eb5921b7012c4d58"
   },
   "src/server/Collectify.Infrastructure/Lookup/DistributedCacheAdapter.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "788bfe727409a134be1b5f0c21892af4",
-    "semantic_hash": ""
+    "semantic_hash": "788bfe727409a134be1b5f0c21892af4"
   },
   "src/server/Collectify.Infrastructure/Lookup/ILookupCache.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "0ea8170654df351a0cd81666063c2b4d",
-    "semantic_hash": ""
+    "semantic_hash": "0ea8170654df351a0cd81666063c2b4d"
   },
   "src/server/Collectify.Infrastructure/Lookup/IMetadataProviders.cs": {
     "mtime": 1787031397.3613675,
     "ast_hash": "cbb696245882a784bf73e72502f22064",
-    "semantic_hash": ""
+    "semantic_hash": "cbb696245882a784bf73e72502f22064"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IIgdbAuth.cs": {
     "mtime": 1779606264.386743,
     "ast_hash": "e204eaba3747cc87033055e1999193cd",
-    "semantic_hash": ""
+    "semantic_hash": "e204eaba3747cc87033055e1999193cd"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbAuth.cs": {
     "mtime": 1779606264.3875682,
     "ast_hash": "8b0baaca96de32088a899c5c342df364",
-    "semantic_hash": ""
+    "semantic_hash": "8b0baaca96de32088a899c5c342df364"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbBackfillOptions.cs": {
     "mtime": 1787031397.3613675,
     "ast_hash": "d65d60ab87e448d57d1abb37e55980d5",
-    "semantic_hash": ""
+    "semantic_hash": "d65d60ab87e448d57d1abb37e55980d5"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbBackfillPlanner.cs": {
     "mtime": 1787032177.9301443,
     "ast_hash": "496a80779ef2ce10d2557155117b26e7",
-    "semantic_hash": ""
+    "semantic_hash": "496a80779ef2ce10d2557155117b26e7"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbBackfillRunner.cs": {
     "mtime": 1787096119.4956775,
     "ast_hash": "23e676cb645f661132c40af50cd25708",
-    "semantic_hash": ""
+    "semantic_hash": "23e676cb645f661132c40af50cd25708"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbBackfillService.cs": {
     "mtime": 1787096119.4957101,
     "ast_hash": "3bb5baac42519444a6898d8f768800ed",
-    "semantic_hash": ""
+    "semantic_hash": "3bb5baac42519444a6898d8f768800ed"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbBackfillServiceCollectionExtensions.cs": {
     "mtime": 1787031397.3618515,
     "ast_hash": "2faaa3c28b46f4baec41617ffdcd31df",
-    "semantic_hash": ""
+    "semantic_hash": "2faaa3c28b46f4baec41617ffdcd31df"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbGameProvider.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "08b2e3da50113f03618959a4ec83d1f4",
-    "semantic_hash": ""
+    "semantic_hash": "08b2e3da50113f03618959a4ec83d1f4"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbResponses.cs": {
     "mtime": 1779606264.3875682,
     "ast_hash": "894754fda17253b669f24fb1648450b8",
-    "semantic_hash": ""
+    "semantic_hash": "894754fda17253b669f24fb1648450b8"
   },
   "src/server/Collectify.Infrastructure/Lookup/Igdb/IgdbServiceCollectionExtensions.cs": {
     "mtime": 1779606264.3875682,
     "ast_hash": "5584f148f4d99114a558ef0bb86d21c7",
-    "semantic_hash": ""
+    "semantic_hash": "5584f148f4d99114a558ef0bb86d21c7"
   },
   "src/server/Collectify.Infrastructure/Lookup/Images/CoverImageGarbageCollector.cs": {
     "mtime": 1779606264.3875682,
     "ast_hash": "ac27fff41127705e9d698fbd3045278f",
-    "semantic_hash": ""
+    "semantic_hash": "ac27fff41127705e9d698fbd3045278f"
   },
   "src/server/Collectify.Infrastructure/Lookup/Images/CoverImageStore.cs": {
     "mtime": 1787022287.5955884,
     "ast_hash": "5dede6100120f834b7a4ae43fceaee1d",
-    "semantic_hash": ""
+    "semantic_hash": "5dede6100120f834b7a4ae43fceaee1d"
   },
   "src/server/Collectify.Infrastructure/Lookup/LookupCacheJson.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "76f9a69c5bbb506f379a127c30cab402",
-    "semantic_hash": ""
+    "semantic_hash": "76f9a69c5bbb506f379a127c30cab402"
   },
   "src/server/Collectify.Infrastructure/Lookup/LookupResults.cs": {
     "mtime": 1787031397.3618515,
     "ast_hash": "be6f60546074451ea62f493b2159dac4",
-    "semantic_hash": ""
+    "semantic_hash": "be6f60546074451ea62f493b2159dac4"
   },
   "src/server/Collectify.Infrastructure/Lookup/MetadataLookupOptions.cs": {
     "mtime": 1780273964.2926967,
     "ast_hash": "4b661fdc543594cb7d209f100650e369",
-    "semantic_hash": ""
+    "semantic_hash": "4b661fdc543594cb7d209f100650e369"
   },
   "src/server/Collectify.Infrastructure/Lookup/MetadataLookupServiceCollectionExtensions.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "b711a83854cd60b44ada3b1a2456b8bc",
-    "semantic_hash": ""
+    "semantic_hash": "b711a83854cd60b44ada3b1a2456b8bc"
   },
   "src/server/Collectify.Infrastructure/Lookup/MusicBrainz/MusicBrainzMusicProvider.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "a769a68896e54868379c7888b3725140",
-    "semantic_hash": ""
+    "semantic_hash": "a769a68896e54868379c7888b3725140"
   },
   "src/server/Collectify.Infrastructure/Lookup/MusicBrainz/MusicBrainzResponses.cs": {
     "mtime": 1778142643.3441741,
     "ast_hash": "d292d7f8149cf1fee8ad945bef0e0716",
-    "semantic_hash": ""
+    "semantic_hash": "d292d7f8149cf1fee8ad945bef0e0716"
   },
   "src/server/Collectify.Infrastructure/Lookup/MusicBrainz/MusicBrainzServiceCollectionExtensions.cs": {
     "mtime": 1778142643.3441741,
     "ast_hash": "24643703b77d338c4af71ab0651e3f30",
-    "semantic_hash": ""
+    "semantic_hash": "24643703b77d338c4af71ab0651e3f30"
   },
   "src/server/Collectify.Infrastructure/Lookup/Stub/StubMovieProvider.cs": {
     "mtime": 1779606264.387743,
     "ast_hash": "c653acc3b10aaf3f33d292088c96e8e1",
-    "semantic_hash": ""
+    "semantic_hash": "c653acc3b10aaf3f33d292088c96e8e1"
   },
   "src/server/Collectify.Infrastructure/Lookup/Tmdb/TmdbMovieProvider.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "b3a0935269254cbf7330b5bab43ba19b",
-    "semantic_hash": ""
+    "semantic_hash": "b3a0935269254cbf7330b5bab43ba19b"
   },
   "src/server/Collectify.Infrastructure/Lookup/Tmdb/TmdbResponses.cs": {
     "mtime": 1778142064.5596032,
     "ast_hash": "cbb0d0cf8f4ab6f0e1896e04f915f2f2",
-    "semantic_hash": ""
+    "semantic_hash": "cbb0d0cf8f4ab6f0e1896e04f915f2f2"
   },
   "src/server/Collectify.Infrastructure/Lookup/Tmdb/TmdbServiceCollectionExtensions.cs": {
     "mtime": 1778133946.9875114,
     "ast_hash": "8ecc14188689b1dc042aafe37e309181",
-    "semantic_hash": ""
+    "semantic_hash": "8ecc14188689b1dc042aafe37e309181"
   },
   "src/server/Collectify.Infrastructure/Lookup/Upc/IUpcLookupClient.cs": {
     "mtime": 1779606264.387956,
     "ast_hash": "94e5875a642b194e5b937fbd856bcf4c",
-    "semantic_hash": ""
+    "semantic_hash": "94e5875a642b194e5b937fbd856bcf4c"
   },
   "src/server/Collectify.Infrastructure/Lookup/Upc/UpcItemDbClient.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "c9754edaf1fa9ab8930b9b05ac869c5e",
-    "semantic_hash": ""
+    "semantic_hash": "c9754edaf1fa9ab8930b9b05ac869c5e"
   },
   "src/server/Collectify.Infrastructure/Lookup/Upc/UpcItemDbResponses.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "bd8657dbe141d183414a6aadc4b3fbf2",
-    "semantic_hash": ""
+    "semantic_hash": "bd8657dbe141d183414a6aadc4b3fbf2"
   },
   "src/server/Collectify.Infrastructure/Lookup/Upc/UpcServiceCollectionExtensions.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "81e62d2eb74474679fde0e29cb152bf4",
-    "semantic_hash": ""
+    "semantic_hash": "81e62d2eb74474679fde0e29cb152bf4"
   },
   "src/server/Collectify.Infrastructure/Lookup/Vision/CloudVisionClient.cs": {
     "mtime": 1780273964.293743,
     "ast_hash": "6677c8139641c06a6400dbba13f7a219",
-    "semantic_hash": ""
+    "semantic_hash": "6677c8139641c06a6400dbba13f7a219"
   },
   "src/server/Collectify.Infrastructure/Lookup/Vision/IVisionClient.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "b5b742fefb71d80146a7c45fe7abc9f8",
-    "semantic_hash": ""
+    "semantic_hash": "b5b742fefb71d80146a7c45fe7abc9f8"
   },
   "src/server/Collectify.Infrastructure/Lookup/Vision/UrlRouter.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "bb5d4435bdf02b71cff84a95437bdcc5",
-    "semantic_hash": ""
+    "semantic_hash": "bb5d4435bdf02b71cff84a95437bdcc5"
   },
   "src/server/Collectify.Infrastructure/Lookup/Vision/VisionServiceCollectionExtensions.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "99170b55e674e1ee266347f5e42633ab",
-    "semantic_hash": ""
+    "semantic_hash": "99170b55e674e1ee266347f5e42633ab"
   },
   "src/server/Collectify.Infrastructure/Store/ISteamClient.cs": {
     "mtime": 1787022287.5956101,
     "ast_hash": "dc2906bf76b5e5c9c3042777ee7ad31e",
-    "semantic_hash": ""
+    "semantic_hash": "dc2906bf76b5e5c9c3042777ee7ad31e"
   },
   "src/server/Collectify.Infrastructure/Store/ISteamOpenIdVerifier.cs": {
     "mtime": 1787022287.595626,
     "ast_hash": "ac92acbf9e03203318be6e7a31677900",
-    "semantic_hash": ""
+    "semantic_hash": "ac92acbf9e03203318be6e7a31677900"
   },
   "src/server/Collectify.Infrastructure/Store/SteamClient.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "09e187dd5d3988df3f5782a74bdcbfc6",
-    "semantic_hash": ""
+    "semantic_hash": "09e187dd5d3988df3f5782a74bdcbfc6"
   },
   "src/server/Collectify.Infrastructure/Store/SteamGamesResult.cs": {
     "mtime": 1787022287.5957294,
     "ast_hash": "20fc36d40a195df49ef5c96d09b06925",
-    "semantic_hash": ""
+    "semantic_hash": "20fc36d40a195df49ef5c96d09b06925"
   },
   "src/server/Collectify.Infrastructure/Store/SteamId64.cs": {
     "mtime": 1787022287.595741,
     "ast_hash": "417cf83156c7bfcb84a4242facb76ec5",
-    "semantic_hash": ""
+    "semantic_hash": "417cf83156c7bfcb84a4242facb76ec5"
   },
   "src/server/Collectify.Infrastructure/Store/SteamOpenIdVerifier.cs": {
     "mtime": 1787022287.595741,
     "ast_hash": "f03bf32e5485db486b0450dec2820618",
-    "semantic_hash": ""
+    "semantic_hash": "f03bf32e5485db486b0450dec2820618"
   },
   "src/server/Collectify.Infrastructure/Store/SteamOptions.cs": {
     "mtime": 1787022287.5957646,
     "ast_hash": "1306969c54d721c19eaaa412451c0555",
-    "semantic_hash": ""
+    "semantic_hash": "1306969c54d721c19eaaa412451c0555"
   },
   "src/server/Collectify.Infrastructure/Store/SteamOwnedTitle.cs": {
     "mtime": 1787022287.5957801,
     "ast_hash": "bd97c94132155f9254761bd7bc127061",
-    "semantic_hash": ""
+    "semantic_hash": "bd97c94132155f9254761bd7bc127061"
   },
   "src/server/Collectify.Infrastructure/Store/SteamPreviewResult.cs": {
     "mtime": 1787022287.5957801,
     "ast_hash": "bce106d23d1ed9f986a15ec099126083",
-    "semantic_hash": ""
+    "semantic_hash": "bce106d23d1ed9f986a15ec099126083"
   },
   "src/server/Collectify.Infrastructure/Store/SteamResponses.cs": {
     "mtime": 1787022287.5958016,
     "ast_hash": "e2444cce703e3e24523468f0372cdd62",
-    "semantic_hash": ""
+    "semantic_hash": "e2444cce703e3e24523468f0372cdd62"
   },
   "src/server/Collectify.Infrastructure/Store/SteamSchemaGuard.cs": {
     "mtime": 1787022287.5958142,
     "ast_hash": "cd5e8dc35975016e9892dd10ff8fc02d",
-    "semantic_hash": ""
+    "semantic_hash": "cd5e8dc35975016e9892dd10ff8fc02d"
   },
   "src/server/Collectify.Infrastructure/Store/SteamStoreBrowseResponse.cs": {
     "mtime": 1787022287.595832,
     "ast_hash": "02fbd0a6bede42f5a05f393fb455c174",
-    "semantic_hash": ""
+    "semantic_hash": "02fbd0a6bede42f5a05f393fb455c174"
   },
   "src/server/Collectify.Infrastructure/Store/SteamStoreImportService.cs": {
     "mtime": 1787022287.5962634,
     "ast_hash": "31c4c70482e2361da4ce0f8faebab816",
-    "semantic_hash": ""
+    "semantic_hash": "31c4c70482e2361da4ce0f8faebab816"
   },
   "src/server/Collectify.Infrastructure/Store/SteamStoreServiceCollectionExtensions.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "6aab8097832dbcfc63e89f3321e45faf",
-    "semantic_hash": ""
+    "semantic_hash": "6aab8097832dbcfc63e89f3321e45faf"
   },
   "src/server/Collectify.Infrastructure/packages.lock.json": {
     "mtime": 1787175608.1262276,
     "ast_hash": "cafc61113ab0f39e289e58dc47af2c76",
-    "semantic_hash": ""
+    "semantic_hash": "cafc61113ab0f39e289e58dc47af2c76"
   },
   "src/server/Collectify.slnx": {
     "mtime": 1778046274.8543496,
     "ast_hash": "9d1d2334bb0631b9b11f54f1a5d135ec",
-    "semantic_hash": ""
+    "semantic_hash": "9d1d2334bb0631b9b11f54f1a5d135ec"
   },
   "src/server/tests/Collectify.Tests/Api/AuthEndpointsTests.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "1ba37947983a37b50f091dd651fe6f89",
-    "semantic_hash": ""
+    "semantic_hash": "1ba37947983a37b50f091dd651fe6f89"
   },
   "src/server/tests/Collectify.Tests/Api/CoversEndpointsTests.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "3277e4d3d515ac2b6d466d2db80bcaed",
-    "semantic_hash": ""
+    "semantic_hash": "3277e4d3d515ac2b6d466d2db80bcaed"
   },
   "src/server/tests/Collectify.Tests/Api/DashboardEndpointsTests.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "fb6d6a615f22f5229fc89bd236980fd7",
-    "semantic_hash": ""
+    "semantic_hash": "fb6d6a615f22f5229fc89bd236980fd7"
   },
   "src/server/tests/Collectify.Tests/Api/EnumWriteBoundaryTests.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "091b384b54b26a405431372c75c9790d",
-    "semantic_hash": ""
+    "semantic_hash": "091b384b54b26a405431372c75c9790d"
   },
   "src/server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs": {
     "mtime": 1787096119.49656,
     "ast_hash": "dee0275a0c040b0055bd1ab6c7952761",
-    "semantic_hash": ""
+    "semantic_hash": "dee0275a0c040b0055bd1ab6c7952761"
   },
   "src/server/tests/Collectify.Tests/Api/HealthEndpointTests.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "bfca3217872190ec698cef70cd94e29a",
-    "semantic_hash": ""
+    "semantic_hash": "bfca3217872190ec698cef70cd94e29a"
   },
   "src/server/tests/Collectify.Tests/Api/LookupEndpointsTests.cs": {
     "mtime": 1787096119.4966052,
     "ast_hash": "21e2135b41038c1ecf084f53bb0c416c",
-    "semantic_hash": ""
+    "semantic_hash": "21e2135b41038c1ecf084f53bb0c416c"
   },
   "src/server/tests/Collectify.Tests/Api/MoviesEndpointsTests.cs": {
     "mtime": 1785221048.424586,
     "ast_hash": "f9e9992916ae1302b0777aa890d08bad",
-    "semantic_hash": ""
+    "semantic_hash": "f9e9992916ae1302b0777aa890d08bad"
   },
   "src/server/tests/Collectify.Tests/Api/MusicEndpointsTests.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "a056aabab796e740eabace9f47e0242d",
-    "semantic_hash": ""
+    "semantic_hash": "a056aabab796e740eabace9f47e0242d"
   },
   "src/server/tests/Collectify.Tests/Api/SteamEndpointsTests.cs": {
     "mtime": 1787022287.5965667,
     "ast_hash": "9300d4fa23e20fce4a8631849af61289",
-    "semantic_hash": ""
+    "semantic_hash": "9300d4fa23e20fce4a8631849af61289"
   },
   "src/server/tests/Collectify.Tests/Api/TagEndpointsTests.cs": {
     "mtime": 1778046274.854493,
     "ast_hash": "09ede8a85db98d8d44803bd5920af284",
-    "semantic_hash": ""
+    "semantic_hash": "09ede8a85db98d8d44803bd5920af284"
   },
   "src/server/tests/Collectify.Tests/Api/VisionLookupEndpointsTests.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "744578f70ce3d62dd51f5565626d953c",
-    "semantic_hash": ""
+    "semantic_hash": "744578f70ce3d62dd51f5565626d953c"
   },
   "src/server/tests/Collectify.Tests/Collectify.Tests.csproj": {
     "mtime": 1787175608.1262276,
     "ast_hash": "5bd07318fa7d3addc64a648054ff4410",
-    "semantic_hash": ""
+    "semantic_hash": "5bd07318fa7d3addc64a648054ff4410"
   },
   "src/server/tests/Collectify.Tests/Domain/EnumParityTests.cs": {
     "mtime": 1787096119.4966638,
     "ast_hash": "ed8efcf8e7da0b46fa052b6324245fca",
-    "semantic_hash": ""
+    "semantic_hash": "ed8efcf8e7da0b46fa052b6324245fca"
   },
   "src/server/tests/Collectify.Tests/Domain/GamePlatformMappingTests.cs": {
     "mtime": 1787096119.4966993,
     "ast_hash": "174dd07d885ea8f74768a037ef5756ed",
-    "semantic_hash": ""
+    "semantic_hash": "174dd07d885ea8f74768a037ef5756ed"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/CollectifyApiFactory.cs": {
     "mtime": 1787031397.3618515,
     "ast_hash": "e3c26011547b5020ce6ffe2fdbf803c7",
-    "semantic_hash": ""
+    "semantic_hash": "e3c26011547b5020ce6ffe2fdbf803c7"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/CoverImageGarbageCollectorTests.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "e41e317f8c74d0f37b8b0345ee2ef8c6",
-    "semantic_hash": ""
+    "semantic_hash": "e41e317f8c74d0f37b8b0345ee2ef8c6"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/CoverImageStoreTests.cs": {
     "mtime": 1787022287.5967765,
     "ast_hash": "c11b5f7653f2facb3e41f5f64bebfffe",
-    "semantic_hash": ""
+    "semantic_hash": "c11b5f7653f2facb3e41f5f64bebfffe"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/DistributedCacheAdapterTests.cs": {
     "mtime": 1787175608.1262276,
     "ast_hash": "b425a99b43958e38b445375faa48322b",
-    "semantic_hash": ""
+    "semantic_hash": "b425a99b43958e38b445375faa48322b"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/FakeUpcClient.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "241cafea89743a11b41cbbc7225a4eae",
-    "semantic_hash": ""
+    "semantic_hash": "241cafea89743a11b41cbbc7225a4eae"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/FakeVisionClient.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "761c1d221f103da9f66004a597142ea2",
-    "semantic_hash": ""
+    "semantic_hash": "761c1d221f103da9f66004a597142ea2"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/GamePlatformBackfillTests.cs": {
     "mtime": 1787096119.4967632,
     "ast_hash": "05bf2766d93f97cf8aa1a1426963db31",
-    "semantic_hash": ""
+    "semantic_hash": "05bf2766d93f97cf8aa1a1426963db31"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/IgdbBackfillPlannerTests.cs": {
     "mtime": 1787032177.9301443,
     "ast_hash": "3c20d9a00d8c96c3f7ee6bfa0a8ea9ba",
-    "semantic_hash": ""
+    "semantic_hash": "3c20d9a00d8c96c3f7ee6bfa0a8ea9ba"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/IgdbBackfillRunnerTests.cs": {
     "mtime": 1787096119.497201,
     "ast_hash": "b64529999dd31365fd8389ed039810c6",
-    "semantic_hash": ""
+    "semantic_hash": "b64529999dd31365fd8389ed039810c6"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/IgdbBackfillServiceTests.cs": {
     "mtime": 1787096119.4972682,
     "ast_hash": "78e0040723b9a8fc4512f1a47f26edf2",
-    "semantic_hash": ""
+    "semantic_hash": "78e0040723b9a8fc4512f1a47f26edf2"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/IgdbGameProviderTests.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "1df6ab59f9ba77435b2fc6fd4bc05b78",
-    "semantic_hash": ""
+    "semantic_hash": "1df6ab59f9ba77435b2fc6fd4bc05b78"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/LookupCacheMigrationTests.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "d87f7082cf9ad485d6fe8a85ea0159ef",
-    "semantic_hash": ""
+    "semantic_hash": "d87f7082cf9ad485d6fe8a85ea0159ef"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/LookupCacheMockStorage.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "fcd5e4ec813b7e7f5a84e73744b63a03",
-    "semantic_hash": ""
+    "semantic_hash": "fcd5e4ec813b7e7f5a84e73744b63a03"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/MetadataLookupServiceCollectionExtensionsTests.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "c58255ba8b2589e3581a88f51ba9d127",
-    "semantic_hash": ""
+    "semantic_hash": "c58255ba8b2589e3581a88f51ba9d127"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/MusicBrainzMusicProviderTests.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "609c26ee82407ed8c62312b5818b9984",
-    "semantic_hash": ""
+    "semantic_hash": "609c26ee82407ed8c62312b5818b9984"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/NoiseWordsTests.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "a34139a5a869cf50006c81b27caa26ed",
-    "semantic_hash": ""
+    "semantic_hash": "a34139a5a869cf50006c81b27caa26ed"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/ScriptedGameProvider.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "d9a04c830f1388100f5d5bc93748b7c9",
-    "semantic_hash": ""
+    "semantic_hash": "d9a04c830f1388100f5d5bc93748b7c9"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/ScriptedMovieProvider.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "dd38ab348880e7432d9e4315257b76c9",
-    "semantic_hash": ""
+    "semantic_hash": "dd38ab348880e7432d9e4315257b76c9"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/ScriptedMusicProvider.cs": {
     "mtime": 1779606264.388001,
     "ast_hash": "57cf2dbc0b11c71afe7bd765ea7b9fd9",
-    "semantic_hash": ""
+    "semantic_hash": "57cf2dbc0b11c71afe7bd765ea7b9fd9"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/ScriptedSteamClient.cs": {
     "mtime": 1787022287.5968122,
     "ast_hash": "7b369e2a3a61f5dc975710fa5d146dfb",
-    "semantic_hash": ""
+    "semantic_hash": "7b369e2a3a61f5dc975710fa5d146dfb"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/SteamClientTests.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "46cbc1d1cca4b2d9fff2ec4dfef1fc39",
-    "semantic_hash": ""
+    "semantic_hash": "46cbc1d1cca4b2d9fff2ec4dfef1fc39"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/SteamId64Tests.cs": {
     "mtime": 1787022287.5968227,
     "ast_hash": "6fe243bd004a5170c58739b111807e14",
-    "semantic_hash": ""
+    "semantic_hash": "6fe243bd004a5170c58739b111807e14"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/SteamOpenIdVerifierTests.cs": {
     "mtime": 1787022287.59684,
     "ast_hash": "9ac4ba88281e6982aff4976e36532dc0",
-    "semantic_hash": ""
+    "semantic_hash": "9ac4ba88281e6982aff4976e36532dc0"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/TestExtensions.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "38727f2b8857cc9eb939a90806ee8e46",
-    "semantic_hash": ""
+    "semantic_hash": "38727f2b8857cc9eb939a90806ee8e46"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/TmdbMovieProviderTests.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "d63fd2bda1d0795883113b83f749a031",
-    "semantic_hash": ""
+    "semantic_hash": "d63fd2bda1d0795883113b83f749a031"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/UpcItemDbClientTests.cs": {
     "mtime": 1787175608.1272275,
     "ast_hash": "b2571caf2b7c60d40bceb0039b57680b",
-    "semantic_hash": ""
+    "semantic_hash": "b2571caf2b7c60d40bceb0039b57680b"
   },
   "src/server/tests/Collectify.Tests/Infrastructure/UrlRouterTests.cs": {
     "mtime": 1780273964.2937608,
     "ast_hash": "1c64b0c3b8f7ed23a48c1375f6e58855",
-    "semantic_hash": ""
+    "semantic_hash": "1c64b0c3b8f7ed23a48c1375f6e58855"
   },
   "src/server/tests/Collectify.Tests/Unit/Store/SteamStoreCoverUrlTests.cs": {
     "mtime": 1787022287.596865,
     "ast_hash": "913ee67a8357ee566a19640b55f5b4f3",
-    "semantic_hash": ""
+    "semantic_hash": "913ee67a8357ee566a19640b55f5b4f3"
   },
   "src/server/tests/Collectify.Tests/packages.lock.json": {
     "mtime": 1787175608.1272275,
     "ast_hash": "2fd9f917c81f18ed4292f9d4591e3aa2",
-    "semantic_hash": ""
+    "semantic_hash": "2fd9f917c81f18ed4292f9d4591e3aa2"
   },
   ".githooks/README.md": {
     "mtime": 1786923732.5112019,
     "ast_hash": "acc8804c9927e0820311245322c08204",
-    "semantic_hash": ""
+    "semantic_hash": "acc8804c9927e0820311245322c08204"
   },
   ".github/dependabot.yml": {
     "mtime": 1786923732.5214067,
     "ast_hash": "e85d4bd867f796ddad74017beca323c4",
-    "semantic_hash": ""
+    "semantic_hash": "e85d4bd867f796ddad74017beca323c4"
   },
   ".github/workflows/ci.yml": {
     "mtime": 1787031296.1392987,
     "ast_hash": "c5c5f02838053fc869078f60de9fcd5a",
-    "semantic_hash": ""
+    "semantic_hash": "c5c5f02838053fc869078f60de9fcd5a"
   },
   ".github/workflows/codeql.yml": {
     "mtime": 1786923732.522549,
     "ast_hash": "a2bc7884409aba965620b81a8b472100",
-    "semantic_hash": ""
+    "semantic_hash": "a2bc7884409aba965620b81a8b472100"
   },
   ".github/workflows/dependency-submission.yml": {
     "mtime": 1786923732.522549,
     "ast_hash": "88ffb4545dbebe6fc721fc016e8cf101",
-    "semantic_hash": ""
+    "semantic_hash": "88ffb4545dbebe6fc721fc016e8cf101"
   },
   ".github/workflows/release-please.yml": {
     "mtime": 1786923732.5230367,
     "ast_hash": "035f15ca8fe8446849ef0c750e5a7198",
-    "semantic_hash": ""
+    "semantic_hash": "035f15ca8fe8446849ef0c750e5a7198"
   },
   ".github/workflows/security-audit.yml": {
     "mtime": 1786923732.5232804,
     "ast_hash": "d9ef508e0fd6d74d1c2db3817e860dfa",
-    "semantic_hash": ""
+    "semantic_hash": "d9ef508e0fd6d74d1c2db3817e860dfa"
   },
   "AGENTS.md": {
     "mtime": 1786923732.5236747,
     "ast_hash": "0fc9ab80ef22fe65a4de32689417b64f",
-    "semantic_hash": ""
+    "semantic_hash": "0fc9ab80ef22fe65a4de32689417b64f"
   },
   "CHANGELOG.md": {
     "mtime": 1786923732.5236747,
     "ast_hash": "b67c5402f4a218501583735504b21605",
-    "semantic_hash": ""
+    "semantic_hash": "b67c5402f4a218501583735504b21605"
   },
   "CLAUDE.md": {
     "mtime": 1778046274.851198,
     "ast_hash": "022d9edeb7cd9e06d00ac9b1cfa03109",
-    "semantic_hash": ""
+    "semantic_hash": "022d9edeb7cd9e06d00ac9b1cfa03109"
   },
   "CONTRIBUTING.md": {
     "mtime": 1787031296.1393783,
     "ast_hash": "e6da928e3ecbb17f8d049cbc807b6b6d",
-    "semantic_hash": ""
+    "semantic_hash": "e6da928e3ecbb17f8d049cbc807b6b6d"
   },
   "DESIGN.md": {
     "mtime": 1779698273.0283341,
     "ast_hash": "e91387cf08fd55e69127d59a5556f95b",
-    "semantic_hash": ""
+    "semantic_hash": "e91387cf08fd55e69127d59a5556f95b"
   },
   "README.md": {
     "mtime": 1787175608.1232276,
     "ast_hash": "4967faadf0f1e8b8d11c51249bedc276",
-    "semantic_hash": ""
+    "semantic_hash": "4967faadf0f1e8b8d11c51249bedc276"
   },
   "docker-compose.dev.yml": {
     "mtime": 1779608956.9592817,
     "ast_hash": "c7f8827fa9a48e9eddc333f3e0a3bad9",
-    "semantic_hash": ""
+    "semantic_hash": "c7f8827fa9a48e9eddc333f3e0a3bad9"
   },
   "docker-compose.postgres.yml": {
     "mtime": 1780036977.1075673,
     "ast_hash": "0a17c144a07fadc093f3ee706dc53ed0",
-    "semantic_hash": ""
+    "semantic_hash": "0a17c144a07fadc093f3ee706dc53ed0"
   },
   "docker-compose.yml": {
     "mtime": 1779687833.2647178,
     "ast_hash": "c3a93d7e68fdafa6eb81f573689f1762",
-    "semantic_hash": ""
+    "semantic_hash": "c3a93d7e68fdafa6eb81f573689f1762"
   },
   "docs/architecture.md": {
     "mtime": 1787175608.1232276,
     "ast_hash": "eb873a9c8c7227d97fa7a9cf138267f0",
-    "semantic_hash": ""
+    "semantic_hash": "eb873a9c8c7227d97fa7a9cf138267f0"
   },
   "docs/conventions.md": {
     "mtime": 1787031296.1394823,
     "ast_hash": "05efca64c031b3db3a8751bdeebe867d",
-    "semantic_hash": ""
+    "semantic_hash": "05efca64c031b3db3a8751bdeebe867d"
   },
   "docs/data-model.md": {
     "mtime": 1787175608.1242275,
     "ast_hash": "1f595268e3ad03c94896fd9e3c60a099",
-    "semantic_hash": ""
+    "semantic_hash": "1f595268e3ad03c94896fd9e3c60a099"
   },
   "docs/decisions/108-ci-security-gates.md": {
     "mtime": 1786923732.524607,
     "ast_hash": "03f991d1136cdb2e114c3512fd6007fd",
-    "semantic_hash": ""
+    "semantic_hash": "03f991d1136cdb2e114c3512fd6007fd"
   },
   "docs/decisions/113-releases.md": {
     "mtime": 1786923732.524963,
     "ast_hash": "d719d1b787987032af2b1c2db78968c9",
-    "semantic_hash": ""
+    "semantic_hash": "d719d1b787987032af2b1c2db78968c9"
   },
   "docs/decisions/README.md": {
     "mtime": 1786923732.525444,
     "ast_hash": "b11279abdf3091946b091d5db4f2e1f4",
-    "semantic_hash": ""
+    "semantic_hash": "b11279abdf3091946b091d5db4f2e1f4"
   },
   "docs/platform-import.md": {
     "mtime": 1787175608.1242275,
     "ast_hash": "c85af4d7aa8b7c8c66046ecb394b378a",
-    "semantic_hash": ""
+    "semantic_hash": "c85af4d7aa8b7c8c66046ecb394b378a"
   },
   "docs/security.md": {
     "mtime": 1778046274.8513582,
     "ast_hash": "13eed9f21cf4c17df65f2afd60a31306",
-    "semantic_hash": ""
+    "semantic_hash": "13eed9f21cf4c17df65f2afd60a31306"
   },
   "docs/superpowers/plans/2026-05-30-photo-snap-visual-lookup.md": {
     "mtime": 1780273964.2921078,
     "ast_hash": "7dc20500950b45f3f0975467ab865da7",
-    "semantic_hash": ""
+    "semantic_hash": "7dc20500950b45f3f0975467ab865da7"
   },
   "docs/superpowers/specs/2026-05-30-photo-snap-visual-lookup-design.md": {
     "mtime": 1787175608.1242275,
     "ast_hash": "e8dd1a3b7e40a9ab782d87e01c3fc98d",
-    "semantic_hash": ""
+    "semantic_hash": "e8dd1a3b7e40a9ab782d87e01c3fc98d"
   },
   "docs/testing.md": {
     "mtime": 1778048162.0574484,
     "ast_hash": "dfa776b6f4a8ccaeeb7cbe583ec42eb0",
-    "semantic_hash": ""
+    "semantic_hash": "dfa776b6f4a8ccaeeb7cbe583ec42eb0"
   },
   "src/client/index.html": {
     "mtime": 1779698273.030645,
     "ast_hash": "2c6c42c1bb68cf061765aff49e4b12a0",
-    "semantic_hash": ""
+    "semantic_hash": "2c6c42c1bb68cf061765aff49e4b12a0"
   },
   "version.txt": {
     "mtime": 1786923732.5272262,
     "ast_hash": "8615550beea064848b49ef50b22fc0de",
-    "semantic_hash": ""
+    "semantic_hash": "8615550beea064848b49ef50b22fc0de"
   },
   "src/client/public/brand/collectify-banner-dark.png": {
     "mtime": 1779698273.032636,
     "ast_hash": "7f547443aa9cd4ce32d863aac686158c",
-    "semantic_hash": ""
+    "semantic_hash": "7f547443aa9cd4ce32d863aac686158c"
   },
   "src/client/public/brand/collectify-banner-light.png": {
     "mtime": 1779698273.0342007,
     "ast_hash": "6f21e1565407c6d93443ad35f027116e",
-    "semantic_hash": ""
+    "semantic_hash": "6f21e1565407c6d93443ad35f027116e"
   },
   "src/client/public/brand/collectify-logo.png": {
     "mtime": 1779698273.036067,
     "ast_hash": "669ceeb4329fe6f6907e4796a09462cd",
-    "semantic_hash": ""
+    "semantic_hash": "669ceeb4329fe6f6907e4796a09462cd"
   },
   "src/client/public/brand/collectify-sample.png": {
     "mtime": 1779698273.0380533,
     "ast_hash": "2c5c9fceb49b98d1f1fa15af41aa2fec",
-    "semantic_hash": ""
+    "semantic_hash": "2c5c9fceb49b98d1f1fa15af41aa2fec"
   },
   "src/client/public/brand/media-games.svg": {
     "mtime": 1779698273.0380533,
     "ast_hash": "6a905404dff36575e41477ac76d75a0a",
-    "semantic_hash": ""
+    "semantic_hash": "6a905404dff36575e41477ac76d75a0a"
   },
   "src/client/public/brand/media-home.svg": {
     "mtime": 1779698273.0380533,
     "ast_hash": "e9670f726fc7417ccf5a51072fa6290b",
-    "semantic_hash": ""
+    "semantic_hash": "e9670f726fc7417ccf5a51072fa6290b"
   },
   "src/client/public/brand/media-movies.svg": {
     "mtime": 1779698273.0380533,
     "ast_hash": "0b4e43146ee1517c7c0d88625c9e0f71",
-    "semantic_hash": ""
+    "semantic_hash": "0b4e43146ee1517c7c0d88625c9e0f71"
   },
   "src/client/public/brand/media-music.svg": {
     "mtime": 1779698273.0381184,
     "ast_hash": "c7f31344ba7ad5a451d5be7a94d6eef0",
-    "semantic_hash": ""
+    "semantic_hash": "c7f31344ba7ad5a451d5be7a94d6eef0"
   },
   "src/client/public/brand/media-settings.svg": {
     "mtime": 1779698273.0381184,
     "ast_hash": "957df1808f45728bad60e3cad9f798fe",
-    "semantic_hash": ""
+    "semantic_hash": "957df1808f45728bad60e3cad9f798fe"
   },
   "src/client/public/brand/steam-logo.svg": {
     "mtime": 1787022287.5943334,
     "ast_hash": "9ae92a5f0196b24f0d3bd0bd3c00a8d5",
-    "semantic_hash": ""
+    "semantic_hash": "9ae92a5f0196b24f0d3bd0bd3c00a8d5"
   }
 }
