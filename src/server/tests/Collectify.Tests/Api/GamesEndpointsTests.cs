@@ -151,6 +151,21 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
     }
 
     [Fact]
+    public async Task List_FiltersByDigitalFalse_ReturnsOnlyPhysicalRows()
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Digital", DigitalStores = DigitalStore.Steam });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Physical", DigitalStores = DigitalStore.None });
+
+        // Pins the false half of the (DigitalStores != None) == digital
+        // derivation — a digital row must not leak through digital=false.
+        var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?digital=false");
+
+        Assert.Single(hits!);
+        Assert.Equal("Physical", hits![0].Title);
+    }
+
+    [Fact]
     public async Task List_FiltersByDigitalStore_AnyOfBits_ReturnsMatchingRows()
     {
         var alice = await NewAliceAsync();

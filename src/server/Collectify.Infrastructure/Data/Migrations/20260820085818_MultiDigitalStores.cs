@@ -47,8 +47,42 @@ namespace Collectify.Infrastructure.Data.Migrations
                         WHEN "IsDigital" != 0 AND "DigitalStores" = 5  THEN 32  -- Nintendo
                         WHEN "IsDigital" != 0 AND "DigitalStores" = 99 THEN 64  -- Other
                         WHEN "IsDigital" != 0 AND "DigitalStores" IS NULL THEN 64 -- digital, no store -> Other
-                        ELSE 0                                                    -- physical -> None
+                        WHEN "IsDigital" != 0 THEN 64          -- digital with an unrecognised old store int -> preserve digital as Other
+                        ELSE 0                                 -- physical -> None
                     END
+                """);
+
+            // Steam-ledger discriminators (GameStoreConnections.Store and
+            // GameStoreOwnedTitles.Store) also persist the OLD DigitalStore
+            // enum int (a connected Steam account rows has Store=0, and the
+            // import queries Store == DigitalStore.Steam which is 1 after the
+            // renumber). Without this remap an existing Steam connection would
+            // read as "disconnected" and previously-imported titles would stop
+            // deduping (re-import → duplicate games). Both columns are
+            // single-value discriminators: map the old int to the new bit.
+            migrationBuilder.Sql("""
+                UPDATE "GameStoreConnections"
+                SET "Store" = CASE "Store"
+                    WHEN 0  THEN 1    -- Steam
+                    WHEN 1  THEN 2    -- Gog
+                    WHEN 2  THEN 4    -- Epic
+                    WHEN 3  THEN 8    -- Xbox
+                    WHEN 4  THEN 16   -- Psn
+                    WHEN 5  THEN 32   -- Nintendo
+                    WHEN 99 THEN 64   -- Other
+                    ELSE "Store"      -- already a new-style value / unknown: leave
+                END;
+                UPDATE "GameStoreOwnedTitles"
+                SET "Store" = CASE "Store"
+                    WHEN 0  THEN 1    -- Steam
+                    WHEN 1  THEN 2    -- Gog
+                    WHEN 2  THEN 4    -- Epic
+                    WHEN 3  THEN 8    -- Xbox
+                    WHEN 4  THEN 16   -- Psn
+                    WHEN 5  THEN 32   -- Nintendo
+                    WHEN 99 THEN 64   -- Other
+                    ELSE "Store"      -- already a new-style value / unknown: leave
+                END;
                 """);
 
             // Pin the bitmask column non-null with a None (0) default.
@@ -70,7 +104,17 @@ namespace Collectify.Infrastructure.Data.Migrations
         {
             // Undo the forward path: restore the IsDigital bool from the
             // bitmask, map new bits back to the old enum ints, then rename the
-            // column back to the nullable DigitalStore and make it nullable.
+            // nullable DigitalStores column back to DigitalStore.
+            //
+            // Order matters on SQLite: AlterColumn triggers a table rebuild
+            // generated from the *target* model snapshot (whose column is named
+            // DigitalStore), so the physical column must already be renamed
+            // before the constraint change. Rename first, then alter.
+            migrationBuilder.RenameColumn(
+                name: "DigitalStores",
+                table: "Games",
+                newName: "DigitalStore");
+
             migrationBuilder.AddColumn<bool>(
                 name: "IsDigital",
                 table: "Games",
@@ -80,30 +124,52 @@ namespace Collectify.Infrastructure.Data.Migrations
 
             migrationBuilder.Sql("""
                 UPDATE "Games"
-                SET "IsDigital" = CASE WHEN "DigitalStores" != 0 THEN 1 ELSE 0 END,
-                    "DigitalStores" =
+                SET "IsDigital" = CASE WHEN "DigitalStore" != 0 THEN 1 ELSE 0 END,
+                    "DigitalStore" =
                         CASE
-                            WHEN ("DigitalStores" & 64)  != 0 THEN 99  -- Other
-                            WHEN ("DigitalStores" & 32)  != 0 THEN 5   -- Nintendo
-                            WHEN ("DigitalStores" & 16)  != 0 THEN 4   -- Psn
-                            WHEN ("DigitalStores" & 8)   != 0 THEN 3   -- Xbox
-                            WHEN ("DigitalStores" & 4)   != 0 THEN 2   -- Epic
-                            WHEN ("DigitalStores" & 2)   != 0 THEN 1   -- Gog
-                            WHEN ("DigitalStores" & 1)   != 0 THEN 0   -- Steam
-                            ELSE 0                                      -- None (empty)
-                        END
+                            WHEN ("DigitalStore" & 64)  != 0 THEN 99  -- Other
+                            WHEN ("DigitalStore" & 32)  != 0 THEN 5   -- Nintendo
+                            WHEN ("DigitalStore" & 16)  != 0 THEN 4   -- Psn
+                            WHEN ("DigitalStore" & 8)   != 0 THEN 3   -- Xbox
+                            WHEN ("DigitalStore" & 4)   != 0 THEN 2   -- Epic
+                            WHEN ("DigitalStore" & 2)   != 0 THEN 1   -- Gog
+                            WHEN ("DigitalStore" & 1)   != 0 THEN 0   -- Steam
+                            ELSE 0                                     -- None (empty)
+                        END;
                 """);
 
             migrationBuilder.AlterColumn<int?>(
-                name: "DigitalStores",
+                name: "DigitalStore",
                 table: "Games",
                 type: "INTEGER",
                 nullable: true);
 
-            migrationBuilder.RenameColumn(
-                name: "DigitalStores",
-                table: "Games",
-                newName: "DigitalStore");
+            // Restore the old Steam-ledger discriminator ints (reverse of the
+            // forward remap), so a downgraded DB's connection parity holds.
+            migrationBuilder.Sql("""
+                UPDATE "GameStoreConnections"
+                SET "Store" = CASE "Store"
+                    WHEN 1  THEN 0    -- Steam
+                    WHEN 2  THEN 1    -- Gog
+                    WHEN 4  THEN 2    -- Epic
+                    WHEN 8  THEN 3    -- Xbox
+                    WHEN 16 THEN 4    -- Psn
+                    WHEN 32 THEN 5    -- Nintendo
+                    WHEN 64 THEN 99   -- Other
+                    ELSE "Store"
+                END;
+                UPDATE "GameStoreOwnedTitles"
+                SET "Store" = CASE "Store"
+                    WHEN 1  THEN 0    -- Steam
+                    WHEN 2  THEN 1    -- Gog
+                    WHEN 4  THEN 2    -- Epic
+                    WHEN 8  THEN 3    -- Xbox
+                    WHEN 16 THEN 4    -- Psn
+                    WHEN 32 THEN 5    -- Nintendo
+                    WHEN 64 THEN 99   -- Other
+                    ELSE "Store"
+                END;
+                """);
         }
     }
 }

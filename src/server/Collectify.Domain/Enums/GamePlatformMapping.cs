@@ -20,8 +20,8 @@ public static class GamePlatformMapping
     {
         // A Steam Deck runs SteamOS (Linux) / Windows and plays desktop-PC
         // games, so it classifies as Pc (as does a bare Linux title; #102).
-        // The "how you got it" dimension is IsDigital + DigitalStore (Steam),
-        // not the platform. Desktop macOS is its own platform (Mac).
+        // The "how you got it" dimension is DigitalStores (digital-vs-physical
+        // + storefront), not the platform. Desktop macOS is its own platform (Mac).
         // IGDB names its PC platform "PC (Microsoft Windows)" and Mac
         // "Apple Macintosh". The normalizer strips parentheses/spaces, so
         // those collapse to "pcmicrosoftwindows" / "applemacintosh" — which

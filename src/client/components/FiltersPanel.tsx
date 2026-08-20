@@ -159,6 +159,25 @@ function AlbumFields({ value, onChange }: { value: Filters<'music'>; onChange: (
   );
 }
 
+/**
+ * Decode a GameFilters.digitalStore value into the canonical set of store keys.
+ * The value can be a legacy single member name ("Psn"), comma-joined names
+ * ("Steam,Epic"), or a numeric bitmask ("5" = Steam|Epic). Defined keys are
+ * kept; undefined bits/names are dropped (the server rejects them anyway).
+ */
+function parseStoreFilter(raw: string | undefined): string[] {
+  if (!raw) return [];
+  // Numeric bitmask -> matching store keys.
+  if (/^\d+$/.test(raw.trim())) {
+    const mask = Number(raw.trim());
+    return DIGITAL_STORE_FLAGS.filter((s) => (mask & s.value) !== 0).map((s) => s.key);
+  }
+  return raw
+    .split(',')
+    .map((x) => x.trim())
+    .filter((x) => DIGITAL_STORE_FLAGS.some((s) => s.key === x));
+}
+
 function GameFields({ value, onChange }: { value: Filters<'games'>; onChange: (next: Filters<'games'>) => void }) {
   const set = <K extends keyof Filters<'games'>>(k: K, v: Filters<'games'>[K]) =>
     onChange({ ...value, [k]: v });
@@ -204,29 +223,38 @@ function GameFields({ value, onChange }: { value: Filters<'games'>; onChange: (n
         </Select>
       </Field>
       <Field label="Digital store">
-        <div className="flex flex-wrap gap-2">
-          {DIGITAL_STORE_FLAGS.map((s) => {
-            const selected = (value.digitalStore ?? '').split(',').map((x) => x.trim()).filter(Boolean).includes(s.key);
-            const toggle = () => {
-              const current = (value.digitalStore ?? '').split(',').map((x) => x.trim()).filter(Boolean);
-              const next = selected
-                ? current.filter((x) => x !== s.key)
-                : [...current, s.key];
-              set('digitalStore', next.length ? next.join(',') : undefined);
-            };
-            return (
-              <button
-                type="button"
-                key={s.key}
-                onClick={toggle}
-                aria-pressed={selected}
-                className={`inline-flex min-h-[38px] items-center rounded-lg border px-3 text-sm font-semibold transition-colors ${selected ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Canonicalize the filter value (names, comma-joined names, or a
+            numeric bitmask like "5") into the set of store keys before
+            rendering/toggling. Without this a server-valid numeric URL such as
+            ?digitalStore=5 leaves every button unpressed, and clicking one
+            would serialize "5,Steam" which ResolveDigitalStores 400s. */}
+        {(() => {
+          const keys = parseStoreFilter(value.digitalStore);
+          return (
+            <div className="flex flex-wrap gap-2">
+              {DIGITAL_STORE_FLAGS.map((s) => {
+                const selected = keys.includes(s.key);
+                const toggle = () => {
+                  const next = selected
+                    ? keys.filter((x) => x !== s.key)
+                    : [...keys, s.key];
+                  set('digitalStore', next.length ? next.join(',') : undefined);
+                };
+                return (
+                  <button
+                    type="button"
+                    key={s.key}
+                    onClick={toggle}
+                    aria-pressed={selected}
+                    className={`inline-flex min-h-[38px] items-center rounded-lg border px-3 text-sm font-semibold transition-colors ${selected ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </Field>
       <RatingMin value={value.ratingMin} onChange={(v) => set('ratingMin', v)} />
     </>

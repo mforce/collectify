@@ -150,9 +150,9 @@ duplicate the title.
 | `CreatedAt` / `ExpiresAt` | DateTime | |
 | `Consumed` | bool | single-use |
 
-Imported `Game` rows default to `Platform = Pc`, `IsDigital = true`,
-`DigitalStore = Store`, `Status = Owned`, `HoursPlayed` from playtime, and
-`AcquisitionSource = "Steam Import"`.
+Imported `Game` rows default to `Platform = Pc`, `DigitalStores = Store`
+(the bitmask of the storefront it was imported from), `Status = Owned`,
+`HoursPlayed` from playtime, and `AcquisitionSource = "Steam Import"`.
 
 ### DLC / add-on (schema hook, provider-agnostic)
 

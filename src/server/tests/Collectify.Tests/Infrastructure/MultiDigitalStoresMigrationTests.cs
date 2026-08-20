@@ -123,4 +123,125 @@ public class MultiDigitalStoresMigrationTests
             if (File.Exists(dbPath)) File.Delete(dbPath);
         }
     }
+
+    [Fact]
+    public async Task Up_RemapsSteamLedgerDiscriminators()
+    {
+        // #91 renumbers DigitalStore (Steam 0→1, ... Other 99→64). The Steam
+        // ledger tables persist Store as a single-value DigitalStore
+        // discriminator; a pre-#91 Steam connection/ownership row holds Store=0,
+        // which after the renumber must read as DigitalStore.Steam (1) or the
+        // import treats it as disconnected / re-importable.
+        var (connectionString, dbPath) = NewFileBackedSqlite();
+        try
+        {
+            await using var context = NewContext(connectionString);
+            await context.GetService<IMigrator>().MigrateAsync("20260819014459_DropLookupCacheEntries");
+            context.Database.OpenConnection();
+            var seedSql = """
+                INSERT INTO "GameStoreConnections" ("OwnerId","Store","ExternalAccountId","LinkedAt")
+                VALUES ('u1', 0, '1001', '2026-01-01 00:00:00');
+                INSERT INTO "GameStoreOwnedTitles" ("OwnerId","Store","ExternalGameId","Title","UpdatedAt")
+                VALUES ('u1', 0, 'appid1', 'Dota 2', '2026-01-01 00:00:00');
+                """;
+            using var seed = context.Database.GetDbConnection().CreateCommand();
+            seed.CommandText = seedSql;
+            await seed.ExecuteNonQueryAsync();
+            context.Database.CloseConnection();
+
+            await context.GetService<IMigrator>().MigrateAsync();
+
+            var (connStore, ownedStore) = (int.MaxValue, int.MaxValue);
+            using var readConn = context.Database.GetDbConnection().CreateCommand();
+            readConn.CommandText = "SELECT \"Store\" FROM \"GameStoreConnections\" LIMIT 1;";
+            context.Database.OpenConnection();
+            connStore = Convert.ToInt32(await readConn.ExecuteScalarAsync());
+            context.Database.CloseConnection();
+
+            using var readOwned = context.Database.GetDbConnection().CreateCommand();
+            readOwned.CommandText = "SELECT \"Store\" FROM \"GameStoreOwnedTitles\" LIMIT 1;";
+            context.Database.OpenConnection();
+            ownedStore = Convert.ToInt32(await readOwned.ExecuteScalarAsync());
+            context.Database.CloseConnection();
+
+            Assert.Equal(1, connStore);   // old Steam (0) -> Steam (1)
+            Assert.Equal(1, ownedStore);  // old Steam (0) -> Steam (1)
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
+    }
+
+    [Fact]
+    public async Task Down_RestoresOldSchemaAndLedgerDiscriminators()
+    {
+        // Round-trip: migrate up to the new bitmask model, then down to the
+        // pre-#91 schema. The Games columns must be back to DigitalStore +
+        // IsDigital, and a Steam ledger row (old Store=0) must round-trip to
+        // the new Steam (1) on Up and back to 0 on Down. Guards the SQLite
+        // AlterColumn/RenameColumn ordering in Down.
+        var (connectionString, dbPath) = NewFileBackedSqlite();
+        try
+        {
+            await using var context = NewContext(connectionString);
+
+            // Build the pre-#91 schema with a realistic old-format Steam
+            // connection (Store=0), then bring it current.
+            await context.GetService<IMigrator>().MigrateAsync("20260819014459_DropLookupCacheEntries");
+            await InsertConnectionAsync(context, store: 0);
+            await context.GetService<IMigrator>().MigrateAsync(); // up
+
+            var afterUp = await ReadConnectionStoreAsync(context);
+            Assert.Equal(1, afterUp); // old Steam (0) -> Steam (1)
+
+            // Migrate down through MultiDigitalStores to the pre-#91 schema.
+            await context.GetService<IMigrator>().MigrateAsync("20260819014459_DropLookupCacheEntries");
+
+            var columns = new List<string>();
+            using (var info = context.Database.GetDbConnection().CreateCommand())
+            {
+                info.CommandText = "PRAGMA table_info(Games);";
+                context.Database.OpenConnection();
+                using (var reader = await info.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                        columns.Add(reader.GetString(1));
+                }
+            }
+            Assert.Contains("DigitalStore", columns);
+            Assert.Contains("IsDigital", columns);
+            Assert.DoesNotContain(columns, c => c == "DigitalStores");
+
+            var afterDown = await ReadConnectionStoreAsync(context);
+            Assert.Equal(0, afterDown); // new Steam (1) -> old Steam (0)
+        }
+        finally
+        {
+            if (File.Exists(dbPath)) File.Delete(dbPath);
+        }
+    }
+
+    private static async Task InsertConnectionAsync(CollectifyDbContext context, int store)
+    {
+        context.Database.OpenConnection();
+        using var seed = context.Database.GetDbConnection().CreateCommand();
+        seed.CommandText = """
+            INSERT INTO "GameStoreConnections" ("OwnerId","Store","ExternalAccountId","LinkedAt")
+            VALUES ('u1', $store, '1001', '2026-01-01 00:00:00');
+            """;
+        seed.Parameters.Add(new SqliteParameter("$store", store));
+        await seed.ExecuteNonQueryAsync();
+        context.Database.CloseConnection();
+    }
+
+    private static async Task<int> ReadConnectionStoreAsync(CollectifyDbContext context)
+    {
+        context.Database.OpenConnection();
+        using var readConn = context.Database.GetDbConnection().CreateCommand();
+        readConn.CommandText = "SELECT \"Store\" FROM \"GameStoreConnections\" LIMIT 1;";
+        var value = Convert.ToInt32(await readConn.ExecuteScalarAsync());
+        context.Database.CloseConnection();
+        return value;
+    }
 }

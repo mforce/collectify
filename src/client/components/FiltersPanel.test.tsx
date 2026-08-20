@@ -74,4 +74,28 @@ describe('FiltersPanel', () => {
     await click('Epic');
     expect(current).toEqual({ digitalStore: 'Steam' });
   });
+
+  it('decodes a numeric-mask store filter and toggles into name-only keys', async () => {
+    // A server-valid numeric URL (?digitalStore=5 = Steam|Epic) must render
+    // Steam + Epic pressed, and toggling must serialize canonical names (not
+    // "5,Steam", which the server 400s).
+    let current: Filters<'games'> = { digitalStore: '5' };
+    const onToggle = (next: Filters<'games'>) => { current = next; };
+    const { rerender } = render(
+      <FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const press = (name: string) =>
+      screen.getByRole('button', { name }).getAttribute('aria-pressed');
+
+    expect(press('Steam')).toBe('true');
+    expect(press('Epic')).toBe('true');
+    expect(press('GOG')).toBe('false');
+
+    await userEvent.click(screen.getByRole('button', { name: 'GOG' }));
+    rerender(<FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />);
+    // Steam|Epic|Gog canonical keys (serialized as the flag `key`), not a
+    // mixed "5,Gog".
+    expect(current).toEqual({ digitalStore: 'Steam,Epic,Gog' });
+  });
 });
