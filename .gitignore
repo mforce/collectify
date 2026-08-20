@@ -26,8 +26,20 @@ data/
 *.db-wal
 
 
-# Graphify query cache (regenerated locally)
-graphify-out/cache/last_query_stamp
+# Graphify — commit graph.json / GRAPH_REPORT.md / graph.html / manifest.json
+# so a fresh checkout starts with the map. The entries below are local-only.
+
+# Machine-local: absolute interpreter + scan-root paths, differ per developer
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+
+# Local token-cost tracker
+graphify-out/cost.json
+
+# Extraction cache: regenerable, ~8MB, churns every run and is pinned to the
+# installed graphify version. Drop the next two lines to trade repo size for
+# faster first builds.
+graphify-out/cache/
 
 # Ad-hoc review artifacts
 architecture-review-collectify.html
