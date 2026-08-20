@@ -7,6 +7,7 @@ import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
 import PhotoLookup from './PhotoLookup';
 import { MOVIE_FORMAT_FLAGS, WATCH_STATUSES, type Movie, type WatchStatus } from '../services/types';
+import { MovieFormatIcon } from './FormatIcons';
 import { lookupMovieById, lookupMovieByImdbId, type MovieLookupResult } from '../services/lookup';
 import { useLookupProtocol } from '../hooks/useLookupProtocol';
 
@@ -161,8 +162,9 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
                 type="button"
                 key={f.key}
                 onClick={() => toggleFormat(f.value)}
-                className={`inline-flex min-h-[44px] items-center rounded-xl border px-3 text-sm font-semibold transition-colors ${checked ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
+                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition-colors ${checked ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
               >
+                <MovieFormatIcon format={f.key} className="h-4 w-4" />
                 {f.label}
               </button>
             );

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import CollectionList from '../components/CollectionList';
+import { PlatformIcon } from '../components/FormatIcons';
 import { digitalStoresLabel, gamePlatformLabel, type Game } from '../services/types';
 
 export default function GamesList() {
@@ -32,9 +33,25 @@ export default function GamesList() {
             g.platform && g.platform !== 'Other'
               ? gamePlatformLabel(g.platform)
               : g.platformLegacy ?? null;
+          const year = g.year ? String(g.year) : null;
+          const meta = [platform, year].filter(Boolean).join(' · ');
+          const showIcon = Boolean(g.platform && g.platform !== 'Other');
           return {
             primary: g.title,
-            secondary: [platform, g.year].filter(Boolean).join(' · '),
+            // Only emit a secondary row when there's metadata to show; an empty
+            // React fragment is truthy and would render a blank row in every
+            // card variant (regression guard: previous code returned the falsy
+            // empty string '' for unclassified games).
+            secondary: meta
+              ? (
+                <>
+                  {showIcon && (
+                    <PlatformIcon platform={g.platform} className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-text-secondary" />
+                  )}
+                  {meta}
+                </>
+              )
+              : undefined,
             tertiary: g.digitalStores
               ? `Digital · ${digitalStoresLabel(g.digitalStores)}`
               : 'Physical',
