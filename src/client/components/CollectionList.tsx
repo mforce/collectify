@@ -13,7 +13,7 @@ import type { MediaResultMap } from '../services/mediaRegistry';
 
 interface RenderedItem {
   primary: string;
-  secondary?: string;
+  secondary?: ReactNode;
   tertiary?: ReactNode;
 }
 
