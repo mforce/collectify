@@ -3,6 +3,7 @@ import { useLookup } from '../services/lookup';
 import type { MediaResultMap } from '../services/mediaRegistry';
 import type { MediaType, GamePlatform } from '../services/types';
 import { Field, Input, Label } from './ui';
+import CandidateList from './CandidateList';
 
 interface Props<T extends MediaType> {
   type: T;
@@ -78,30 +79,9 @@ export default function OnlineSearch<T extends MediaType>({
             <div className="px-3 py-2 text-sm text-text-secondary">No matches.</div>
           )}
 
-          {results.map((item, i) => {
-            const r = renderItem(item);
-            return (
-              <button
-                type="button"
-                key={`${(item as { providerKey: string }).providerKey ?? i}`}
-                onClick={() => {
-                  onPick(item);
-                  setOpen(false);
-                  setQuery('');
-                  setDebounced('');
-                }}
-                className="category-hover-soft flex w-full items-start gap-3 border-b border-border px-3 py-2 text-left transition-colors last:border-b-0"
-              >
-                {r.image && (
-                  <img src={r.image} alt="" className="w-10 h-14 object-cover rounded flex-none" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm text-text-primary truncate">{r.primary}</div>
-                  {r.secondary && <div className="text-xs text-text-secondary truncate">{r.secondary}</div>}
-                </div>
-              </button>
-            );
-          })}
+          <CandidateList type={type} items={results} renderItem={renderItem} onPick={(item) => {
+            onPick(item); setOpen(false); setQuery(''); setDebounced('');
+          }} />
         </div>
       )}
 

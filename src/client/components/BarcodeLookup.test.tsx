@@ -15,8 +15,8 @@ const stop = vi.fn();
 
 vi.mock('@zxing/browser', () => ({
   BrowserMultiFormatReader: class {
-    decodeFromConstraints(
-      _constraints: unknown,
+    decodeFromStream(
+      _stream: MediaStream,
       _video: HTMLVideoElement,
       callback: (
         result: { getText: () => string } | null,
@@ -54,7 +54,7 @@ const seededMovie: MovieLookupResult = {
 beforeEach(() => {
   // Pretend getUserMedia exists so the scanner takes the happy path.
   Object.defineProperty(globalThis.navigator, 'mediaDevices', {
-    value: { getUserMedia: vi.fn() },
+    value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] }) },
     configurable: true,
   });
   fireDetection = null;

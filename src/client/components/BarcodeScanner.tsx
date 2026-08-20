@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { useCamera } from '../hooks/useCamera';
 
 interface BarcodeScannerProps {
   open: boolean;
   onDetected: (code: string) => void;
   onClose: () => void;
 }
-
-type Status = 'requesting' | 'streaming' | 'denied' | 'no-camera' | 'no-https';
 
 /**
  * Fullscreen camera viewfinder backed by @zxing/browser. While `open`, the
@@ -26,8 +25,7 @@ type Status = 'requesting' | 'streaming' | 'denied' | 'no-camera' | 'no-https';
  * setup story (mkcert / reverse proxy) is obvious.
  */
 export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [status, setStatus] = useState<Status>('requesting');
+  const { videoRef, status, stream, stop } = useCamera(open);
   const [manualCode, setManualCode] = useState('');
 
   const submitManual = (e: FormEvent) => {
@@ -41,15 +39,8 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
   useEffect(() => {
     if (!open) return;
 
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      setStatus('no-https');
-      return;
-    }
-
-    setStatus('requesting');
-
     let cancelled = false;
-    let myStream: MediaStream | null = null;
+    if (status !== 'streaming' || !stream) return;
 
     // Defer ZXing setup by one tick so React 18 StrictMode's synthetic
     // mount → unmount → mount cycle in dev never spins up two
@@ -65,10 +56,8 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
 
       const reader = new BrowserMultiFormatReader();
       reader
-        .decodeFromConstraints(
-          // Prefer the rear camera on phones; fall back to whatever's
-          // available when there's no rear cam (e.g. laptops).
-          { video: { facingMode: { ideal: 'environment' } } },
+        .decodeFromStream(
+          stream,
           videoRef.current!,
           (result, _err, ctl) => {
             if (cancelled || !result) return;
@@ -76,34 +65,15 @@ export default function BarcodeScanner({ open, onDetected, onClose }: BarcodeSca
             onDetected(result.getText());
           },
         )
-        .then(() => {
-          // Capture the MediaStream ZXing attached so cleanup can stop
-          // just our tracks without touching the video element's
-          // srcObject (paranoid; StrictMode is already short-circuited
-          // by the timeout above).
-          myStream = (videoRef.current?.srcObject as MediaStream) ?? null;
-          if (cancelled) {
-            myStream?.getTracks().forEach((t) => t.stop());
-            myStream = null;
-            return;
-          }
-          setStatus('streaming');
-        })
-        .catch((err: unknown) => {
-          if (cancelled) return;
-          const name = (err as { name?: string })?.name;
-          if (name === 'NotAllowedError' || name === 'SecurityError') setStatus('denied');
-          else setStatus('no-camera');
-        });
+        .catch(() => undefined);
     }, 0);
 
     return () => {
       cancelled = true;
       clearTimeout(handle);
-      myStream?.getTracks().forEach((t) => t.stop());
-      myStream = null;
+      stop();
     };
-  }, [open, onDetected]);
+  }, [open, onDetected, status, stop, stream, videoRef]);
 
   useEffect(() => {
     if (!open) return;

@@ -7,7 +7,8 @@ import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
 import PhotoLookup from './PhotoLookup';
 import { MUSIC_FORMATS, type Album } from '../services/types';
-import { lookupAlbumByMbid, type LookupByIdOutcome, type MusicLookupResult } from '../services/lookup';
+import { lookupAlbumByMbid, type MusicLookupResult } from '../services/lookup';
+import { useLookupProtocol } from '../hooks/useLookupProtocol';
 
 interface Props {
   initial?: Album;
@@ -40,99 +41,25 @@ const empty: Album = {
 export default function AlbumForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [a, setA] = useState<Album>(initial ?? empty);
   const [coverEditorExpanded, setCoverEditorExpanded] = useState(!a.imagePath);
-  const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setA(initial); }, [initial]);
 
   const set = <K extends keyof Album>(k: K, v: Album[K]) => setA((prev) => ({ ...prev, [k]: v }));
   const patch = (p: Partial<Album>) => setA((prev) => ({ ...prev, ...p }));
 
-  const importLookup = (r: MusicLookupResult) => {
-    patch({
-      title: r.title,
-      artistName: r.artistName,
-      year: r.year ?? null,
-      label: r.label ?? null,
-      imagePath: r.imageUrl ?? null,
-      musicBrainzReleaseId: r.provider === 'musicbrainz' ? r.providerKey : a.musicBrainzReleaseId ?? null,
-    });
-
-    // MusicBrainz search results (including barcode searches) can be
-    // sparse: title + MBID land, but artist-credit / date / label-info
-    // aren't always in the search index. The full /release/{mbid}?inc=
-    // artist-credits+labels response always has them. Chase that for any
-    // missing field; the call is cached server-side, so picking the same
-    // row twice (or pasting the same MBID later) is free.
-    if (r.provider === 'musicbrainz' && (!r.artistName || r.year == null || !r.label)) {
-      void enrichFromMb(r.providerKey);
-    }
-  };
-
-  const enrichFromMb = async (mbid: string) => {
-    setFetchState({ status: 'loading', message: 'Loading artist & label…' });
-    try {
-      const outcome = await lookupAlbumByMbid(mbid);
-      if (outcome.kind !== 'found') {
-        setFetchState({ status: 'idle' });
-        return;
-      }
-      // Functional setA with an MBID guard so a newer pick (different
-      // mbid already in state) supersedes this enrichment instead of
-      // overwriting fresh data with the previous album's. Preserves any
-      // value the user typed manually while the enrichment was in flight.
-      setA((prev) => {
-        if (prev.musicBrainzReleaseId !== mbid) return prev;
-        return {
-          ...prev,
-          artistName: prev.artistName || outcome.result.artistName,
-          year: prev.year ?? outcome.result.year ?? null,
-          label: prev.label ?? outcome.result.label ?? null,
-        };
-      });
-      setFetchState({ status: 'idle', message: 'Populated from MusicBrainz.' });
-    } catch {
-      setFetchState({ status: 'idle' });
-    }
-  };
-
-  // Seed once on mount when a prefill arrives via navigation state.
+  const { importLookup, runById, prefillEffect, fetchState } = useLookupProtocol<'music', Album, MusicLookupResult>({
+    getDraft: () => a, patchDraft: patch,
+    importFields: (_draft, r) => ({ title: r.title, artistName: r.artistName, year: r.year ?? null, label: r.label ?? null, imagePath: r.imageUrl ?? null }),
+    providerNames: ['musicbrainz'], linkageKey: (draft) => draft.musicBrainzReleaseId ?? null,
+    setLinkageKey: (draft, value) => ({ ...draft, musicBrainzReleaseId: value }),
+    enrich: { keyOf: (draft) => draft.musicBrainzReleaseId ?? null, run: lookupAlbumByMbid,
+      fill: (draft, r) => ({ ...draft, artistName: draft.artistName || r.artistName, year: draft.year ?? r.year ?? null, label: draft.label ?? r.label ?? null }),
+      shouldRun: (r) => r.provider === 'musicbrainz' && (!r.artistName || r.year == null || !r.label),
+      loadingLabel: 'Loading artist & label…', successLabel: 'Populated from MusicBrainz.', notConfiguredLabel: 'MusicBrainz lookup not configured. Set the User-Agent.' },
+    byId: { label: 'MusicBrainz Release ID', lookup: lookupAlbumByMbid },
+  });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
-
-  // Soft-fallback prefill (list-page scan with no provider candidates):
-  // drop the barcode into the field so the user can finish via title
-  // search. Skipped when a full prefillLookup landed; that owns it.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (prefillBarcode && !prefillLookup) set('barcode', prefillBarcode);
-  }, []);
-
-  const runLookup = async (
-    id: string,
-    label: string,
-    lookup: (id: string) => Promise<LookupByIdOutcome<MusicLookupResult>>,
-  ) => {
-    const trimmed = id.trim();
-    if (!trimmed) {
-      setFetchState({ status: 'idle', message: `Enter a ${label} first.` });
-      return;
-    }
-    setFetchState({ status: 'loading' });
-    try {
-      const outcome = await lookup(trimmed);
-      if (outcome.kind === 'found') {
-        importLookup(outcome.result);
-        setFetchState({ status: 'idle', message: 'Populated from MusicBrainz.' });
-      } else if (outcome.kind === 'not-configured') {
-        setFetchState({ status: 'idle', message: 'MusicBrainz lookup not configured. Set the User-Agent.' });
-      } else {
-        setFetchState({ status: 'idle', message: `No release with ${label} ${trimmed}.` });
-      }
-    } catch (err) {
-      setFetchState({ status: 'idle', message: (err as Error).message ?? 'Lookup failed.' });
-    }
-  };
-
-  const fetchByMbid = () => runLookup(a.musicBrainzReleaseId ?? '', 'MusicBrainz Release ID', lookupAlbumByMbid);
+  useEffect(() => prefillEffect(prefillLookup, prefillBarcode), []);
+  const fetchByMbid = () => runById(a.musicBrainzReleaseId ?? '');
 
   return (
     <form

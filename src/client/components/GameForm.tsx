@@ -16,7 +16,8 @@ import {
   type Game,
   type GamePlatform,
 } from '../services/types';
-import { lookupGameByIgdbId, type GameLookupResult, type LookupByIdOutcome } from '../services/lookup';
+import { lookupGameByIgdbId, type GameLookupResult } from '../services/lookup';
+import { useLookupProtocol } from '../hooks/useLookupProtocol';
 
 interface Props {
   initial?: Game;
@@ -49,7 +50,6 @@ const empty: Game = {
 export default function GameForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
   const [g, setG] = useState<Game>(initial ?? empty);
   const [coverEditorExpanded, setCoverEditorExpanded] = useState(!g.imagePath);
-  const [fetchState, setFetchState] = useState<{ status: 'idle' | 'loading'; message?: string }>({ status: 'idle' });
   useEffect(() => { if (initial) setG(initial); }, [initial]);
 
   const set = <K extends keyof Game>(k: K, v: Game[K]) => setG((prev) => ({ ...prev, [k]: v }));
@@ -66,31 +66,22 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
   // lists Xbox Series first). If the user already picked a platform, keep it;
   // only adopt the result's when theirs is unset (Other) or the result is
   // platformless. The real match signal is `platforms` (the full set).
-  const importLookup = (r: GameLookupResult) => {
-    const platformIsSet = g.platform && g.platform !== 'Other';
-    patch({
-      title: g.title.trim() ? g.title : r.title,
-      platform: platformIsSet ? g.platform : (r.platform ?? g.platform),
-      year: g.year ?? r.year ?? null,
-      publisher: g.publisher ?? r.publisher ?? null,
-      developer: g.developer ?? r.developer ?? null,
-      description: g.description ? g.description : r.description ?? null,
-      imagePath: g.imagePath ? g.imagePath : r.imageUrl ?? null,
-      igdbId: r.provider === 'igdb' ? r.providerKey : (g.igdbId ?? null),
-    });
-  };
-
-  // Seed once on mount when a prefill arrives via navigation state.
+  const { importLookup, runById, prefillEffect, fetchState } = useLookupProtocol<'games', Game, GameLookupResult>({
+    getDraft: () => g, patchDraft: patch,
+    importFields: (draft, r) => ({
+      title: draft.title.trim() ? draft.title : r.title,
+      platform: draft.platform && draft.platform !== 'Other' ? draft.platform : (r.platform ?? draft.platform),
+      year: draft.year ?? r.year ?? null, publisher: draft.publisher ?? r.publisher ?? null,
+      developer: draft.developer ?? r.developer ?? null,
+      description: draft.description ? draft.description : r.description ?? null,
+      imagePath: draft.imagePath ? draft.imagePath : r.imageUrl ?? null,
+    }),
+    providerNames: ['igdb'], linkageKey: (draft) => draft.igdbId ?? null,
+    setLinkageKey: (draft, value) => ({ ...draft, igdbId: value }),
+    byId: { label: 'IGDB ID', lookup: lookupGameByIgdbId },
+  });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (prefillLookup) importLookup(prefillLookup); }, []);
-
-  // Soft-fallback prefill (list-page scan with no provider candidates):
-  // drop the barcode into the field so the user can finish via title
-  // search. Skipped when a full prefillLookup landed; that owns it.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (prefillBarcode && !prefillLookup) set('barcode', prefillBarcode);
-  }, []);
+  useEffect(() => prefillEffect(prefillLookup, prefillBarcode), []);
 
   // Platform label for a search result. IGDB's `platform` is only its
   // FIRST-listed platform, which easily misleads (a PC game's PC entry may
@@ -106,33 +97,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
     return gamePlatformLabel(match);
   };
 
-  const runLookup = async (
-    id: string,
-    label: string,
-    lookup: (id: string) => Promise<LookupByIdOutcome<GameLookupResult>>,
-  ) => {
-    const trimmed = id.trim();
-    if (!trimmed) {
-      setFetchState({ status: 'idle', message: `Enter a ${label} first.` });
-      return;
-    }
-    setFetchState({ status: 'loading' });
-    try {
-      const outcome = await lookup(trimmed);
-      if (outcome.kind === 'found') {
-        importLookup(outcome.result);
-        setFetchState({ status: 'idle', message: 'Populated from IGDB.' });
-      } else if (outcome.kind === 'not-configured') {
-        setFetchState({ status: 'idle', message: 'IGDB lookup not configured. Set the Twitch client id and secret.' });
-      } else {
-        setFetchState({ status: 'idle', message: `No game with ${label} ${trimmed}.` });
-      }
-    } catch (err) {
-      setFetchState({ status: 'idle', message: (err as Error).message ?? 'Lookup failed.' });
-    }
-  };
-
-  const fetchByIgdbId = () => runLookup(g.igdbId ?? '', 'IGDB ID', lookupGameByIgdbId);
+  const fetchByIgdbId = () => runById(g.igdbId ?? '');
 
   return (
     <form
