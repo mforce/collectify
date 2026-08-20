@@ -196,6 +196,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
                   type="button"
                   key={s.key}
                   onClick={() => toggleStore(s.value)}
+                  aria-pressed={checked}
                   className={`inline-flex min-h-[44px] items-center rounded-xl border px-3 text-sm font-semibold transition-colors ${checked ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
                 >
                   {s.label}
