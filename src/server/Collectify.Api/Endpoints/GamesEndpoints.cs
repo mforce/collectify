@@ -1,10 +1,6 @@
 using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
-using Collectify.Infrastructure.Identity;
-using Collectify.Infrastructure.Lookup.Images;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Collectify.Api.Endpoints;
@@ -38,128 +34,94 @@ public static class GamesEndpoints
         DateOnly? LastPlayedOn,
         string[]? Tags,
         DateTime? AddedAt,
-        DateTime? UpdatedAt);
+        DateTime? UpdatedAt) : ICollectionEntryDto;
 
-    public static IEndpointRouteBuilder MapGamesEndpoints(this IEndpointRouteBuilder app)
+    private static readonly CollectionEndpointConfig<Game, GameDto> Config = new()
     {
-        var group = app.MapGroup("/api/games").RequireAuthorization();
-
-        group.MapGet("/", async (
-            [FromQuery] string? query,
-            [FromQuery] string? platform,
-            [FromQuery] bool? digital,
-            [FromQuery] int? year,
-            [FromQuery] int? yearFrom,
-            [FromQuery] int? yearTo,
-            [FromQuery] string? publisher,
-            [FromQuery] string? developer,
-            [FromQuery] CollectionStatus? status,
-            [FromQuery] CompletionStatus? completionStatus,
-            [FromQuery] DigitalStore? digitalStore,
-            [FromQuery] int? ratingMin,
-            [FromQuery(Name = "tag")] string[]? tag,
-            CollectifyDbContext db,
-            UserManager<AppUser> users,
-            HttpContext ctx) =>
+        RoutePrefix = "/api/games",
+        Set = db => db.Games,
+        ToDto = ToDto,
+        Apply = ApplyDto,
+        Validate = Validate,
+        SearchFilter = (q, query) =>
         {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var q = db.Games.AsNoTracking().Include(g => g.Tags).Where(g => g.OwnerId == ownerId);
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var like = $"%{query}%";
-                q = q.Where(g => EF.Functions.Like(g.Title, like)
+            var like = $"%{query}%";
+            return q.Where(g => EF.Functions.Like(g.Title, like)
                               || (g.Publisher != null && EF.Functions.Like(g.Publisher, like))
                               || (g.Developer != null && EF.Functions.Like(g.Developer, like)));
-            }
-            // Bound as a raw string (not the enum) so a stale/legacy value
-            // (e.g. a bookmarked "?platform=Linux" from before Linux folded
-            // into Pc, #102) degrades via GamePlatformMapping rather than
-            // failing enum binding and 400-ing the whole list request.
-            // First try a direct member name (handles Other/Pc/Ps5/... as the
-            // enum binder did), requiring it to be a DEFINED member so a
-            // retired/unnamed numeric like "3" or "999" doesn't bind to a
-            // stale value; otherwise fall back to the free-text mapping so
-            // aliases like "linux" -> Pc still resolve.
-            static GamePlatform? ResolvePlatform(string? raw)
-            {
-                if (Enum.TryParse<GamePlatform>(raw, ignoreCase: true, out var direct)
-                    && Enum.IsDefined(direct))
-                    return direct;
-                return GamePlatformMapping.TryParse(raw);
-            }
-            var platformFilter = ResolvePlatform(platform);
+        },
+        ExtraFilters = (q, request) =>
+        {
+            // NOT a present-but-invalid 400 case: an undefined/retired numeric
+            // (e.g. "3", "999") that resolves to neither a defined member nor
+            // a mapping alias must still degrade to "no filter", per the
+            // #96 oracle test (List_FiltersByPlatform_RetiredOrUndefinedNumeric_IsIgnoredNotStaleValue) —
+            // a stale bookmarked platform value should not 400 the whole list.
+            var platformValues = request.Query["platform"];
+            if (platformValues.Count > 1)
+                return (q, Results.BadRequest(new { error = "Query parameter 'platform' must have a single value." }));
+            var platformFilter = ResolvePlatform(platformValues);
             if (platformFilter.HasValue) q = q.Where(g => g.Platform == platformFilter.Value);
-            if (digital.HasValue) q = q.Where(g => g.IsDigital == digital.Value);
-            if (year.HasValue) q = q.Where(g => g.Year == year);
-            if (yearFrom.HasValue) q = q.Where(g => g.Year != null && g.Year >= yearFrom);
-            if (yearTo.HasValue) q = q.Where(g => g.Year != null && g.Year <= yearTo);
-            if (!string.IsNullOrWhiteSpace(publisher))
+
+            if (request.Query.TryGetValue("digital", out var digitalValues))
             {
-                var like = $"%{publisher}%";
-                q = q.Where(g => g.Publisher != null && EF.Functions.Like(g.Publisher, like));
-            }
-            if (!string.IsNullOrWhiteSpace(developer))
-            {
-                var like = $"%{developer}%";
-                q = q.Where(g => g.Developer != null && EF.Functions.Like(g.Developer, like));
-            }
-            if (status.HasValue) q = q.Where(g => g.Status == status.Value);
-            if (completionStatus.HasValue) q = q.Where(g => g.CompletionStatus == completionStatus.Value);
-            if (digitalStore.HasValue) q = q.Where(g => g.DigitalStore == digitalStore.Value);
-            if (ratingMin is { } rm) q = q.Where(g => g.PersonalRating != null && g.PersonalRating >= rm);
-            if (tag is { Length: > 0 })
-            {
-                var normalised = tag.Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToArray();
-                if (normalised.Length > 0)
-                    q = q.Where(g => g.Tags.Any(t => normalised.Contains(t.Name)));
+                if (digitalValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'digital' must have a single value." }));
+                if (!bool.TryParse(digitalValues.ToString(), out var digital))
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digital'." }));
+                q = q.Where(g => g.IsDigital == digital);
             }
 
-            var items = await q.OrderByDescending(g => g.AddedAt).Take(500).ToListAsync();
-            return Results.Ok(items.Select(ToDto));
-        });
+            if (request.Query.TryGetValue("publisher", out var publisherValues))
+            {
+                if (publisherValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'publisher' must have a single value." }));
+                var publisher = publisherValues.ToString();
+                if (!string.IsNullOrWhiteSpace(publisher))
+                {
+                    var like = $"%{publisher}%";
+                    q = q.Where(g => g.Publisher != null && EF.Functions.Like(g.Publisher, like));
+                }
+            }
 
-        group.MapGet("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
+            if (request.Query.TryGetValue("developer", out var developerValues))
+            {
+                if (developerValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'developer' must have a single value." }));
+                var developer = developerValues.ToString();
+                if (!string.IsNullOrWhiteSpace(developer))
+                {
+                    var like = $"%{developer}%";
+                    q = q.Where(g => g.Developer != null && EF.Functions.Like(g.Developer, like));
+                }
+            }
+
+            if (request.Query.TryGetValue("completionStatus", out var completionStatusValues))
+            {
+                if (completionStatusValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'completionStatus' must have a single value." }));
+                if (Enum.TryParse<CompletionStatus>(completionStatusValues, ignoreCase: true, out var completionStatus)
+                    && Enum.IsDefined(completionStatus))
+                    q = q.Where(g => g.CompletionStatus == completionStatus);
+                else
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'completionStatus'." }));
+            }
+
+            if (request.Query.TryGetValue("digitalStore", out var digitalStoreValues))
+            {
+                if (digitalStoreValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'digitalStore' must have a single value." }));
+                if (Enum.TryParse<DigitalStore>(digitalStoreValues, ignoreCase: true, out var digitalStore)
+                    && Enum.IsDefined(digitalStore))
+                    q = q.Where(g => g.DigitalStore == digitalStore);
+                else
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digitalStore'." }));
+            }
+
+            return (q, null);
+        },
+        OnDelete = (db, id, ownerId) =>
         {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var g = await db.Games.AsNoTracking().Include(x => x.Tags)
-                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
-            return g is null ? Results.NotFound() : Results.Ok(ToDto(g));
-        });
-
-        group.MapPost("/", async ([FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
-        {
-            if (Validate(dto) is { } error) return error;
-            var ownerId = users.GetUserId(ctx.User)!;
-            var g = new Game { OwnerId = ownerId };
-            ApplyDto(g, dto);
-            g.ImagePath = await covers.EnsureLocalAsync(g.ImagePath, ct);
-            g.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
-            db.Games.Add(g);
-            await db.SaveChangesAsync(ct);
-            return Results.Created($"/api/games/{g.Id}", ToDto(g));
-        });
-
-        group.MapPut("/{id:int}", async (int id, [FromBody] GameDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
-        {
-            if (Validate(dto) is { } error) return error;
-            var ownerId = users.GetUserId(ctx.User)!;
-            var g = await db.Games.Include(x => x.Tags)
-                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, ct);
-            if (g is null) return Results.NotFound();
-            ApplyDto(g, dto);
-            g.ImagePath = await covers.EnsureLocalAsync(g.ImagePath, ct);
-            g.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
-            g.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
-            return Results.Ok(ToDto(g));
-        });
-
-        group.MapDelete("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
-        {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var g = await db.Games.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
-            if (g is null) return Results.NotFound();
-
             // Imported games are linked from GameStoreOwnedTitle via an
             // ownership-preserving composite FK with Restrict delete behavior.
             // Clear the ledger link first (same owner-scoped transaction) so
@@ -181,14 +143,28 @@ public static class GamesEndpoints
                 child.ParentGameId = null;
                 child.UpdatedAt = DateTime.UtcNow;
             }
+        },
+    };
 
-            db.Games.Remove(g);
-            await db.SaveChangesAsync();
-            return Results.NoContent();
-        });
-
-        return app;
+    // Bound as a raw string (not the enum) so a stale/legacy value
+    // (e.g. a bookmarked "?platform=Linux" from before Linux folded
+    // into Pc, #102) degrades via GamePlatformMapping rather than
+    // failing enum binding and 400-ing the whole list request.
+    // First try a direct member name (handles Other/Pc/Ps5/... as the
+    // enum binder did), requiring it to be a DEFINED member so a
+    // retired/unnamed numeric like "3" or "999" doesn't bind to a
+    // stale value; otherwise fall back to the free-text mapping so
+    // aliases like "linux" -> Pc still resolve.
+    private static GamePlatform? ResolvePlatform(string? raw)
+    {
+        if (Enum.TryParse<GamePlatform>(raw, ignoreCase: true, out var direct)
+            && Enum.IsDefined(direct))
+            return direct;
+        return GamePlatformMapping.TryParse(raw);
     }
+
+    public static IEndpointRouteBuilder MapGamesEndpoints(this IEndpointRouteBuilder app) =>
+        app.MapCollectionEndpoints(Config);
 
     private static IResult? Validate(GameDto dto)
     {

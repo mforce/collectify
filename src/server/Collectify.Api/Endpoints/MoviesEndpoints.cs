@@ -1,10 +1,6 @@
 using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Infrastructure.Data;
-using Collectify.Infrastructure.Identity;
-using Collectify.Infrastructure.Lookup.Images;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Collectify.Api.Endpoints;
@@ -45,127 +41,119 @@ public static class MoviesEndpoints
         int WatchCount,
         string[]? Tags,
         DateTime? AddedAt,
-        DateTime? UpdatedAt);
+        DateTime? UpdatedAt) : ICollectionEntryDto;
 
-    public static IEndpointRouteBuilder MapMoviesEndpoints(this IEndpointRouteBuilder app)
+    private static readonly CollectionEndpointConfig<Movie, MovieDto> Config = new()
     {
-        var group = app.MapGroup("/api/movies").RequireAuthorization();
-
-        group.MapGet("/", async (
-            [FromQuery] string? query,
-            [FromQuery] MovieFormat? format,
-            [FromQuery] int? year,
-            [FromQuery] int? yearFrom,
-            [FromQuery] int? yearTo,
-            [FromQuery] string? director,
-            [FromQuery] string? studio,
-            [FromQuery] string? genre,
-            [FromQuery] CollectionStatus? status,
-            [FromQuery] WatchStatus? watchStatus,
-            [FromQuery] int? ratingMin,
-            [FromQuery(Name = "tag")] string[]? tag,
-            CollectifyDbContext db,
-            UserManager<AppUser> users,
-            HttpContext ctx) =>
+        RoutePrefix = "/api/movies",
+        Set = db => db.Movies,
+        ToDto = ToDto,
+        Apply = ApplyDto,
+        Validate = Validate,
+        SearchFilter = (q, query) =>
         {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var q = db.Movies.AsNoTracking().Include(m => m.Tags).Where(m => m.OwnerId == ownerId);
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var like = $"%{query}%";
-                q = q.Where(m => EF.Functions.Like(m.Title, like)
+            var like = $"%{query}%";
+            return q.Where(m => EF.Functions.Like(m.Title, like)
                               || (m.Director != null && EF.Functions.Like(m.Director, like))
                               || (m.OriginalTitle != null && EF.Functions.Like(m.OriginalTitle, like)));
-            }
-            if (format.HasValue && format.Value != MovieFormat.None)
-                q = q.Where(m => (m.Formats & format.Value) != 0);
-            // Legacy single-year stays for back-compat; yearFrom/yearTo
-            // is the new range-style filter.
-            if (year.HasValue) q = q.Where(m => m.Year == year);
-            if (yearFrom.HasValue) q = q.Where(m => m.Year != null && m.Year >= yearFrom);
-            if (yearTo.HasValue) q = q.Where(m => m.Year != null && m.Year <= yearTo);
-            if (!string.IsNullOrWhiteSpace(director))
+        },
+        ExtraFilters = (q, request) =>
+        {
+            if (request.Query.TryGetValue("format", out var formatValues))
             {
-                var like = $"%{director}%";
-                q = q.Where(m => m.Director != null && EF.Functions.Like(m.Director, like));
+                if (formatValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'format' must have a single value." }));
+                var format = ResolveFormat(formatValues.ToString());
+                if (format is null)
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'format'." }));
+                if (format.Value != MovieFormat.None)
+                    q = q.Where(m => (m.Formats & format.Value) != 0);
             }
-            if (!string.IsNullOrWhiteSpace(studio))
+
+            if (request.Query.TryGetValue("director", out var directorValues))
             {
-                var like = $"%{studio}%";
-                q = q.Where(m => m.Studio != null && EF.Functions.Like(m.Studio, like));
+                if (directorValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'director' must have a single value." }));
+                var director = directorValues.ToString();
+                if (!string.IsNullOrWhiteSpace(director))
+                {
+                    var like = $"%{director}%";
+                    q = q.Where(m => m.Director != null && EF.Functions.Like(m.Director, like));
+                }
             }
-            if (!string.IsNullOrWhiteSpace(genre))
+
+            if (request.Query.TryGetValue("studio", out var studioValues))
             {
+                if (studioValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'studio' must have a single value." }));
+                var studio = studioValues.ToString();
+                if (!string.IsNullOrWhiteSpace(studio))
+                {
+                    var like = $"%{studio}%";
+                    q = q.Where(m => m.Studio != null && EF.Functions.Like(m.Studio, like));
+                }
+            }
+
+            if (request.Query.TryGetValue("genre", out var genreValues))
+            {
+                if (genreValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'genre' must have a single value." }));
                 // Genres is stored as a comma-separated string; substring
                 // match is good enough for the volume here.
-                var like = $"%{genre}%";
-                q = q.Where(m => m.Genres != null && EF.Functions.Like(m.Genres, like));
+                var genre = genreValues.ToString();
+                if (!string.IsNullOrWhiteSpace(genre))
+                {
+                    var like = $"%{genre}%";
+                    q = q.Where(m => m.Genres != null && EF.Functions.Like(m.Genres, like));
+                }
             }
-            if (status.HasValue) q = q.Where(m => m.Status == status.Value);
-            if (watchStatus.HasValue) q = q.Where(m => m.WatchStatus == watchStatus.Value);
-            if (ratingMin is { } rm) q = q.Where(m => m.PersonalRating != null && m.PersonalRating >= rm);
-            if (tag is { Length: > 0 })
+
+            if (request.Query.TryGetValue("watchStatus", out var watchStatusValues))
             {
-                // OR semantics within the multi-value filter: an item
-                // matches if any of its tags is in the requested set.
-                // Normalised to lower-case to match TagResolver.
-                var normalised = tag.Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToArray();
-                if (normalised.Length > 0)
-                    q = q.Where(m => m.Tags.Any(t => normalised.Contains(t.Name)));
+                if (watchStatusValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'watchStatus' must have a single value." }));
+                if (Enum.TryParse<WatchStatus>(watchStatusValues, ignoreCase: true, out var watchStatus)
+                    && Enum.IsDefined(watchStatus))
+                    q = q.Where(m => m.WatchStatus == watchStatus);
+                else
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'watchStatus'." }));
             }
 
-            var items = await q.OrderByDescending(m => m.AddedAt).Take(500).ToListAsync();
-            return Results.Ok(items.Select(ToDto));
-        });
+            return (q, null);
+        },
+        OnDelete = null,
+    };
 
-        group.MapGet("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
+    // Bound as a raw string (not the enum) so the filter mirrors the
+    // write-boundary's defined-member-only semantics: a single member name,
+    // a comma-joined combo of member names, or a numeric flags combination
+    // whose bits are all defined resolves to that MovieFormat; anything with
+    // an undefined bit or member returns null, which the caller turns into a
+    // 400 (a present-but-invalid value must not be silently dropped).
+    private static MovieFormat? ResolveFormat(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        if (int.TryParse(raw, out var asInt))
         {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var m = await db.Movies.AsNoTracking().Include(x => x.Tags)
-                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
-            return m is null ? Results.NotFound() : Results.Ok(ToDto(m));
-        });
-
-        group.MapPost("/", async ([FromBody] MovieDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
+            if ((asInt & ~ValidMovieFormatBits) == 0) return (MovieFormat)asInt;
+            return null; // undefined bit(s) in a numeric combo
+        }
+        var parts = raw.Split(',', StringSplitOptions.TrimEntries);
+        var acc = MovieFormat.None;
+        foreach (var p in parts)
         {
-            if (Validate(dto) is { } error) return error;
-            var ownerId = users.GetUserId(ctx.User)!;
-            var m = new Movie { OwnerId = ownerId };
-            ApplyDto(m, dto);
-            m.ImagePath = await covers.EnsureLocalAsync(m.ImagePath, ct);
-            m.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
-            db.Movies.Add(m);
-            await db.SaveChangesAsync(ct);
-            return Results.Created($"/api/movies/{m.Id}", ToDto(m));
-        });
-
-        group.MapPut("/{id:int}", async (int id, [FromBody] MovieDto dto, CollectifyDbContext db, UserManager<AppUser> users, ICoverImageStore covers, HttpContext ctx, CancellationToken ct) =>
-        {
-            if (Validate(dto) is { } error) return error;
-            var ownerId = users.GetUserId(ctx.User)!;
-            var m = await db.Movies.Include(x => x.Tags)
-                .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, ct);
-            if (m is null) return Results.NotFound();
-            ApplyDto(m, dto);
-            m.ImagePath = await covers.EnsureLocalAsync(m.ImagePath, ct);
-            m.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
-            m.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
-            return Results.Ok(ToDto(m));
-        });
-
-        group.MapDelete("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
-        {
-            var ownerId = users.GetUserId(ctx.User)!;
-            var m = await db.Movies.FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
-            if (m is null) return Results.NotFound();
-            db.Movies.Remove(m);
-            await db.SaveChangesAsync();
-            return Results.NoContent();
-        });
-
-        return app;
+            if (p.Length == 0)
+                return null; // empty member (',', 'Dvd,', 'Dvd,,BluRay') — reject the whole filter
+            if (Enum.TryParse<MovieFormat>(p, ignoreCase: true, out var one) && Enum.IsDefined(one))
+                acc |= one;
+            else
+                return null; // any undefined member name — reject the whole filter
+        }
+        return acc;
     }
+
+    public static IEndpointRouteBuilder MapMoviesEndpoints(this IEndpointRouteBuilder app) =>
+        app.MapCollectionEndpoints(Config);
 
     private static IResult? Validate(MovieDto dto)
     {
