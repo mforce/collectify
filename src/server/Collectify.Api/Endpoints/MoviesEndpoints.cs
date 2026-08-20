@@ -138,13 +138,17 @@ public static class MoviesEndpoints
             if ((asInt & ~ValidMovieFormatBits) == 0) return (MovieFormat)asInt;
             return null; // undefined bit(s) in a numeric combo
         }
-        var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = raw.Split(',', StringSplitOptions.TrimEntries);
         var acc = MovieFormat.None;
         foreach (var p in parts)
+        {
+            if (p.Length == 0)
+                return null; // empty member (',', 'Dvd,', 'Dvd,,BluRay') — reject the whole filter
             if (Enum.TryParse<MovieFormat>(p, ignoreCase: true, out var one) && Enum.IsDefined(one))
                 acc |= one;
             else
                 return null; // any undefined member name — reject the whole filter
+        }
         return acc;
     }
 
