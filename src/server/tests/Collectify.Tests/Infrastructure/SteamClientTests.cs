@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Store;
+using Collectify.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
@@ -135,27 +136,5 @@ public class SteamClientTests
         Assert.Equal(SteamFetchStatus.Ok, first.Status);
         Assert.Equal(SteamFetchStatus.Ok, second.Status);
         Assert.Single(handler.RequestedUrls); // second served from cache
-    }
-
-    private sealed class StubHandler : HttpMessageHandler
-    {
-        private readonly string _body;
-        private readonly HttpStatusCode _status;
-        public List<string> RequestedUrls { get; } = new();
-
-        public StubHandler(string body, HttpStatusCode status = HttpStatusCode.OK)
-        {
-            _body = body;
-            _status = status;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            RequestedUrls.Add(request.RequestUri!.AbsoluteUri);
-            return Task.FromResult(new HttpResponseMessage(_status)
-            {
-                Content = new StringContent(_body, Encoding.UTF8, "application/json"),
-            });
-        }
     }
 }

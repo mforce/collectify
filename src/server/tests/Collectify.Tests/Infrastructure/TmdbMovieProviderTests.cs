@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Tmdb;
+using Collectify.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -572,29 +573,6 @@ public class TmdbMovieProviderTests
         Assert.All(storage.Writes, w => Assert.Equal(options.CacheTtl, w.Ttl));
     }
 
-
-    private sealed class StubHandler : HttpMessageHandler
-    {
-        private readonly string _body;
-        private readonly HttpStatusCode _status;
-        public List<string> RequestedUrls { get; } = new();
-
-        public StubHandler(string body, HttpStatusCode status = HttpStatusCode.OK)
-        {
-            _body = body;
-            _status = status;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            // AbsoluteUri keeps percent-encoding intact; ToString unescapes %20 -> space.
-            RequestedUrls.Add(request.RequestUri!.AbsoluteUri);
-            return Task.FromResult(new HttpResponseMessage(_status)
-            {
-                Content = new StringContent(_body, Encoding.UTF8, "application/json"),
-            });
-        }
-    }
 
     /// <summary>
     /// Stub that picks a response body by matching a substring of the
