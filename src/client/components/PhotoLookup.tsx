@@ -1,20 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { lookupByImage } from '../services/lookup';
+import type { MediaResultMap } from '../services/mediaRegistry';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
 import type { MediaType } from '../services/types';
 import { Button } from './ui';
 
-type ResultMap = {
-  movies: MovieLookupResult;
-  music: MusicLookupResult;
-  games: GameLookupResult;
-};
-
 interface Props<T extends MediaType> {
   type: T;
-  onPick: (item: ResultMap[T]) => void;
+  onPick: (item: MediaResultMap[T]) => void;
   /** Optional row renderer; mirrors OnlineSearch so callers can share the same fn. */
-  renderItem?: (item: ResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
+  renderItem?: (item: MediaResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
 }
 
 type Phase =
@@ -358,7 +353,7 @@ export default function PhotoLookup<T extends MediaType>({
 
         {/* Candidate list */}
         {phase.kind === 'results' && phase.results.length > 0 && (() => {
-          const items = phase.results as ResultMap[T][];
+          const items = phase.results as MediaResultMap[T][];
           const filtered = filterText.trim()
             ? items.filter(item => {
                 const r = item as Partial<MovieLookupResult & MusicLookupResult & GameLookupResult>;
@@ -446,7 +441,7 @@ export default function PhotoLookup<T extends MediaType>({
 
 function defaultView<T extends MediaType>(
   _type: T,
-  item: ResultMap[T],
+  item: MediaResultMap[T],
 ): { primary: string; secondary?: string; image?: string | null } {
   const r = item as Partial<MovieLookupResult & MusicLookupResult & GameLookupResult>;
   const primary = (r.title ?? '') + (r.year ? ` (${r.year})` : '');

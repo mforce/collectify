@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import Layout from './Layout';
+import { MEDIA } from '../services/mediaRegistry';
 
 // Mock auth hook
 vi.mock('../services/auth', () => ({
@@ -48,6 +49,17 @@ beforeEach(() => {
 });
 
 describe('Layout dark mode integration', () => {
+  it('derives the active movies desktop class from the media registry', () => {
+    const original = MEDIA.movies.theme.navActiveDesktop;
+    MEDIA.movies.theme.navActiveDesktop = `${original} registry-proof`;
+    try {
+      render(<MemoryRouter initialEntries={['/movies']}><Layout><div>Page content</div></Layout></MemoryRouter>);
+      expect(screen.getAllByRole('link', { name: 'Movies' })[0]).toHaveClass(...MEDIA.movies.theme.navActiveDesktop.split(' '));
+    } finally {
+      MEDIA.movies.theme.navActiveDesktop = original;
+    }
+  });
+
   it('renders a dark mode toggle button in the header', () => {
     renderWithRouter(<Layout><div>Page content</div></Layout>);
 

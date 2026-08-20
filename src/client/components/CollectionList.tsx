@@ -8,13 +8,7 @@ import FiltersPanel from './FiltersPanel';
 import MediaIcon from './MediaIcon';
 import { useViewPreference, type ViewMode } from '../hooks/useViewPreference';
 import type { CollectionItemBase, MediaType } from '../services/types';
-import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
-
-type ResultMap = {
-  movies: MovieLookupResult;
-  music: MusicLookupResult;
-  games: GameLookupResult;
-};
+import type { MediaResultMap } from '../services/mediaRegistry';
 
 interface RenderedItem {
   primary: string;
@@ -189,7 +183,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useViewPreference(type);
 
-  const onBarcodePick = (item: ResultMap[T]) => {
+  const onBarcodePick = (item: MediaResultMap[T]) => {
     navigate(newPath, { state: { prefill: item } });
   };
   const onBarcodeFallback = (code: string) => {

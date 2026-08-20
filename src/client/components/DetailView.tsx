@@ -11,6 +11,7 @@ import {
   watchStatusLabel,
 } from '../services/types';
 import MediaIcon from './MediaIcon';
+import { MEDIA } from '../services/mediaRegistry';
 
 interface Props<T> {
   item: T;
@@ -44,27 +45,11 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-const detailTheme: Record<MediaType, {
-  title: string;
-  accent: string;
-  button: string;
-}> = {
-  movies: {
-    title: 'text-movies',
-    accent: 'bg-movies-light text-movies border-movies-border',
-    button: 'border-movies-border text-movies hover:bg-movies-light',
-  },
-  music: {
-    title: 'text-music',
-    accent: 'bg-music-light text-music border-music-border',
-    button: 'border-music-border text-music hover:bg-music-light',
-  },
-  games: {
-    title: 'text-games',
-    accent: 'bg-games-light text-games border-games-border',
-    button: 'border-games-border text-games hover:bg-games-light',
-  },
-};
+const detailTheme = (type: MediaType) => ({
+  title: MEDIA[type].theme.textAccent,
+  accent: MEDIA[type].theme.navActiveMobile,
+  button: `border-${type}-border ${MEDIA[type].theme.textAccent} hover:bg-${type}-light`,
+});
 
 function ThemedCard({ type, children, className = '' }: { type: MediaType; children: ReactNode; className?: string }) {
   return <Card className={className}>{children}</Card>;
@@ -77,7 +62,7 @@ function HeroTitle({ type, title, subtitle }: { type: MediaType; title: string; 
         <MediaIcon type={type} className="h-7 w-7" />
       </span>
       <div className="min-w-0 flex-1">
-        <h2 className={`text-2xl font-extrabold leading-tight tracking-tight ${detailTheme[type].title}`}>{title}</h2>
+        <h2 className={`text-2xl font-extrabold leading-tight tracking-tight ${detailTheme(type).title}`}>{title}</h2>
         {subtitle && <p className="mt-0.5 text-sm text-text-secondary truncate">{subtitle}</p>}
       </div>
     </div>
@@ -123,7 +108,7 @@ function MovieDetail({ item }: { item: Movie }) {
           {formats.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {formats.map((f) => (
-                <span key={f.key} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.movies.accent}`}>
+                <span key={f.key} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('movies').accent}`}>
                   {f.label}
                 </span>
               ))}
@@ -235,7 +220,7 @@ function MusicDetail({ item }: { item: Album }) {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span className="shrink-0">{item.year}</span>}
             {item.format && (
-              <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.music.accent}`}>
+              <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('music').accent}`}>
                 {musicFormatLabel(item.format) ?? item.format}
               </span>
             )}
@@ -341,7 +326,7 @@ function GameDetail({ item }: { item: Game }) {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span className="shrink-0">{item.year}</span>}
             {item.isDigital ? (
-              <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme.games.accent}`}>
+              <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('games').accent}`}>
                 Digital{item.digitalStore && <span className="min-w-0 truncate"> ({digitalStoreLabel(item.digitalStore) ?? item.digitalStore})</span>}
               </span>
             ) : (
@@ -439,13 +424,13 @@ export default function DetailView<T extends Movie | Album | Game>({ item, type,
     <div className="space-y-4">
       {/* Header with back link and edit button */}
       <div className="flex items-center justify-between gap-4">
-        <Link to={`/${type}`} className={`flex items-center gap-1 text-sm font-semibold transition-colors ${detailTheme[type].title}`}>
+        <Link to={`/${type}`} className={`flex items-center gap-1 text-sm font-semibold transition-colors ${detailTheme(type).title}`}>
           ← Back to {type}
         </Link>
         <button
           type="button"
           onClick={onEdit}
-          className={`inline-flex min-h-[40px] items-center rounded-xl border bg-card px-4 py-1.5 text-sm font-bold transition-colors ${detailTheme[type].button}`}
+          className={`inline-flex min-h-[40px] items-center rounded-xl border bg-card px-4 py-1.5 text-sm font-bold transition-colors ${detailTheme(type).button}`}
         >
           Edit
         </button>

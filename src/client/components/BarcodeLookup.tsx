@@ -6,21 +6,16 @@ import { lookupByBarcode } from '../services/lookup';
 // snappy for users who never scan (most of them, on the desktop list
 // pages).
 const BarcodeScanner = lazy(() => import('./BarcodeScanner'));
+import type { MediaResultMap } from '../services/mediaRegistry';
 import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
 import type { MediaType } from '../services/types';
 import { Button } from './ui';
 
-type ResultMap = {
-  movies: MovieLookupResult;
-  music: MusicLookupResult;
-  games: GameLookupResult;
-};
-
 interface Props<T extends MediaType> {
   type: T;
-  onPick: (item: ResultMap[T]) => void;
+  onPick: (item: MediaResultMap[T]) => void;
   /** Optional row renderer; mirrors OnlineSearch so callers can share the same fn. */
-  renderItem?: (item: ResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
+  renderItem?: (item: MediaResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
   /**
    * Soft-fallback hook fired when the lookup returns 0 candidates for a
    * scanned code (UPCitemdb's free coverage is patchy for movies / games
@@ -121,7 +116,7 @@ export default function BarcodeLookup<T extends MediaType>({
       )}
       {phase.kind === 'results' && phase.results.length > 0 && (
         <div className="rounded-md bg-input-bg border border-border max-h-80 overflow-auto">
-          {(phase.results as ResultMap[T][]).map((item, i) => {
+          {(phase.results as MediaResultMap[T][]).map((item, i) => {
             const view = renderItem?.(item) ?? defaultView(type, item);
             return (
               <button
@@ -153,7 +148,7 @@ export default function BarcodeLookup<T extends MediaType>({
 
 function defaultView<T extends MediaType>(
   _type: T,
-  item: ResultMap[T],
+  item: MediaResultMap[T],
 ): { primary: string; secondary?: string; image?: string | null } {
   const r = item as Partial<MovieLookupResult & MusicLookupResult & GameLookupResult>;
   const primary = (r.title ?? '') + (r.year ? ` (${r.year})` : '');

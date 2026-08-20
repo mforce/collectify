@@ -1,21 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLookup } from '../services/lookup';
-import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
+import type { MediaResultMap } from '../services/mediaRegistry';
 import type { MediaType, GamePlatform } from '../services/types';
 import { Field, Input, Label } from './ui';
-
-type ResultMap = {
-  movies: MovieLookupResult;
-  music: MusicLookupResult;
-  games: GameLookupResult;
-};
 
 interface Props<T extends MediaType> {
   type: T;
   /** How to render a single suggestion row in the dropdown. */
-  renderItem: (item: ResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
+  renderItem: (item: MediaResultMap[T]) => { primary: string; secondary?: ReactNode; image?: string | null };
   /** Called when the user clicks a suggestion. The form converts the result into its own state shape. */
-  onPick: (item: ResultMap[T]) => void;
+  onPick: (item: MediaResultMap[T]) => void;
   /** Optional label shown above the input. */
   label?: string;
   placeholder?: string;
@@ -52,7 +46,7 @@ export default function OnlineSearch<T extends MediaType>({
   const lookup = useLookup(type, debounced, platform);
   const data = lookup.data;
 
-  const results = (data?.results ?? []) as ResultMap[T][];
+  const results = (data?.results ?? []) as MediaResultMap[T][];
   const showDropdown = open && debounced.trim().length >= 2;
 
   return (

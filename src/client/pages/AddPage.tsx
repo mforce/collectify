@@ -8,6 +8,7 @@ import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
 import { Card } from '../components/ui';
 import MediaIcon from '../components/MediaIcon';
+import { MEDIA } from '../services/mediaRegistry';
 
 interface PrefillState {
   prefill?: MovieLookupResult | MusicLookupResult | GameLookupResult;
@@ -19,30 +20,6 @@ interface PrefillState {
    */
   barcodeOnly?: string;
 }
-
-const titleByType: Record<MediaType, string> = {
-  movies: 'Add a movie',
-  music: 'Add an album',
-  games: 'Add a game',
-};
-
-const successByType: Record<MediaType, string> = {
-  movies: 'Movie added.',
-  music: 'Album added.',
-  games: 'Game added.',
-};
-
-const themeByType: Record<MediaType, { title: string }> = {
-  movies: {
-    title: 'text-movies',
-  },
-  music: {
-    title: 'text-music',
-  },
-  games: {
-    title: 'text-games',
-  },
-};
 
 export default function AddPage<T extends MediaType>({ type }: { type: T }) {
   const create = useCreate(type);
@@ -56,7 +33,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
   const onSuccess = (id?: number) => {
     // Toast survives the navigate so the user gets a confirmation on
     // the detail page they land on.
-    toast.success(successByType[type]);
+    toast.success(MEDIA[type].addSuccess);
     if (id) nav(`/${type}/${id}`);
     else nav(`/${type}`);
   };
@@ -71,7 +48,7 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
           <MediaIcon type={type} className="h-7 w-7" />
         </span>
-        <h1 className={`text-3xl font-extrabold tracking-tight ${themeByType[type].title}`}>{titleByType[type]}</h1>
+        <h1 className={`text-3xl font-extrabold tracking-tight ${MEDIA[type].theme.heading}`}>{MEDIA[type].addTitle}</h1>
       </div>
 
       <Card className={`theme-${type}`}>

@@ -1,16 +1,5 @@
 import type { MediaType } from '../services/types';
-
-const ICON_SRC: Record<MediaType, string> = {
-  movies: '/brand/media-movies.svg',
-  music: '/brand/media-music.svg',
-  games: '/brand/media-games.svg',
-};
-
-const ICON_ALT: Record<MediaType, string> = {
-  movies: 'Movies',
-  music: 'Music',
-  games: 'Games',
-};
+import { MEDIA } from '../services/mediaRegistry';
 
 export default function MediaIcon({
   type,
@@ -23,8 +12,8 @@ export default function MediaIcon({
 }) {
   return (
     <img
-      src={ICON_SRC[type]}
-      alt={decorative ? '' : ICON_ALT[type]}
+      src={MEDIA[type].iconSrc}
+      alt={decorative ? '' : MEDIA[type].iconAlt}
       aria-hidden={decorative || undefined}
       className={className}
       loading="lazy"
