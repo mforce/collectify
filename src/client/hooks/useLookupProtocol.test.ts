@@ -26,10 +26,10 @@ describe.each(['movies', 'music', 'games'])('useLookupProtocol %s', () => {
     await act(() => s.result.current.runById('1'));
     expect(s.draft()).toMatchObject({ title: 'Found', key: '1' });
   });
-  it.each([['not-configured', 'not configured'], ['not-found', 'no ']] as const)('%s exposes outcome', async (kind, message) => {
+  it.each([['not-configured', 'provider not configured'], ['not-found', 'No widget with item 1.']] as const)('%s exposes outcome', async (kind, expected) => {
     const s = setup(vi.fn().mockResolvedValue({ kind }));
     await act(() => s.result.current.runById('1'));
-    expect(s.result.current.fetchState.message?.toLowerCase()).toContain(message);
+    expect(s.result.current.fetchState.message).toBe(expected);
     expect(s.draft().title).toBe('');
   });
   it('surfaces errors', async () => {
