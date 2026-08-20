@@ -28,7 +28,11 @@ public sealed class CollectionEndpointConfig<TEntity, TDto>
     public required Action<TEntity, TDto> Apply { get; init; }
     public required Func<TDto, IResult?> Validate { get; init; }
     public Func<IQueryable<TEntity>, string, IQueryable<TEntity>>? SearchFilter { get; init; }
-    public Func<IQueryable<TEntity>, HttpRequest, IQueryable<TEntity>>? ExtraFilters { get; init; }
+    // A present-but-invalid filter value must signal a 400 rather than being
+    // silently dropped (mirrors the old strongly-typed [FromQuery] binder's
+    // behavior); the delegate returns the (possibly filtered) query plus an
+    // error result that, when non-null, short-circuits the list response.
+    public Func<IQueryable<TEntity>, HttpRequest, (IQueryable<TEntity> Query, IResult? Error)>? ExtraFilters { get; init; }
     public Action<CollectifyDbContext, int, string>? OnDelete { get; init; }
 }
 
@@ -71,7 +75,12 @@ public static class CollectionEndpoints
                     q = q.Where(e => e.Tags.Any(t => normalised.Contains(t.Name)));
             }
 
-            if (cfg.ExtraFilters is { } extra) q = extra(q, ctx.Request);
+            if (cfg.ExtraFilters is { } extra)
+            {
+                var (filtered, error) = extra(q, ctx.Request);
+                if (error is { } e) return e;
+                q = filtered;
+            }
 
             var items = await q.OrderByDescending(e => e.AddedAt).Take(500).ToListAsync();
             return Results.Ok(items.Select(cfg.ToDto));

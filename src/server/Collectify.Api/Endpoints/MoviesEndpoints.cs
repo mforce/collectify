@@ -59,53 +59,89 @@ public static class MoviesEndpoints
         },
         ExtraFilters = (q, request) =>
         {
-            var format = ResolveFormat(request.Query["format"]);
-            if (format.HasValue && format.Value != MovieFormat.None)
-                q = q.Where(m => (m.Formats & format.Value) != 0);
-
-            var director = request.Query["director"].ToString();
-            if (!string.IsNullOrWhiteSpace(director))
+            if (request.Query.ContainsKey("format"))
             {
-                var like = $"%{director}%";
-                q = q.Where(m => m.Director != null && EF.Functions.Like(m.Director, like));
+                var format = ResolveFormat(request.Query["format"]);
+                if (format is null)
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'format'." }));
+                if (format.Value != MovieFormat.None)
+                    q = q.Where(m => (m.Formats & format.Value) != 0);
             }
 
-            var studio = request.Query["studio"].ToString();
-            if (!string.IsNullOrWhiteSpace(studio))
+            if (request.Query.TryGetValue("director", out var directorValues))
             {
-                var like = $"%{studio}%";
-                q = q.Where(m => m.Studio != null && EF.Functions.Like(m.Studio, like));
+                if (directorValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'director' must have a single value." }));
+                var director = directorValues.ToString();
+                if (!string.IsNullOrWhiteSpace(director))
+                {
+                    var like = $"%{director}%";
+                    q = q.Where(m => m.Director != null && EF.Functions.Like(m.Director, like));
+                }
             }
 
-            var genre = request.Query["genre"].ToString();
-            if (!string.IsNullOrWhiteSpace(genre))
+            if (request.Query.TryGetValue("studio", out var studioValues))
             {
+                if (studioValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'studio' must have a single value." }));
+                var studio = studioValues.ToString();
+                if (!string.IsNullOrWhiteSpace(studio))
+                {
+                    var like = $"%{studio}%";
+                    q = q.Where(m => m.Studio != null && EF.Functions.Like(m.Studio, like));
+                }
+            }
+
+            if (request.Query.TryGetValue("genre", out var genreValues))
+            {
+                if (genreValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'genre' must have a single value." }));
                 // Genres is stored as a comma-separated string; substring
                 // match is good enough for the volume here.
-                var like = $"%{genre}%";
-                q = q.Where(m => m.Genres != null && EF.Functions.Like(m.Genres, like));
+                var genre = genreValues.ToString();
+                if (!string.IsNullOrWhiteSpace(genre))
+                {
+                    var like = $"%{genre}%";
+                    q = q.Where(m => m.Genres != null && EF.Functions.Like(m.Genres, like));
+                }
             }
 
-            if (Enum.TryParse<WatchStatus>(request.Query["watchStatus"], ignoreCase: true, out var watchStatus)
-                && Enum.IsDefined(watchStatus))
-                q = q.Where(m => m.WatchStatus == watchStatus);
+            if (request.Query.ContainsKey("watchStatus"))
+            {
+                if (Enum.TryParse<WatchStatus>(request.Query["watchStatus"], ignoreCase: true, out var watchStatus)
+                    && Enum.IsDefined(watchStatus))
+                    q = q.Where(m => m.WatchStatus == watchStatus);
+                else
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'watchStatus'." }));
+            }
 
-            return q;
+            return (q, null);
         },
         OnDelete = null,
     };
 
     // Bound as a raw string (not the enum) so the filter mirrors the
-    // write-boundary's defined-member-only semantics: a name or a defined
-    // numeric resolves to that single flag; anything else (a combo, a
-    // retired/undefined bit) is ignored rather than 400-ing the list.
+    // write-boundary's defined-member-only semantics: a single member name,
+    // a comma-joined combo of member names, or a numeric flags combination
+    // whose bits are all defined resolves to that MovieFormat; anything with
+    // an undefined bit or member returns null, which the caller turns into a
+    // 400 (a present-but-invalid value must not be silently dropped).
     private static MovieFormat? ResolveFormat(string? raw)
     {
-        if (!string.IsNullOrWhiteSpace(raw)
-            && Enum.TryParse<MovieFormat>(raw, ignoreCase: true, out var v)
-            && Enum.IsDefined(v))
-            return v;
-        return null;
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        if (int.TryParse(raw, out var asInt))
+        {
+            if ((asInt & ~ValidMovieFormatBits) == 0) return (MovieFormat)asInt;
+            return null; // undefined bit(s) in a numeric combo
+        }
+        var parts = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var acc = MovieFormat.None;
+        foreach (var p in parts)
+            if (Enum.TryParse<MovieFormat>(p, ignoreCase: true, out var one) && Enum.IsDefined(one))
+                acc |= one;
+            else
+                return null; // any undefined member name — reject the whole filter
+        return acc;
     }
 
     public static IEndpointRouteBuilder MapMoviesEndpoints(this IEndpointRouteBuilder app) =>

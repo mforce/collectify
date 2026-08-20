@@ -52,35 +52,64 @@ public static class GamesEndpoints
         },
         ExtraFilters = (q, request) =>
         {
+            // NOT a present-but-invalid 400 case: an undefined/retired numeric
+            // (e.g. "3", "999") that resolves to neither a defined member nor
+            // a mapping alias must still degrade to "no filter", per the
+            // #96 oracle test (List_FiltersByPlatform_RetiredOrUndefinedNumeric_IsIgnoredNotStaleValue) —
+            // a stale bookmarked platform value should not 400 the whole list.
             var platformFilter = ResolvePlatform(request.Query["platform"]);
             if (platformFilter.HasValue) q = q.Where(g => g.Platform == platformFilter.Value);
 
-            if (bool.TryParse(request.Query["digital"], out var digital))
+            if (request.Query.ContainsKey("digital"))
+            {
+                if (!bool.TryParse(request.Query["digital"], out var digital))
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digital'." }));
                 q = q.Where(g => g.IsDigital == digital);
-
-            var publisher = request.Query["publisher"].ToString();
-            if (!string.IsNullOrWhiteSpace(publisher))
-            {
-                var like = $"%{publisher}%";
-                q = q.Where(g => g.Publisher != null && EF.Functions.Like(g.Publisher, like));
             }
 
-            var developer = request.Query["developer"].ToString();
-            if (!string.IsNullOrWhiteSpace(developer))
+            if (request.Query.TryGetValue("publisher", out var publisherValues))
             {
-                var like = $"%{developer}%";
-                q = q.Where(g => g.Developer != null && EF.Functions.Like(g.Developer, like));
+                if (publisherValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'publisher' must have a single value." }));
+                var publisher = publisherValues.ToString();
+                if (!string.IsNullOrWhiteSpace(publisher))
+                {
+                    var like = $"%{publisher}%";
+                    q = q.Where(g => g.Publisher != null && EF.Functions.Like(g.Publisher, like));
+                }
             }
 
-            if (Enum.TryParse<CompletionStatus>(request.Query["completionStatus"], ignoreCase: true, out var completionStatus)
-                && Enum.IsDefined(completionStatus))
-                q = q.Where(g => g.CompletionStatus == completionStatus);
+            if (request.Query.TryGetValue("developer", out var developerValues))
+            {
+                if (developerValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'developer' must have a single value." }));
+                var developer = developerValues.ToString();
+                if (!string.IsNullOrWhiteSpace(developer))
+                {
+                    var like = $"%{developer}%";
+                    q = q.Where(g => g.Developer != null && EF.Functions.Like(g.Developer, like));
+                }
+            }
 
-            if (Enum.TryParse<DigitalStore>(request.Query["digitalStore"], ignoreCase: true, out var digitalStore)
-                && Enum.IsDefined(digitalStore))
-                q = q.Where(g => g.DigitalStore == digitalStore);
+            if (request.Query.ContainsKey("completionStatus"))
+            {
+                if (Enum.TryParse<CompletionStatus>(request.Query["completionStatus"], ignoreCase: true, out var completionStatus)
+                    && Enum.IsDefined(completionStatus))
+                    q = q.Where(g => g.CompletionStatus == completionStatus);
+                else
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'completionStatus'." }));
+            }
 
-            return q;
+            if (request.Query.ContainsKey("digitalStore"))
+            {
+                if (Enum.TryParse<DigitalStore>(request.Query["digitalStore"], ignoreCase: true, out var digitalStore)
+                    && Enum.IsDefined(digitalStore))
+                    q = q.Where(g => g.DigitalStore == digitalStore);
+                else
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digitalStore'." }));
+            }
+
+            return (q, null);
         },
         OnDelete = (db, id, ownerId) =>
         {

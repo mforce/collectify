@@ -261,4 +261,20 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         Assert.Single(hits!);
         Assert.Equal("Tenet", hits![0].Title);
     }
+
+    [Fact]
+    public async Task List_FiltersByFormat_FlagsCombination_ReturnsMoviesSharingAnyBit()
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Inception", Formats = MovieFormat.Dvd | MovieFormat.BluRay });
+        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Tenet", Formats = MovieFormat.Dvd });
+        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Goodfellas", Formats = MovieFormat.Vhs });
+
+        var hits = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?format=3");
+
+        var titles = hits!.Select(m => m.Title).ToArray();
+        Assert.Contains("Inception", titles);
+        Assert.Contains("Tenet", titles);
+        Assert.DoesNotContain("Goodfellas", titles);
+    }
 }

@@ -50,32 +50,52 @@ public static class MusicEndpoints
         },
         ExtraFilters = (q, request) =>
         {
-            if (Enum.TryParse<MusicFormat>(request.Query["format"], ignoreCase: true, out var format)
-                && Enum.IsDefined(format))
-                q = q.Where(a => a.Format == format);
-
-            var artist = request.Query["artist"].ToString();
-            if (!string.IsNullOrWhiteSpace(artist))
+            if (request.Query.ContainsKey("format"))
             {
-                var like = $"%{artist}%";
-                q = q.Where(a => EF.Functions.Like(a.ArtistName, like));
+                if (Enum.TryParse<MusicFormat>(request.Query["format"], ignoreCase: true, out var format)
+                    && Enum.IsDefined(format))
+                    q = q.Where(a => a.Format == format);
+                else
+                    return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'format'." }));
             }
 
-            var label = request.Query["label"].ToString();
-            if (!string.IsNullOrWhiteSpace(label))
+            if (request.Query.TryGetValue("artist", out var artistValues))
             {
-                var like = $"%{label}%";
-                q = q.Where(a => a.Label != null && EF.Functions.Like(a.Label, like));
+                if (artistValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'artist' must have a single value." }));
+                var artist = artistValues.ToString();
+                if (!string.IsNullOrWhiteSpace(artist))
+                {
+                    var like = $"%{artist}%";
+                    q = q.Where(a => EF.Functions.Like(a.ArtistName, like));
+                }
             }
 
-            var genre = request.Query["genre"].ToString();
-            if (!string.IsNullOrWhiteSpace(genre))
+            if (request.Query.TryGetValue("label", out var labelValues))
             {
-                var like = $"%{genre}%";
-                q = q.Where(a => a.Genres != null && EF.Functions.Like(a.Genres, like));
+                if (labelValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'label' must have a single value." }));
+                var label = labelValues.ToString();
+                if (!string.IsNullOrWhiteSpace(label))
+                {
+                    var like = $"%{label}%";
+                    q = q.Where(a => a.Label != null && EF.Functions.Like(a.Label, like));
+                }
             }
 
-            return q;
+            if (request.Query.TryGetValue("genre", out var genreValues))
+            {
+                if (genreValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'genre' must have a single value." }));
+                var genre = genreValues.ToString();
+                if (!string.IsNullOrWhiteSpace(genre))
+                {
+                    var like = $"%{genre}%";
+                    q = q.Where(a => a.Genres != null && EF.Functions.Like(a.Genres, like));
+                }
+            }
+
+            return (q, null);
         },
         OnDelete = null,
     };

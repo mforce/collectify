@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -147,6 +148,16 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
 
         Assert.Single(hits!);
         Assert.Equal("Digital", hits![0].Title);
+    }
+
+    [Fact]
+    public async Task List_FiltersByMalformedDigital_Returns400()
+    {
+        var alice = await NewAliceAsync();
+
+        var resp = await alice.Client.GetAsync("/api/games/?digital=yes");
+
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
     [Fact]
