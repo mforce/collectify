@@ -1,4 +1,5 @@
 using Collectify.Domain.Enums;
+using Collectify.Domain.Metadata;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Vision;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ public static class LookupEndpoints
 
         group.MapGet("/movies", async (
             [FromQuery] string? q,
-            IMovieMetadataProvider provider,
+            IMetadataProvider<MovieLookupResult> provider,
             CancellationToken ct) =>
         {
             if (Validate(q) is { } error) return error;
@@ -33,7 +34,7 @@ public static class LookupEndpoints
         // "your id was wrong".
         group.MapGet("/movies/by-id/{providerKey}", async (
             string providerKey,
-            IMovieMetadataProvider provider,
+            IMetadataProvider<MovieLookupResult> provider,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(providerKey))
@@ -74,7 +75,7 @@ public static class LookupEndpoints
         // the right edition (the UPC may be shared across box-sets).
         group.MapGet("/movies/by-barcode/{code}", async (
             string code,
-            IMovieMetadataProvider provider,
+            IMetadataProvider<MovieLookupResult> provider,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(code))
@@ -88,7 +89,7 @@ public static class LookupEndpoints
 
         group.MapGet("/music", async (
             [FromQuery] string? q,
-            IMusicMetadataProvider provider,
+            IMetadataProvider<MusicLookupResult> provider,
             CancellationToken ct) =>
         {
             if (Validate(q) is { } error) return error;
@@ -103,7 +104,7 @@ public static class LookupEndpoints
         // one code path.
         group.MapGet("/music/by-id/{providerKey}", async (
             string providerKey,
-            IMusicMetadataProvider provider,
+            IMetadataProvider<MusicLookupResult> provider,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(providerKey))
@@ -123,7 +124,7 @@ public static class LookupEndpoints
         // search routes so the frontend can reuse the same decoder.
         group.MapGet("/music/by-barcode/{code}", async (
             string code,
-            IMusicMetadataProvider provider,
+            IMetadataProvider<MusicLookupResult> provider,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(code))
@@ -188,7 +189,7 @@ public static class LookupEndpoints
         // Apicalypse title search.
         group.MapGet("/games/by-barcode/{code}", async (
             string code,
-            IGameMetadataProvider provider,
+            IMetadataProvider<GameLookupResult> provider,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(code))
@@ -205,7 +206,7 @@ public static class LookupEndpoints
         // the LookupByIdOutcome decoder.
         group.MapGet("/games/by-id/{providerKey}", async (
             string providerKey,
-            IGameMetadataProvider provider,
+            IMetadataProvider<GameLookupResult> provider,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(providerKey))
@@ -224,7 +225,7 @@ public static class LookupEndpoints
 
         group.MapPost("/movies/by-image", async (
             [FromForm(Name = "file")] IFormFile? file,
-            IMovieMetadataProvider provider,
+            IMetadataProvider<MovieLookupResult> provider,
             IVisionClient visionClient,
             IOptions<MetadataLookupOptions> lookupOptions,
             CancellationToken ct) =>
@@ -238,7 +239,7 @@ public static class LookupEndpoints
 
             var vision = await visionClient.AnalyseAsync(bytes, ct);
             var noiseFilter = lookupOptions.Value.GetNoiseWordsFor(MetadataLookupOptions.Category.Movies);
-            var candidates = await CollectCandidates(
+            var candidates = await CollectCandidatesCore(
                 provider, vision, url => new UrlRouter.UrlResolution(UrlRouter.ExtractTmdbId(url), null), ct, noiseFilter, lookupOptions.Value.VisionResultLimit);
 
             if (candidates.Count > 0)
@@ -252,7 +253,7 @@ public static class LookupEndpoints
 
         group.MapPost("/music/by-image", async (
             [FromForm(Name = "file")] IFormFile? file,
-            IMusicMetadataProvider provider,
+            IMetadataProvider<MusicLookupResult> provider,
             IVisionClient visionClient,
             IOptions<MetadataLookupOptions> lookupOptions,
             CancellationToken ct) =>
@@ -266,7 +267,7 @@ public static class LookupEndpoints
 
             var vision = await visionClient.AnalyseAsync(bytes, ct);
             var noiseFilter = lookupOptions.Value.GetNoiseWordsFor(MetadataLookupOptions.Category.Music);
-            var candidates = await CollectCandidates(
+            var candidates = await CollectCandidatesCore(
                 provider, vision, url => new UrlRouter.UrlResolution(UrlRouter.ExtractMusicBrainzReleaseId(url), null), ct, noiseFilter, lookupOptions.Value.VisionResultLimit);
 
             if (candidates.Count > 0)
@@ -280,7 +281,7 @@ public static class LookupEndpoints
 
         group.MapPost("/games/by-image", async (
             [FromForm(Name = "file")] IFormFile? file,
-            IGameMetadataProvider provider,
+            IMetadataProvider<GameLookupResult> provider,
             IVisionClient visionClient,
             IOptions<MetadataLookupOptions> lookupOptions,
             CancellationToken ct) =>
@@ -294,7 +295,7 @@ public static class LookupEndpoints
 
             var vision = await visionClient.AnalyseAsync(bytes, ct);
             var noiseFilter = lookupOptions.Value.GetNoiseWordsFor(MetadataLookupOptions.Category.Games);
-            var candidates = await CollectCandidates(
+            var candidates = await CollectCandidatesCore(
                 provider, vision, ResolveGameUrl, ct, noiseFilter, lookupOptions.Value.VisionResultLimit);
 
             if (candidates.Count > 0)
@@ -318,32 +319,8 @@ public static class LookupEndpoints
 
     // ---- Multi-path candidate collection ----
 
-    private static async Task<List<MovieLookupResult>> CollectCandidates(
-        IMovieMetadataProvider provider, VisionExtractResult vision,
-        Func<Uri, UrlRouter.UrlResolution?> resolveUrl, CancellationToken ct,
-        HashSet<string>? noiseFilter = null, int limit = 100)
-    {
-        return await CollectCandidatesCore<MovieLookupResult>(new MovieAdapter(provider), vision, resolveUrl, ct, noiseFilter, limit);
-    }
-
-    private static async Task<List<MusicLookupResult>> CollectCandidates(
-        IMusicMetadataProvider provider, VisionExtractResult vision,
-        Func<Uri, UrlRouter.UrlResolution?> resolveUrl, CancellationToken ct,
-        HashSet<string>? noiseFilter = null, int limit = 100)
-    {
-        return await CollectCandidatesCore<MusicLookupResult>(new MusicAdapter(provider), vision, resolveUrl, ct, noiseFilter, limit);
-    }
-
-    private static async Task<List<GameLookupResult>> CollectCandidates(
-        IGameMetadataProvider provider, VisionExtractResult vision,
-        Func<Uri, UrlRouter.UrlResolution?> resolveUrl, CancellationToken ct,
-        HashSet<string>? noiseFilter = null, int limit = 100)
-    {
-        return await CollectCandidatesCore<GameLookupResult>(new GameAdapter(provider), vision, resolveUrl, ct, noiseFilter, limit);
-    }
-
     private static async Task<List<T>> CollectCandidatesCore<T>(
-        IMetadataProviderBase<T> provider, VisionExtractResult vision,
+        IMetadataProvider<T> provider, VisionExtractResult vision,
         Func<Uri, UrlRouter.UrlResolution?> resolveUrl, CancellationToken ct,
         HashSet<string>? noiseFilter = null, int limit = 100)
         where T : Collectify.Infrastructure.Lookup.ILookupResult
@@ -496,37 +473,5 @@ public static class LookupEndpoints
         if (resolution is not null) return resolution;
 
         return null;
-    }
-
-    /// <summary>Generic base for the three metadata provider interfaces.</summary>
-    private interface IMetadataProviderBase<T>
-    {
-        Task<IReadOnlyList<T>> SearchAsync(string query, CancellationToken ct);
-        Task<T?> GetByIdAsync(string providerKey, CancellationToken ct);
-    }
-
-    // Adapter wrappers so the three concrete providers satisfy IMetadataProviderBase<T>.
-    private sealed class MovieAdapter : IMetadataProviderBase<MovieLookupResult>
-    {
-        private readonly IMovieMetadataProvider _inner;
-        public MovieAdapter(IMovieMetadataProvider inner) => _inner = inner;
-        public Task<IReadOnlyList<MovieLookupResult>> SearchAsync(string q, CancellationToken ct) => _inner.SearchAsync(q, ct);
-        public Task<MovieLookupResult?> GetByIdAsync(string pk, CancellationToken ct) => _inner.GetByIdAsync(pk, ct);
-    }
-
-    private sealed class MusicAdapter : IMetadataProviderBase<MusicLookupResult>
-    {
-        private readonly IMusicMetadataProvider _inner;
-        public MusicAdapter(IMusicMetadataProvider inner) => _inner = inner;
-        public Task<IReadOnlyList<MusicLookupResult>> SearchAsync(string q, CancellationToken ct) => _inner.SearchAsync(q, ct);
-        public Task<MusicLookupResult?> GetByIdAsync(string pk, CancellationToken ct) => _inner.GetByIdAsync(pk, ct);
-    }
-
-    private sealed class GameAdapter : IMetadataProviderBase<GameLookupResult>
-    {
-        private readonly IGameMetadataProvider _inner;
-        public GameAdapter(IGameMetadataProvider inner) => _inner = inner;
-        public Task<IReadOnlyList<GameLookupResult>> SearchAsync(string q, CancellationToken ct) => _inner.SearchAsync(q, ct);
-        public Task<GameLookupResult?> GetByIdAsync(string pk, CancellationToken ct) => _inner.GetByIdAsync(pk, ct);
     }
 }

@@ -1,3 +1,4 @@
+using Collectify.Domain.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -8,7 +9,7 @@ namespace Collectify.Infrastructure.Lookup.MusicBrainz;
 public static class MusicBrainzServiceCollectionExtensions
 {
     /// <summary>
-    /// Replace the stub <see cref="IMusicMetadataProvider"/> with a real
+    /// Replace the stub IMetadataProvider&lt;MusicLookupResult&gt; with a real
     /// MusicBrainz-backed one. Call after AddMetadataLookup so the options
     /// are bound first; the typed HttpClient picks up
     /// MetadataLookupOptions.MusicBrainz.BaseUrl + UserAgent from the same
@@ -29,8 +30,8 @@ public static class MusicBrainzServiceCollectionExtensions
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(opts.MusicBrainz.UserAgent);
         });
 
-        services.RemoveAll<IMusicMetadataProvider>();
-        services.AddScoped<IMusicMetadataProvider>(sp => sp.GetRequiredService<MusicBrainzMusicProvider>());
+        services.RemoveAll<IMetadataProvider<MusicLookupResult>>();
+        services.AddScoped<IMetadataProvider<MusicLookupResult>>(sp => sp.GetRequiredService<MusicBrainzMusicProvider>());
 
         return services;
     }
