@@ -45,6 +45,28 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
     protected override string TitleOf(Game entity) => entity.Title;
     protected override DateTime UpdatedAtOf(Game entity) => entity.UpdatedAt;
 
+    [Fact]
+    public async Task CreateAndGet_RoundTripsRichDetailFields()
+    {
+        var alice = await NewAliceAsync();
+        var response = await alice.Client.PostAsJsonAsync("/api/games/", new
+        {
+            Title = "Hades",
+            Platform = GamePlatform.Pc,
+            DigitalStores = (int)DigitalStore.Steam,
+            Status = CollectionStatus.Owned,
+            CompletionStatus = CompletionStatus.NotStarted,
+            ReleaseDate = new DateOnly(2020, 9, 17),
+            AgeRating = "PEGI 16",
+        });
+        var created = await response.ReadJsonAsync<GameResponse>();
+
+        var fetched = await alice.Client.GetJsonAsync<GameResponse>($"/api/games/{created!.Id}");
+
+        Assert.Equal(new DateOnly(2020, 9, 17), fetched!.ReleaseDate);
+        Assert.Equal("PEGI 16", fetched.AgeRating);
+    }
+
     // -------- Legacy platform migration --------
 
     [Fact]

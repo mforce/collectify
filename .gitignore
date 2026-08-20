@@ -50,3 +50,6 @@ architecture-review-collectify.html
 # graphify working artifacts (regenerable; only the curated graph set is committed)
 graphify-out/.graphify_analysis.json
 graphify-out/.graphify_labels.json.sig
+
+# Driver scratch (feature-driver runbooks/notes/handouts) — not part of any PR
+.driver/

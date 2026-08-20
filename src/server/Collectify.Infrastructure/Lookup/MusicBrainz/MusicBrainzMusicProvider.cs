@@ -147,7 +147,17 @@ public sealed class MusicBrainzMusicProvider : IMetadataProvider<MusicLookupResu
         Label: r.LabelInfo?.FirstOrDefault()?.Label?.Name,
         Description: null,
         ImageUrl: $"{CoverArtBase}/{r.Id}/front-500",
-        Genres: null);
+        Genres: null,
+        ReleaseDate: ParseDateOnly(r.Date));
+
+    private static DateOnly? ParseDateOnly(string? date)
+    {
+        if (string.IsNullOrWhiteSpace(date)) return null;
+        // MB dates are "YYYY", "YYYY-MM" or "YYYY-MM-DD".
+        if (date.Length >= 10) return DateOnly.TryParseExact(date.AsSpan(0, 10), "yyyy-MM-dd",
+            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : null;
+        return null;
+    }
 
     private static string JoinArtistCredits(IReadOnlyList<MbArtistCredit>? credits)
     {

@@ -220,7 +220,7 @@ public class IgdbBackfillRunnerTests : IDisposable
         }
 
         // IGDB entry here has a null Publisher / Year (Map returns null).
-        var nullPub = new GameLookupResult("igdb", "9", "Hades", GamePlatform.Pc, null, null, null, "Summary", "https://images.igdb.com/c.jpg", "RPG");
+        var nullPub = new GameLookupResult("igdb", "9", "Hades", GamePlatform.Pc, null, null, null, "Summary", "https://images.igdb.com/c.jpg", "RPG", null, null);
         var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [nullPub] });
         await runner.RunSweepAsync(CancellationToken.None);
 

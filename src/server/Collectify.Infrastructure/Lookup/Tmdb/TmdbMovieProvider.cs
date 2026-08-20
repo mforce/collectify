@@ -181,7 +181,10 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         RuntimeMinutes: null,
         Description: s.Overview,
         ImageUrl: BuildImageUrl(s.PosterPath),
-        Genres: null);
+        Genres: null,
+        ReleaseDate: ParseDateOnly(s.ReleaseDate),
+        Cast: null,
+        ProviderRating: null);
 
     private MovieLookupResult MapDetail(TmdbMovieDetail d) => new(
         Provider: ProviderName,
@@ -193,7 +196,24 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         RuntimeMinutes: d.Runtime,
         Description: d.Overview,
         ImageUrl: BuildImageUrl(d.PosterPath),
-        Genres: null);
+        Genres: null,
+        ReleaseDate: ParseDateOnly(d.ReleaseDate),
+        Cast: ExtractTopCast(d.Credits),
+        ProviderRating: d.VoteAverage);
+
+    private static DateOnly? ParseDateOnly(string? releaseDate)
+    {
+        if (releaseDate is null) return null;
+        return DateOnly.TryParseExact(releaseDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var d) ? d : null;
+    }
+
+    private static string? ExtractTopCast(TmdbCredits? credits)
+    {
+        if (credits?.Cast is null) return null;
+        var names = credits.Cast.Select(c => c.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Cast<string>().Take(5).ToList();
+        return names.Count == 0 ? null : string.Join(", ", names);
+    }
 
     private static string? ExtractDirector(TmdbCredits? credits)
     {

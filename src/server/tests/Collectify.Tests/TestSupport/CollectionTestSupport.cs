@@ -27,7 +27,8 @@ public record MovieResponse(
     DateOnly? AcquiredOn, decimal? AcquisitionPrice, string? AcquisitionCurrency, string? AcquisitionSource,
     WatchStatus WatchStatus, DateOnly? LastWatchedOn, int WatchCount,
     string[] Tags,
-    DateTime AddedAt, DateTime UpdatedAt) : ICollectionResponse;
+    DateTime AddedAt, DateTime UpdatedAt,
+    DateOnly? ReleaseDate, string? Cast, float? ProviderRating) : ICollectionResponse;
 
 public record AlbumResponse(
     int Id, string Title, string ArtistName, int? Year,
@@ -37,7 +38,8 @@ public record AlbumResponse(
     DateOnly? AcquiredOn, decimal? AcquisitionPrice, string? AcquisitionCurrency, string? AcquisitionSource,
     int ListenCount, DateOnly? LastPlayedOn,
     string[] Tags,
-    DateTime AddedAt, DateTime UpdatedAt) : ICollectionResponse;
+    DateTime AddedAt, DateTime UpdatedAt,
+    DateOnly? ReleaseDate) : ICollectionResponse;
 
 public record GameResponse(
     int Id, string Title, GamePlatform Platform, string? PlatformLegacy, int? Year,
@@ -47,7 +49,8 @@ public record GameResponse(
     DateOnly? AcquiredOn, decimal? AcquisitionPrice, string? AcquisitionCurrency, string? AcquisitionSource,
     CompletionStatus CompletionStatus, int? HoursPlayed, DateOnly? LastPlayedOn,
     string[] Tags,
-    DateTime AddedAt, DateTime UpdatedAt) : ICollectionResponse;
+    DateTime AddedAt, DateTime UpdatedAt,
+    DateOnly? ReleaseDate, string? AgeRating) : ICollectionResponse;
 
 /// <summary>Per-type sample-DTO factories, kept in one place so the three
 /// endpoint test classes stop each carrying their own copy.</summary>

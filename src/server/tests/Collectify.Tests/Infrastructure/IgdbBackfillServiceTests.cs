@@ -52,7 +52,7 @@ public class IgdbBackfillServiceTests : IDisposable
         services.AddSingleton<IGameMetadataProvider>(new ScriptedGameProvider
         {
             IsConfigured = providerConfigured,
-            SearchResults = providerConfigured ? [new GameLookupResult("igdb", "42", "Hades", GamePlatform.Pc, 2020, "Pub", "Dev", "D", "https://images.igdb.com/c.jpg", "RPG")] : [],
+            SearchResults = providerConfigured ? [new GameLookupResult("igdb", "42", "Hades", GamePlatform.Pc, 2020, "Pub", "Dev", "D", "https://images.igdb.com/c.jpg", "RPG", null, null)] : [],
         });
         services.AddSingleton<ICoverImageStore>(new PassthroughCoverStore());
         services.AddScoped<IgdbBackfillRunner>();

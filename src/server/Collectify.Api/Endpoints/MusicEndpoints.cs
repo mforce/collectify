@@ -32,7 +32,8 @@ public static class MusicEndpoints
         DateOnly? LastPlayedOn,
         string[]? Tags,
         DateTime? AddedAt,
-        DateTime? UpdatedAt) : ICollectionEntryDto;
+        DateTime? UpdatedAt,
+        DateOnly? ReleaseDate) : ICollectionEntryDto;
 
     private static readonly CollectionEndpointConfig<MusicAlbum, AlbumDto> Config = new()
     {
@@ -125,7 +126,8 @@ public static class MusicEndpoints
         a.AcquiredOn, a.AcquisitionPrice, a.AcquisitionCurrency, a.AcquisitionSource,
         a.ListenCount, a.LastPlayedOn,
         TagResolver.ToNameArray(a.Tags),
-        a.AddedAt, a.UpdatedAt);
+        a.AddedAt, a.UpdatedAt,
+        a.ReleaseDate);
 
     private static void ApplyDto(MusicAlbum a, AlbumDto dto)
     {
@@ -150,5 +152,6 @@ public static class MusicEndpoints
         a.AcquisitionSource = dto.AcquisitionSource;
         a.ListenCount = dto.ListenCount;
         a.LastPlayedOn = dto.LastPlayedOn;
+        a.ReleaseDate = dto.ReleaseDate;
     }
 }

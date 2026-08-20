@@ -22,6 +22,11 @@ public class Movie : ICollectionEntry
     public string? ImagePath { get; set; }
     public string? Description { get; set; }
     public string? Notes { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
+    /// <summary>Top cast names (comma-separated) from the provider, e.g. "Leonardo DiCaprio, ...".</summary>
+    public string? Cast { get; set; }
+    /// <summary>Provider (TMDB) aggregate rating, 0–10.</summary>
+    public float? ProviderRating { get; set; }
 
     public int? PersonalRating { get; set; }
     public CollectionStatus Status { get; set; } = CollectionStatus.Owned;

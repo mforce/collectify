@@ -15,7 +15,12 @@ internal sealed record IgdbGame(
     [property: JsonPropertyName("summary")] string? Summary,
     [property: JsonPropertyName("involved_companies")] IReadOnlyList<IgdbInvolvedCompany>? InvolvedCompanies,
     [property: JsonPropertyName("platforms")] IReadOnlyList<IgdbPlatform>? Platforms,
-    [property: JsonPropertyName("genres")] IReadOnlyList<IgdbGenre>? Genres);
+    [property: JsonPropertyName("genres")] IReadOnlyList<IgdbGenre>? Genres,
+    [property: JsonPropertyName("age_ratings")] IReadOnlyList<IgdbAgeRating>? AgeRatings);
+
+internal sealed record IgdbAgeRating(
+    [property: JsonPropertyName("category")] int Category,
+    [property: JsonPropertyName("rating")] int Rating);
 
 internal sealed record IgdbCover(
     [property: JsonPropertyName("image_id")] string? ImageId);

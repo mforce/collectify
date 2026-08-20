@@ -1,4 +1,6 @@
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Tests.Infrastructure;
@@ -107,6 +109,51 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
     }
 
     // -------- Personal / acquisition / watch fields round-trip --------
+
+    [Fact]
+    public async Task CreateAndGet_RoundTripsRichDetailFields()
+    {
+        var alice = await NewAliceAsync();
+        var response = await alice.Client.PostAsJsonAsync("/api/movies/", new
+        {
+            Title = "Inception",
+            Formats = (int)MovieFormat.BluRay,
+            Status = CollectionStatus.Owned,
+            WatchStatus = WatchStatus.Unwatched,
+            WatchCount = 0,
+            ReleaseDate = new DateOnly(2010, 7, 15),
+            Cast = "Leonardo DiCaprio, Joseph Gordon-Levitt",
+            ProviderRating = 8.4f,
+        });
+        var created = await response.ReadJsonAsync<MovieResponse>();
+
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"/api/movies/{created!.Id}");
+
+        Assert.Equal(new DateOnly(2010, 7, 15), fetched!.ReleaseDate);
+        Assert.Equal("Leonardo DiCaprio, Joseph Gordon-Levitt", fetched.Cast);
+        Assert.Equal(8.4f, fetched.ProviderRating);
+    }
+
+    [Theory]
+    [InlineData(11f)]
+    [InlineData(-1f)]
+    public async Task Create_WithProviderRatingOutOfRange_ReturnsBadRequest(float providerRating)
+    {
+        var alice = await NewAliceAsync();
+        var response = await alice.Client.PostAsJsonAsync("/api/movies/", new
+        {
+            Title = "Inception",
+            Formats = (int)MovieFormat.BluRay,
+            Status = CollectionStatus.Owned,
+            WatchStatus = WatchStatus.Unwatched,
+            WatchCount = 0,
+            ProviderRating = providerRating,
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("ProviderRating must be between 0 and 10.", body.GetProperty("error").GetString());
+    }
 
     [Fact]
     public async Task Create_RoundTripsAllNewScalarFields()

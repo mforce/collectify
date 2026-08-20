@@ -211,6 +211,7 @@ public class TmdbMovieProviderTests
           "original_title": "Inception",
           "release_date": "2010-07-15",
           "runtime": 148,
+          "vote_average": 8.4,
           "overview": "A heist on the subconscious.",
           "poster_path": "/poster123.jpg",
           "credits": {
@@ -218,6 +219,14 @@ public class TmdbMovieProviderTests
               { "job": "Director of Photography", "name": "Wally Pfister" },
               { "job": "Director", "name": "Christopher Nolan" },
               { "job": "Editor", "name": "Lee Smith" }
+            ],
+            "cast": [
+              { "name": "Leonardo DiCaprio" },
+              { "name": "Joseph Gordon-Levitt" },
+              { "name": "Elliot Page" },
+              { "name": "Tom Hardy" },
+              { "name": "Ken Watanabe" },
+              { "name": "Marion Cotillard" }
             ]
           }
         }
@@ -277,6 +286,9 @@ public class TmdbMovieProviderTests
         Assert.Equal("Christopher Nolan", result.Director);
         Assert.Equal("A heist on the subconscious.", result.Description);
         Assert.Equal("https://image.tmdb.org/t/p/w342/poster123.jpg", result.ImageUrl);
+        Assert.Equal(new DateOnly(2010, 7, 15), result.ReleaseDate);
+        Assert.Equal("Leonardo DiCaprio, Joseph Gordon-Levitt, Elliot Page, Tom Hardy, Ken Watanabe", result.Cast);
+        Assert.Equal(8.4f, result.ProviderRating);
     }
 
     [Fact]

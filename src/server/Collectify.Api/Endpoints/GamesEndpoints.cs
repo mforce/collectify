@@ -39,7 +39,9 @@ public static class GamesEndpoints
         DateOnly? LastPlayedOn,
         string[]? Tags,
         DateTime? AddedAt,
-        DateTime? UpdatedAt) : ICollectionEntryDto;
+        DateTime? UpdatedAt,
+        DateOnly? ReleaseDate,
+        string? AgeRating) : ICollectionEntryDto;
 
     private static readonly CollectionEndpointConfig<Game, GameDto> Config = new()
     {
@@ -231,7 +233,8 @@ public static class GamesEndpoints
         g.AcquiredOn, g.AcquisitionPrice, g.AcquisitionCurrency, g.AcquisitionSource,
         g.CompletionStatus, g.HoursPlayed, g.LastPlayedOn,
         TagResolver.ToNameArray(g.Tags),
-        g.AddedAt, g.UpdatedAt);
+        g.AddedAt, g.UpdatedAt,
+        g.ReleaseDate, g.AgeRating);
 
     private static void ApplyDto(Game g, GameDto dto)
     {
@@ -259,5 +262,7 @@ public static class GamesEndpoints
         g.CompletionStatus = dto.CompletionStatus;
         g.HoursPlayed = dto.HoursPlayed;
         g.LastPlayedOn = dto.LastPlayedOn;
+        g.ReleaseDate = dto.ReleaseDate;
+        g.AgeRating = dto.AgeRating;
     }
 }

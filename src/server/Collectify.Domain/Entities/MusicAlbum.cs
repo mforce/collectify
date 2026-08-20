@@ -20,6 +20,7 @@ public class MusicAlbum : ICollectionEntry
     public string? ImagePath { get; set; }
     public string? Description { get; set; }
     public string? Notes { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
 
     public int? PersonalRating { get; set; }
     public CollectionStatus Status { get; set; } = CollectionStatus.Owned;

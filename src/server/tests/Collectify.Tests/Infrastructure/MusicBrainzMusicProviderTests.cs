@@ -121,6 +121,21 @@ public class MusicBrainzMusicProviderTests
             hit.ImageUrl);
     }
 
+    [Theory]
+    [InlineData("2003-04-03", 2003, "2003-04-03")]
+    [InlineData("2003", 2003, null)]
+    public async Task SearchAsync_MapsCompleteReleaseDate_AndKeepsYearForPartialDate(
+        string date, int expectedYear, string? expectedReleaseDate)
+    {
+        var json = $$"""
+            { "releases": [ { "id": "release-1", "title": "Album", "date": "{{date}}" } ] }
+            """;
+        var hit = Assert.Single(await NewProvider(new StubHandler(json), new LookupCacheMockStorage()).SearchAsync("album"));
+
+        Assert.Equal(expectedYear, hit.Year);
+        Assert.Equal(expectedReleaseDate is null ? null : DateOnly.Parse(expectedReleaseDate), hit.ReleaseDate);
+    }
+
     [Fact]
     public async Task SearchAsync_JoinsCollaboratingArtistsViaJoinPhrases()
     {

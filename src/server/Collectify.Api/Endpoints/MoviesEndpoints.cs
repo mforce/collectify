@@ -41,7 +41,10 @@ public static class MoviesEndpoints
         int WatchCount,
         string[]? Tags,
         DateTime? AddedAt,
-        DateTime? UpdatedAt) : ICollectionEntryDto;
+        DateTime? UpdatedAt,
+        DateOnly? ReleaseDate,
+        string? Cast,
+        float? ProviderRating) : ICollectionEntryDto;
 
     private static readonly CollectionEndpointConfig<Movie, MovieDto> Config = new()
     {
@@ -161,6 +164,8 @@ public static class MoviesEndpoints
             return Results.BadRequest(new { error = "Title is required." });
         if (dto.PersonalRating is { } r && (r < 1 || r > 10))
             return Results.BadRequest(new { error = "PersonalRating must be between 1 and 10." });
+        if (dto.ProviderRating is { } p && (p < 0f || p > 10f))
+            return Results.BadRequest(new { error = "ProviderRating must be between 0 and 10." });
         // MovieFormats is bound as an int (the client sends the flags bitmask
         // as a number), so the enum converters never see it. Guard the unchecked
         // (MovieFormat)dto.Formats cast at the boundary (issue #115): an
@@ -181,7 +186,8 @@ public static class MoviesEndpoints
         m.AcquiredOn, m.AcquisitionPrice, m.AcquisitionCurrency, m.AcquisitionSource,
         m.WatchStatus, m.LastWatchedOn, m.WatchCount,
         TagResolver.ToNameArray(m.Tags),
-        m.AddedAt, m.UpdatedAt);
+        m.AddedAt, m.UpdatedAt,
+        m.ReleaseDate, m.Cast, m.ProviderRating);
 
     private static void ApplyDto(Movie m, MovieDto dto)
     {
@@ -209,5 +215,8 @@ public static class MoviesEndpoints
         m.WatchStatus = dto.WatchStatus;
         m.LastWatchedOn = dto.LastWatchedOn;
         m.WatchCount = dto.WatchCount;
+        m.ReleaseDate = dto.ReleaseDate;
+        m.Cast = dto.Cast;
+        m.ProviderRating = dto.ProviderRating;
     }
 }

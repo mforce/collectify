@@ -42,7 +42,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     /// would serve stale results. Versioning the key forces a refresh once
     /// and prevents ever serving an out-of-date cached result again.
     /// </summary>
-    private const int CacheSchemaVersion = 3;
+    private const int CacheSchemaVersion = 4;
 
     // IGDB image URLs are "https://images.igdb.com/igdb/image/upload/{size}/{image_id}.jpg".
     // t_cover_big is the canonical "box art at form thumbnail size" preset.
@@ -53,7 +53,7 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     private const string Fields =
         "name,first_release_date,cover.image_id,summary," +
         "involved_companies.company.name,involved_companies.developer,involved_companies.publisher," +
-        "platforms.name,genres.name";
+        "platforms.name,genres.name,age_ratings.category,age_ratings.rating";
 
     private readonly HttpClient _http;
     private readonly IIgdbAuth _auth;
@@ -340,7 +340,9 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
                 : null,
             Genres: g.Genres is { Count: > 0 }
                 ? string.Join(", ", g.Genres.Where(x => x.Name is not null).Select(x => x.Name!))
-                : null)
+                : null,
+            ReleaseDate: ToDateOnly(g.FirstReleaseDate),
+            AgeRating: ExtractAgeRating(g.AgeRatings))
         {
             // The full mapped platform set, not just the first — used for
             // platform-scoped matching and edit-page prioritisation.
@@ -352,5 +354,37 @@ public sealed class IgdbGameProvider : IGameMetadataProvider
     {
         if (unixSeconds is null) return null;
         return DateTimeOffset.FromUnixTimeSeconds(unixSeconds.Value).Year;
+    }
+
+    private static DateOnly? ToDateOnly(long? unixSeconds)
+    {
+        if (unixSeconds is null) return null;
+        return DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds(unixSeconds.Value).UtcDateTime);
+    }
+
+    private static string? ExtractAgeRating(IReadOnlyList<IgdbAgeRating>? ageRatings)
+    {
+        if (ageRatings is null || ageRatings.Count == 0) return null;
+
+        var preferred = ageRatings.FirstOrDefault(r => r.Category == 2)
+            ?? ageRatings.FirstOrDefault(r => r.Category == 1)
+            ?? ageRatings[0];
+
+        return (preferred.Category, preferred.Rating) switch
+        {
+            (1, 1) => "ESRB RP",
+            (1, 2) => "ESRB EC",
+            (1, 3) => "ESRB E",
+            (1, 4) => "ESRB E10+",
+            (1, 5) => "ESRB T",
+            (1, 6) => "ESRB M",
+            (1, 7) => "ESRB AO",
+            (2, 1) => "PEGI 3",
+            (2, 2) => "PEGI 7",
+            (2, 3) => "PEGI 12",
+            (2, 4) => "PEGI 16",
+            (2, 5) => "PEGI 18",
+            _ => null,
+        };
     }
 }

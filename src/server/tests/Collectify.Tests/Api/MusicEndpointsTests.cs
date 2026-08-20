@@ -43,6 +43,26 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
     protected override string TitleOf(MusicAlbum entity) => entity.Title;
     protected override DateTime UpdatedAtOf(MusicAlbum entity) => entity.UpdatedAt;
 
+    [Fact]
+    public async Task CreateAndGet_RoundTripsReleaseDate()
+    {
+        var alice = await NewAliceAsync();
+        var response = await alice.Client.PostAsJsonAsync("/api/music/", new
+        {
+            Title = "OK Computer",
+            ArtistName = "Radiohead",
+            Format = MusicFormat.Cd,
+            Status = CollectionStatus.Owned,
+            ListenCount = 0,
+            ReleaseDate = new DateOnly(1997, 5, 21),
+        });
+        var created = await response.ReadJsonAsync<AlbumResponse>();
+
+        var fetched = await alice.Client.GetJsonAsync<AlbumResponse>($"/api/music/{created!.Id}");
+
+        Assert.Equal(new DateOnly(1997, 5, 21), fetched!.ReleaseDate);
+    }
+
     // -------- Validation --------
 
     [Fact]
