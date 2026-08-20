@@ -1,14 +1,15 @@
+using Collectify.Domain.Metadata;
 using Collectify.Infrastructure.Lookup;
 
 namespace Collectify.Tests.Infrastructure;
 
 /// <summary>
-/// Test double for <see cref="IMusicMetadataProvider"/>. Lets each endpoint
-/// test compose a deterministic provider response (configured / not, search
-/// result list, by-id result) without hitting the real MusicBrainz provider
-/// or its HTTP client.
+/// Test double for <see cref="IMetadataProvider{MusicLookupResult}"/>. Lets each
+/// endpoint test compose a deterministic provider response (configured / not,
+/// search result list, by-id result) without hitting the real MusicBrainz
+/// provider or its HTTP client.
 /// </summary>
-public sealed class ScriptedMusicProvider : IMusicMetadataProvider
+public sealed class ScriptedMusicProvider : IMetadataProvider<MusicLookupResult>
 {
     public string Name { get; init; } = "musicbrainz";
     public bool IsConfigured { get; init; } = true;

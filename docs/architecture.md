@@ -96,20 +96,35 @@ This is the multi-user-readiness contract. Even though we ship single-user, neve
 
 ### External providers (Phase 2+)
 
-The seam lives in `Collectify.Infrastructure/Lookup/`. One interface per media type so each result shape stays strongly typed:
+The provider interface lives in **Domain** (`Collectify.Domain.Metadata`). One generic
+interface carries the shared contract; concrete providers close it with their result record.
+The domain-specific asymmetries (movie IMDB-id lookup, game platform-scoped search) are thin
+interface derivations, not re-splits of the shared contract (`Collectify.Infrastructure.Lookup`):
 
 ```csharp
-public interface IMovieMetadataProvider
+// Collectify.Domain.Metadata — shared contract (T = the provider's result record)
+public interface IMetadataProvider<T>
 {
     string Name { get; }
     bool IsConfigured { get; }
-    Task<IReadOnlyList<MovieLookupResult>> SearchAsync(string query, CancellationToken ct = default);
+    Task<IReadOnlyList<T>> SearchAsync(string query, CancellationToken ct = default);
+    Task<T?> GetByIdAsync(string providerKey, CancellationToken ct = default);
+    Task<IReadOnlyList<T>> SearchByBarcodeAsync(string barcode, CancellationToken ct = default);
 }
-// + IMusicMetadataProvider, IGameMetadataProvider with their own result records
+
+// Collectify.Infrastructure.Lookup — capability derivations
+public interface IMovieMetadataProvider : IMetadataProvider<MovieLookupResult>
+{
+    Task<MovieLookupResult?> GetByImdbIdAsync(string imdbId, CancellationToken ct = default);
+}
+public interface IGameMetadataProvider : IMetadataProvider<GameLookupResult>
+{
+    Task<IReadOnlyList<GameLookupResult>> SearchByPlatformAsync(string query, GamePlatform platform, CancellationToken ct = default);
+}
 ```
 
-- DI is set up by `services.AddMetadataLookup(config)` (called from `Program.cs`). It binds `MetadataLookupOptions` from `Collectify:Metadata`, registers `IHttpClientFactory`, and wires a `Stub*Provider` for each slot via `TryAddScoped`.
-- A real provider PR (TMDB / MusicBrainz / IGDB) registers its typed `HttpClient` and its `IXxxMetadataProvider` implementation. `Replace()` (or running its registration before `AddMetadataLookup`) swaps the stub out.
+- DI is set up by `services.AddMetadataLookup(config)` (called from `Program.cs`). It binds `MetadataLookupOptions` from `Collectify:Metadata`, registers `IHttpClientFactory`, and wires a stub for each closed generic + capability via `TryAddScoped`.
+- A real provider PR (TMDB / MusicBrainz / IGDB) registers its typed `HttpClient` and `Replace()`s the relevant `IMetadataProvider<T>` (and capability) registration to swap the stub out.
 - Outbound calls go through `ILookupCache` (`Provider`, `Key`), a memory/Redis distributed cache backed by `DistributedCacheAdapter`. TTL is applied **at write time** and comes from `MetadataLookupOptions.CacheTtl` (default 30 days, Steam uses its own short 5-minute TTL). The cache is ephemeral: an unconfigured install uses an in-process memory cache that resets on restart (cold-start provider burst); opt-in Redis (`Collectify:Cache:Provider=redis`) shares cached payloads across instances. Redis outages fail open — a missing/erroring cache simply re-queries the provider.
 - Fail-soft: if not configured, `IsConfigured = false`. The lookup endpoint replies with `{ provider, configured: false, results: [] }` so the UI can show a clear "set TMDB__ApiKey to enable" hint instead of an error toast.
 

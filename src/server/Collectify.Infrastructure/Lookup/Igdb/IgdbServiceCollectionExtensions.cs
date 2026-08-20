@@ -1,3 +1,4 @@
+using Collectify.Domain.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -8,7 +9,7 @@ namespace Collectify.Infrastructure.Lookup.Igdb;
 public static class IgdbServiceCollectionExtensions
 {
     /// <summary>
-    /// Replace the stub <see cref="IGameMetadataProvider"/> with a real
+    /// Replace the stub IGameMetadataProvider with a real
     /// IGDB-backed one. Call after AddMetadataLookup so the options are
     /// bound first; the IgdbAuth singleton caches the Twitch OAuth token
     /// across every typed-HttpClient instance. The api.igdb.com BaseAddress
@@ -40,6 +41,12 @@ public static class IgdbServiceCollectionExtensions
             client.BaseAddress = new Uri(opts.Igdb.BaseUrl);
             client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         });
+
+        // Bare generic covers the games routes that don't thread a platform;
+        // IGameMetadataProvider additionally carries SearchByPlatformAsync for
+        // the platform-scoped games route and the IGDB backfill runner.
+        services.RemoveAll<IMetadataProvider<GameLookupResult>>();
+        services.AddScoped<IMetadataProvider<GameLookupResult>>(sp => sp.GetRequiredService<IgdbGameProvider>());
 
         services.RemoveAll<IGameMetadataProvider>();
         services.AddScoped<IGameMetadataProvider>(sp => sp.GetRequiredService<IgdbGameProvider>());

@@ -1,3 +1,4 @@
+using Collectify.Domain.Metadata;
 using Collectify.Infrastructure.Lookup.Stub;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
@@ -14,7 +15,7 @@ public static class MetadataLookupServiceCollectionExtensions
     /// singleton, IHttpClientFactory, and a stub for every provider slot.
     /// Concrete providers (TMDB, MusicBrainz, IGDB) replace the stubs when
     /// their PRs land via services.AddHttpClient&lt;T&gt;() + a Replace() of
-    /// the relevant IXxxMetadataProvider registration.
+    /// the relevant IMetadataProvider&lt;T&gt; / capability registration.
     /// </summary>
     public static IServiceCollection AddMetadataLookup(this IServiceCollection services, IConfiguration config)
     {
@@ -57,10 +58,14 @@ public static class MetadataLookupServiceCollectionExtensions
         services.AddSingleton<ILookupCache, DistributedCacheAdapter>();
 
         // Register stubs as the default. A real provider PR will Replace()
-        // these (or call TryAdd() before this runs) once it ships.
-        services.TryAddScoped<IMovieMetadataProvider, StubMovieProvider>();
-        services.TryAddScoped<IMusicMetadataProvider, StubMusicProvider>();
-        services.TryAddScoped<IGameMetadataProvider, StubGameProvider>();
+        // these (or call TryAdd() before this runs) once it ships. The bare
+        // generic IMetadataProvider<T> covers music (no capability); movies and
+        // games additionally register their capability-derived interfaces.
+        services.TryAddScoped<IMetadataProvider<MovieLookupResult>, StubMetadataProvider<MovieLookupResult>>();
+        services.TryAddScoped<IMetadataProvider<MusicLookupResult>, StubMetadataProvider<MusicLookupResult>>();
+        services.TryAddScoped<IMetadataProvider<GameLookupResult>, StubMetadataProvider<GameLookupResult>>();
+        services.TryAddScoped<IMovieMetadataProvider, StubMovieMetadataProvider>();
+        services.TryAddScoped<IGameMetadataProvider, StubGameMetadataProvider>();
 
         return services;
     }

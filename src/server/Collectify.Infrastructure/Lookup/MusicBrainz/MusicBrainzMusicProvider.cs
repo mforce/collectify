@@ -1,12 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
+using Collectify.Domain.Metadata;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Collectify.Infrastructure.Lookup.MusicBrainz;
 
 /// <summary>
-/// IMusicMetadataProvider backed by musicbrainz.org's web service. MB has
+/// <see cref="IMetadataProvider{T}"/> (music) backed by musicbrainz.org's web
+/// service. MB has
 /// no API key; instead it requires a contact-bearing User-Agent on every
 /// request -- the User-Agent is the rate-limit identity. If the option
 /// isn't configured, every entry point short-circuits and the lookup
@@ -17,7 +19,7 @@ namespace Collectify.Infrastructure.Lookup.MusicBrainz;
 /// has art there; the URL is returned regardless and the browser falls
 /// back to the placeholder when the image 404s -- no extra round trip.
 /// </summary>
-public sealed class MusicBrainzMusicProvider : IMusicMetadataProvider
+public sealed class MusicBrainzMusicProvider : IMetadataProvider<MusicLookupResult>
 {
     public const string ProviderName = "musicbrainz";
     public const string HttpClientName = "musicbrainz";

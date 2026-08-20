@@ -1,3 +1,4 @@
+using Collectify.Domain.Metadata;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -22,8 +23,13 @@ public static class TmdbServiceCollectionExtensions
             client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         });
 
-        // AddMetadataLookup uses TryAddScoped for the stub, so a hard
-        // RemoveAll + AddScoped here wins regardless of call order.
+        // AddMetadataLookup uses TryAddScoped for the stubs, so a hard
+        // RemoveAll + AddScoped here wins regardless of call order. The bare
+        // generic covers search/by-id/barcode routes; IMovieMetadataProvider
+        // additionally carries the IMDB-id capability for /movies/by-imdb-id.
+        services.RemoveAll<IMetadataProvider<MovieLookupResult>>();
+        services.AddScoped<IMetadataProvider<MovieLookupResult>>(sp => sp.GetRequiredService<TmdbMovieProvider>());
+
         services.RemoveAll<IMovieMetadataProvider>();
         services.AddScoped<IMovieMetadataProvider>(sp => sp.GetRequiredService<TmdbMovieProvider>());
 

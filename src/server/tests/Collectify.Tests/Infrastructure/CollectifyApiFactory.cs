@@ -1,3 +1,4 @@
+using Collectify.Domain.Metadata;
 using Collectify.Infrastructure.Data;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.Images;
@@ -26,7 +27,7 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
     public IMovieMetadataProvider? MovieProvider { get; init; }
 
     /// <summary>Optional override for tests that want a scripted music provider.</summary>
-    public IMusicMetadataProvider? MusicProvider { get; init; }
+    public IMetadataProvider<MusicLookupResult>? MusicProvider { get; init; }
 
     /// <summary>Optional override for tests that want a scripted game provider.</summary>
     public IGameMetadataProvider? GameProvider { get; init; }
@@ -101,16 +102,26 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
             // assertions.
             if (MovieProvider is not null)
             {
+                // The scripted provider implements both the bare generic (search,
+                // by-id, by-barcode, by-image routes) and the movie capability
+                // (by-imdb-id route). Register it under both so every route that
+                // injects a provider resolves the scripted instance instead of a stub.
+                services.RemoveAll<IMetadataProvider<MovieLookupResult>>();
+                services.AddSingleton<IMetadataProvider<MovieLookupResult>>(MovieProvider);
                 services.RemoveAll<IMovieMetadataProvider>();
                 services.AddSingleton(MovieProvider);
             }
             if (MusicProvider is not null)
             {
-                services.RemoveAll<IMusicMetadataProvider>();
+                services.RemoveAll<IMetadataProvider<MusicLookupResult>>();
                 services.AddSingleton(MusicProvider);
             }
             if (GameProvider is not null)
             {
+                // Game routes inject both the bare generic (search/by-id/by-barcode/
+                // by-image) and the game capability (platform-scoped search, backfill).
+                services.RemoveAll<IMetadataProvider<GameLookupResult>>();
+                services.AddSingleton<IMetadataProvider<GameLookupResult>>(GameProvider);
                 services.RemoveAll<IGameMetadataProvider>();
                 services.AddSingleton(GameProvider);
             }
