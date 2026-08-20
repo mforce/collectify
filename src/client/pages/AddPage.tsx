@@ -1,17 +1,16 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCreate } from '../services/collection';
 import { useToast } from '../components/toaster';
-import type { Album, Game, MediaType, Movie } from '../services/types';
-import type { GameLookupResult, MovieLookupResult, MusicLookupResult } from '../services/lookup';
+import type { MediaType } from '../services/types';
 import MovieForm from '../components/MovieForm';
 import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
 import { Card } from '../components/ui';
 import MediaIcon from '../components/MediaIcon';
-import { MEDIA } from '../services/mediaRegistry';
+import { MEDIA, type MediaResultMap } from '../services/mediaRegistry';
 
-interface PrefillState {
-  prefill?: MovieLookupResult | MusicLookupResult | GameLookupResult;
+interface PrefillState<T extends MediaType> {
+  prefill?: MediaResultMap[T];
   /**
    * Soft-fallback hint from the list-page scanner: a barcode the user
    * scanned that didn't match any provider. We seed only the barcode
@@ -22,13 +21,15 @@ interface PrefillState {
 }
 
 export default function AddPage<T extends MediaType>({ type }: { type: T }) {
-  const create = useCreate(type);
+  const createMovie = useCreate('movies');
+  const createAlbum = useCreate('music');
+  const createGame = useCreate('games');
   const nav = useNavigate();
   const location = useLocation();
+  const movieState: PrefillState<'movies'> | null = location.state;
+  const albumState: PrefillState<'music'> | null = location.state;
+  const gameState: PrefillState<'games'> | null = location.state;
   const toast = useToast();
-  const navState = location.state as PrefillState | null;
-  const prefill = navState?.prefill;
-  const prefillBarcode = navState?.barcodeOnly;
 
   const onSuccess = (id?: number) => {
     // Toast survives the navigate so the user gets a confirmation on
@@ -54,13 +55,13 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
       <Card className={`theme-${type}`}>
         {type === 'movies' && (
           <MovieForm
-            prefillLookup={prefill as MovieLookupResult | undefined}
-            prefillBarcode={prefillBarcode}
-            submitting={create.isPending}
+            prefillLookup={movieState?.prefill}
+            prefillBarcode={movieState?.barcodeOnly}
+            submitting={createMovie.isPending}
             submitLabel="Create"
             onSubmit={(m) =>
-              create.mutate(m as Movie & Album & Game, {
-                onSuccess: (created: any) => onSuccess(created?.id),
+              createMovie.mutate(m, {
+                onSuccess: (created) => onSuccess(created?.id),
                 onError: onFailure,
               })
             }
@@ -68,13 +69,13 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         )}
         {type === 'music' && (
           <AlbumForm
-            prefillLookup={prefill as MusicLookupResult | undefined}
-            prefillBarcode={prefillBarcode}
-            submitting={create.isPending}
+            prefillLookup={albumState?.prefill}
+            prefillBarcode={albumState?.barcodeOnly}
+            submitting={createAlbum.isPending}
             submitLabel="Create"
             onSubmit={(a) =>
-              create.mutate(a as Movie & Album & Game, {
-                onSuccess: (created: any) => onSuccess(created?.id),
+              createAlbum.mutate(a, {
+                onSuccess: (created) => onSuccess(created?.id),
                 onError: onFailure,
               })
             }
@@ -82,13 +83,13 @@ export default function AddPage<T extends MediaType>({ type }: { type: T }) {
         )}
         {type === 'games' && (
           <GameForm
-            prefillLookup={prefill as GameLookupResult | undefined}
-            prefillBarcode={prefillBarcode}
-            submitting={create.isPending}
+            prefillLookup={gameState?.prefill}
+            prefillBarcode={gameState?.barcodeOnly}
+            submitting={createGame.isPending}
             submitLabel="Create"
             onSubmit={(g) =>
-              create.mutate(g as Movie & Album & Game, {
-                onSuccess: (created: any) => onSuccess(created?.id),
+              createGame.mutate(g, {
+                onSuccess: (created) => onSuccess(created?.id),
                 onError: onFailure,
               })
             }

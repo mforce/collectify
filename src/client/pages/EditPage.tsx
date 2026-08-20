@@ -8,14 +8,19 @@ import AlbumForm from '../components/AlbumForm';
 import GameForm from '../components/GameForm';
 import { Card, Button } from '../components/ui';
 import MediaIcon from '../components/MediaIcon';
-import type { Album, Game, MediaType, Movie } from '../services/types';
+import type { MediaType } from '../services/types';
 import { MEDIA } from '../services/mediaRegistry';
 
 export default function EditPage<T extends MediaType>({ type }: { type: T }) {
   const { id } = useParams<{ id: string }>();
   const idNum = id ? Number(id) : undefined;
-  const item = useItem(type, idNum);
-  const update = useUpdate(type);
+  const movie = useItem('movies', type === 'movies' ? idNum : undefined);
+  const album = useItem('music', type === 'music' ? idNum : undefined);
+  const game = useItem('games', type === 'games' ? idNum : undefined);
+  const item = type === 'movies' ? movie : type === 'music' ? album : game;
+  const updateMovie = useUpdate('movies');
+  const updateAlbum = useUpdate('music');
+  const updateGame = useUpdate('games');
   const del = useDelete(type);
   const nav = useNavigate();
   const toast = useToast();
@@ -69,25 +74,25 @@ export default function EditPage<T extends MediaType>({ type }: { type: T }) {
       <Card className={`theme-${type}`}>
         {type === 'movies' && (
           <MovieForm
-            initial={item.data as Movie}
-            submitting={update.isPending}
-            onSubmit={(m) => update.mutate({ ...m, id: idNum! } as any, { onSuccess: onSaved, onError: onSaveFailure })}
+            initial={movie.data}
+            submitting={updateMovie.isPending}
+            onSubmit={(m) => updateMovie.mutate({ ...m, id: idNum! }, { onSuccess: onSaved, onError: onSaveFailure })}
             onDelete={onDelete}
           />
         )}
         {type === 'music' && (
           <AlbumForm
-            initial={item.data as Album}
-            submitting={update.isPending}
-            onSubmit={(a) => update.mutate({ ...a, id: idNum! } as any, { onSuccess: onSaved, onError: onSaveFailure })}
+            initial={album.data}
+            submitting={updateAlbum.isPending}
+            onSubmit={(a) => updateAlbum.mutate({ ...a, id: idNum! }, { onSuccess: onSaved, onError: onSaveFailure })}
             onDelete={onDelete}
           />
         )}
         {type === 'games' && (
           <GameForm
-            initial={item.data as Game}
-            submitting={update.isPending}
-            onSubmit={(g) => update.mutate({ ...g, id: idNum! } as any, { onSuccess: onSaved, onError: onSaveFailure })}
+            initial={game.data}
+            submitting={updateGame.isPending}
+            onSubmit={(g) => updateGame.mutate({ ...g, id: idNum! }, { onSuccess: onSaved, onError: onSaveFailure })}
             onDelete={onDelete}
           />
         )}
