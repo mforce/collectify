@@ -8,11 +8,11 @@ import BarcodeLookup from './BarcodeLookup';
 import PhotoLookup from './PhotoLookup';
 import {
   COMPLETION_STATUSES,
-  DIGITAL_STORES,
+  DIGITAL_STORE_FLAGS,
   GAME_PLATFORMS,
+  digitalStoresLabel,
   gamePlatformLabel,
   type CompletionStatus,
-  type DigitalStore,
   type Game,
   type GamePlatform,
 } from '../services/types';
@@ -41,7 +41,7 @@ interface Props {
 const empty: Game = {
   title: '',
   platform: 'Other',
-  isDigital: false,
+  digitalStores: 0,
   status: 'Owned',
   completionStatus: 'NotStarted',
   tags: [],
@@ -54,6 +54,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
 
   const set = <K extends keyof Game>(k: K, v: Game[K]) => setG((prev) => ({ ...prev, [k]: v }));
   const patch = (p: Partial<Game>) => setG((prev) => ({ ...prev, ...p }));
+  const toggleStore = (flag: number) => set('digitalStores', (g.digitalStores ?? 0) ^ flag);
 
   // Fill-only import: never overwrite a value the user (or a Steam import)
   // already set. Each field takes the IGDB value ONLY when the current one is
@@ -184,28 +185,28 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
         editorExpanded={coverEditorExpanded}
       />
 
-      <div className="grid sm:grid-cols-2 gap-4 items-end">
-        <label className="flex items-center gap-2 text-sm text-text-primary">
-          <input
-            type="checkbox"
-            checked={g.isDigital}
-            onChange={(e) => set('isDigital', e.target.checked)}
-          />
-          Digital copy
-        </label>
-        {g.isDigital && (
-          <Field label="Store">
-            <Select
-              value={g.digitalStore ?? ''}
-              onChange={(e) => set('digitalStore', (e.target.value || null) as DigitalStore | null)}
-            >
-              <option value="">— Select —</option>
-              {DIGITAL_STORES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </Select>
-          </Field>
-        )}
+      <div className="flex flex-col gap-2">
+        <div className="text-xs font-medium text-text-secondary">Digital store(s) owned</div>
+        <div className="grid sm:grid-cols-2 gap-4 items-end">
+          <div className="flex flex-wrap gap-2">
+            {DIGITAL_STORE_FLAGS.map((s) => {
+              const checked = ((g.digitalStores ?? 0) & s.value) !== 0;
+              return (
+                <button
+                  type="button"
+                  key={s.key}
+                  onClick={() => toggleStore(s.value)}
+                  className={`inline-flex min-h-[44px] items-center rounded-xl border px-3 text-sm font-semibold transition-colors ${checked ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-text-tertiary sm:text-right">
+            {g.digitalStores ? `Owned on ${digitalStoresLabel(g.digitalStores)}` : 'Physical — leave none checked for a physical copy.'}
+          </p>
+        </div>
       </div>
 
       <PersonalAcquisitionSection value={g} onChange={patch} />

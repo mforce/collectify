@@ -115,15 +115,20 @@ export interface Album extends CollectionItemBase {
 
 // ---------- Games ----------
 
-export type DigitalStore = 'Steam' | 'Gog' | 'Epic' | 'Xbox' | 'Psn' | 'Nintendo' | 'Other';
-export const DIGITAL_STORES: { value: DigitalStore; label: string }[] = [
-  { value: 'Steam', label: 'Steam' },
-  { value: 'Gog', label: 'GOG' },
-  { value: 'Epic', label: 'Epic' },
-  { value: 'Xbox', label: 'Xbox' },
-  { value: 'Psn', label: 'PlayStation Network' },
-  { value: 'Nintendo', label: 'Nintendo' },
-  { value: 'Other', label: 'Other' },
+export type DigitalStore = 'None' | 'Steam' | 'Gog' | 'Epic' | 'Xbox' | 'Psn' | 'Nintendo' | 'Other';
+
+// Mirrors Collectify.Domain.Enums.DigitalStore (a [Flags] enum). `value` is the
+// bit for each store so one game can own several (Steam|Epic = 1|4 = 5). None
+// (0) is omitted here -- it's the "no store" state with no checkbox -- just as
+// MOVIE_FORMAT_FLAGS omits the None member.
+export const DIGITAL_STORE_FLAGS: { value: number; key: Exclude<DigitalStore, 'None'>; label: string }[] = [
+  { value: 1, key: 'Steam', label: 'Steam' },
+  { value: 2, key: 'Gog', label: 'GOG' },
+  { value: 4, key: 'Epic', label: 'Epic' },
+  { value: 8, key: 'Xbox', label: 'Xbox' },
+  { value: 16, key: 'Psn', label: 'PlayStation Network' },
+  { value: 32, key: 'Nintendo', label: 'Nintendo' },
+  { value: 64, key: 'Other', label: 'Other' },
 ];
 
 // Mirrors Collectify.Domain.Enums.GamePlatform. Order of the array
@@ -205,8 +210,9 @@ export function musicFormatLabel(value: MusicFormat): string | undefined {
   return MUSIC_FORMATS.find((f) => f.value === value)?.label;
 }
 
-export function digitalStoreLabel(value: DigitalStore): string | undefined {
-  return DIGITAL_STORES.find((s) => s.value === value)?.label;
+/** Render a DigitalStores bitmask as a comma-joined label list ('' when None). */
+export function digitalStoresLabel(mask: number): string {
+  return DIGITAL_STORE_FLAGS.filter((s) => (mask & s.value) !== 0).map((s) => s.label).join(', ');
 }
 
 export interface Game extends CollectionItemBase {
@@ -219,8 +225,9 @@ export interface Game extends CollectionItemBase {
   year?: number | null;
   publisher?: string | null;
   developer?: string | null;
-  isDigital: boolean;
-  digitalStore?: DigitalStore | null;
+  /** Bitmask of the virtual storefront(s) the digital copy is owned on
+   * (see DIGITAL_STORE_FLAGS). 0 = physical, "is digital" == this != 0. */
+  digitalStores: number;
   barcode?: string | null;
   igdbId?: string | null;
   imagePath?: string | null;

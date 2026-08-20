@@ -13,13 +13,11 @@ import { activeFilterCount, type Filters } from '../services/filters';
 import {
   COLLECTION_STATUSES,
   COMPLETION_STATUSES,
-  DIGITAL_STORES,
-  digitalStoreLabel,
+  DIGITAL_STORE_FLAGS,
   GAME_PLATFORMS,
   MOVIE_FORMAT_FLAGS,
   MUSIC_FORMATS,
   WATCH_STATUSES,
-  type DigitalStore,
   type MediaType,
 } from '../services/types';
 
@@ -206,10 +204,29 @@ function GameFields({ value, onChange }: { value: Filters<'games'>; onChange: (n
         </Select>
       </Field>
       <Field label="Digital store">
-        <Select value={value.digitalStore ?? ''} onChange={(e) => set('digitalStore', (e.target.value || undefined) as Filters<'games'>['digitalStore'])}>
-          <option value="">Any</option>
-          {DIGITAL_STORES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          {DIGITAL_STORE_FLAGS.map((s) => {
+            const selected = (value.digitalStore ?? '').split(',').map((x) => x.trim()).filter(Boolean).includes(s.key);
+            const toggle = () => {
+              const current = (value.digitalStore ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+              const next = selected
+                ? current.filter((x) => x !== s.key)
+                : [...current, s.key];
+              set('digitalStore', next.length ? next.join(',') : undefined);
+            };
+            return (
+              <button
+                type="button"
+                key={s.key}
+                onClick={toggle}
+                aria-pressed={selected}
+                className={`inline-flex min-h-[38px] items-center rounded-lg border px-3 text-sm font-semibold transition-colors ${selected ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
       </Field>
       <RatingMin value={value.ratingMin} onChange={(v) => set('ratingMin', v)} />
     </>
@@ -328,7 +345,8 @@ function describeActive<T extends MediaType>(_type: T, filters: Filters<T>): { k
     if (key === 'yearFrom' || key === 'yearTo' || key === 'tag') continue;
     if (value === undefined || value === null || value === '') continue;
     const display = key === 'digitalStore'
-      ? digitalStoreLabel(value as DigitalStore) ?? String(value)
+      ? (value as string).split(',').map((x) => x.trim()).filter(Boolean)
+          .map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key === k)?.label ?? k).join(', ')
       : typeof value === 'boolean'
         ? (value ? 'Digital' : 'Physical')
         : String(value);

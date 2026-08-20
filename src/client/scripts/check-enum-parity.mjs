@@ -39,7 +39,7 @@ const clientTable = {
   CompletionStatus: 'COMPLETION_STATUSES',
   MovieFormat: 'MOVIE_FORMAT_FLAGS',
   MusicFormat: 'MUSIC_FORMATS',
-  DigitalStore: 'DIGITAL_STORES',
+  DigitalStore: 'DIGITAL_STORE_FLAGS',
   GamePlatform: 'GAME_PLATFORMS',
 };
 
@@ -380,14 +380,15 @@ for (const file of readdirSync(enumsDir).filter((f) => f.endsWith('.cs')).sort()
   }
 
   // 'None' is the flags-zero value with no UI checkbox, so the client
-  // TABLE omits it -- but ONLY for MovieFormat (the sole enum with a None
-  // member today). Every other server member must appear exactly once in
-  // the table. The union type must list EVERY server member including
-  // 'None' (the type names all members even when the table does not
-  // render one). Keep both views: the table-scoped name list (None dropped
-  // only for MovieFormat) and the full member list (always with None).
+  // TABLE omits it -- but ONLY for the two [Flags] enums that declare a None
+  // member (MovieFormat, DigitalStore). Every other server member must
+  // appear exactly once in the table. The union type must list EVERY server
+  // member including 'None' (the type names all members even when the table
+  // does not render one). Keep both views: the table-scoped name list (None
+  // dropped only for the exempted flags enums) and the full member list
+  // (always with None).
   const allServerNames = members.map((m) => m[0]);
-  const noneExempt = name === 'MovieFormat';
+  const noneExempt = name === 'MovieFormat' || name === 'DigitalStore';
   const serverNames = noneExempt ? allServerNames.filter((n) => n !== 'None') : allServerNames;
   const clientNames = client.members.map((m) => m[0]);
 

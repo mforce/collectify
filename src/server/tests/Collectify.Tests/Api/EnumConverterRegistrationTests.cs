@@ -25,7 +25,6 @@ public class EnumConverterRegistrationTests
         typeof(Condition),
         typeof(WatchStatus),
         typeof(CompletionStatus),
-        typeof(DigitalStore),
         typeof(MusicFormat),
     ];
 
@@ -48,7 +47,6 @@ public class EnumConverterRegistrationTests
         o.Converters.Add(new DefinedEnumConverter<Condition>());
         o.Converters.Add(new DefinedEnumConverter<WatchStatus>());
         o.Converters.Add(new DefinedEnumConverter<CompletionStatus>());
-        o.Converters.Add(new DefinedEnumConverter<DigitalStore>());
         o.Converters.Add(new DefinedEnumConverter<MusicFormat>());
         o.Converters.Add(new JsonStringEnumConverter());
         return o;

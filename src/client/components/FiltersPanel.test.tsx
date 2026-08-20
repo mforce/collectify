@@ -49,4 +49,29 @@ describe('FiltersPanel', () => {
     expect(screen.getByText('PlayStation Network')).toBeInTheDocument();
     expect(screen.queryByText('Psn')).not.toBeInTheDocument();
   });
+
+  it('toggles digital-store checkboxes into a comma-joined filter', async () => {
+    // The real app drives the panel from URL-synced filter state, so toggles
+    // accumulate; a plain vi.fn() would stay on the initial value and every
+    // toggle would start from scratch. Mirror that statefulness here.
+    let current: Filters<'games'> = {};
+    const onToggle = (next: Filters<'games'>) => { current = next; };
+    const { rerender } = render(
+      <FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />,
+    );
+    // Expand the filter section first (the chevron is part of the accessible name).
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const click = async (name: string) => {
+      await userEvent.click(screen.getByRole('button', { name }));
+      rerender(<FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />);
+    };
+
+    await click('Steam');
+    await click('Epic');
+    expect(current).toEqual({ digitalStore: 'Steam,Epic' });
+
+    // Toggling Epic back off leaves only Steam.
+    await click('Epic');
+    expect(current).toEqual({ digitalStore: 'Steam' });
+  });
 });

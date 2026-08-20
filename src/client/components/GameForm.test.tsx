@@ -31,8 +31,7 @@ const pcGame: Game = {
   developer: null,
   description: 'My own description that must survive.',
   imagePath: '/covers/mine.jpg',
-  isDigital: true,
-  digitalStore: 'Steam',
+  digitalStores: 1, // Steam
   status: 'Owned',
   completionStatus: 'NotStarted',
   tags: [],

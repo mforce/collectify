@@ -167,8 +167,8 @@ public class SteamEndpointsTests
 
         var game = await factory.WithDbAsync(db => db.Games.AsNoTracking().FirstAsync(g => g.OwnerId == alice.Id && g.Title == "Hades"));
         Assert.Equal(GamePlatform.Pc, game.Platform);
-        Assert.Equal(DigitalStore.Steam, game.DigitalStore);
-        Assert.True(game.IsDigital);
+        Assert.Equal(DigitalStore.Steam, game.DigitalStores);
+        Assert.NotEqual(DigitalStore.None, game.DigitalStores); // derived "digital"
         Assert.Equal(60, game.HoursPlayed); // 3600s/60 = 60h
 
         var ledger = await factory.WithDbAsync(db =>

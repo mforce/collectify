@@ -26,7 +26,7 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
     {
         Title = "Hades",
         Platform = GamePlatform.Pc,
-        IsDigital = true,
+        DigitalStores = (int)DigitalStore.Steam,
         Status = CollectionStatus.Owned,
         CompletionStatus = CompletionStatus.NotStarted,
         ImagePath = imagePath,
@@ -141,13 +141,71 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
     public async Task List_FiltersByDigital_ReturnsMatchingRows()
     {
         var alice = await NewAliceAsync();
-        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Digital", IsDigital = true });
-        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Physical", IsDigital = false });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Digital", DigitalStores = DigitalStore.Steam });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Physical", DigitalStores = DigitalStore.None });
 
         var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?digital=true");
 
         Assert.Single(hits!);
         Assert.Equal("Digital", hits![0].Title);
+    }
+
+    [Fact]
+    public async Task List_FiltersByDigitalStore_AnyOfBits_ReturnsMatchingRows()
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Steam+Epic", DigitalStores = DigitalStore.Steam | DigitalStore.Epic });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "SteamOnly", DigitalStores = DigitalStore.Steam });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "GogOnly", DigitalStores = DigitalStore.Gog });
+
+        // Steam (1) | Epic (4) = 5; any-of match returns the Steam+Epic and SteamOnly rows.
+        var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?digitalStore=5");
+
+        Assert.Equal(2, hits!.Length);
+        Assert.Contains(hits, h => h.Title == "Steam+Epic");
+        Assert.Contains(hits, h => h.Title == "SteamOnly");
+    }
+
+    [Fact]
+    public async Task List_FiltersByDigitalStore_CommaJoinedNames_Match()
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Steam+Epic", DigitalStores = DigitalStore.Steam | DigitalStore.Epic });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "GogOnly", DigitalStores = DigitalStore.Gog });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "PsnOnly", DigitalStores = DigitalStore.Psn });
+
+        // Legacy comma-joined member names work with any-of semantics: "Steam,Gog"
+        // matches rows owning Steam OR Gog.
+        var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?digitalStore=Steam,Gog");
+
+        Assert.Equal(2, hits!.Length);
+        Assert.Contains(hits, h => h.Title == "Steam+Epic");
+        Assert.Contains(hits, h => h.Title == "GogOnly");
+        Assert.DoesNotContain(hits, h => h.Title == "PsnOnly");
+    }
+
+    [Fact]
+    public async Task List_FiltersByDigitalStore_UndefinedBit_Returns400()
+    {
+        var alice = await NewAliceAsync();
+
+        // 999 = bits outside any defined DigitalStore.
+        var resp = await alice.Client.GetAsync("/api/games/?digitalStore=999");
+
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_FiltersByDigitalStore_LegacySingleName_StillMatches()
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "Psn game", DigitalStores = DigitalStore.Psn });
+
+        // A pre-#91 bookmarked ?digitalStore=Psn URL keeps working.
+        var hits = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?digitalStore=Psn");
+
+        Assert.Single(hits!);
+        Assert.Equal("Psn game", hits![0].Title);
     }
 
     [Fact]
@@ -210,7 +268,7 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
             GameTestSupport.Sample(rating: 8, completion: CompletionStatus.Beaten, hours: 60));
 
         var body = await response.ReadJsonAsync<GameResponse>();
-        Assert.Equal(DigitalStore.Steam, body!.DigitalStore);
+        Assert.Equal((int)DigitalStore.Steam, body!.DigitalStores);
         Assert.Equal("Roguelike from Supergiant.", body.Description);
         Assert.Equal(8, body.PersonalRating);
         Assert.Equal(CollectionStatus.Owned, body.Status);

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import CollectionList from '../components/CollectionList';
-import { digitalStoreLabel, gamePlatformLabel, type Game } from '../services/types';
+import { digitalStoresLabel, gamePlatformLabel, type Game } from '../services/types';
 
 export default function GamesList() {
   return (
@@ -35,8 +35,8 @@ export default function GamesList() {
           return {
             primary: g.title,
             secondary: [platform, g.year].filter(Boolean).join(' · '),
-            tertiary: g.isDigital
-              ? `Digital${g.digitalStore ? ` · ${digitalStoreLabel(g.digitalStore) ?? g.digitalStore}` : ''}`
+            tertiary: g.digitalStores
+              ? `Digital · ${digitalStoresLabel(g.digitalStores)}`
               : 'Physical',
           };
         }}

@@ -74,8 +74,7 @@ Shared fields plus:
 | `Platform` | string? | in code | Free text for now (`PS5`, `Switch`, `PC`, …); revisit if filters require an enum |
 | `Publisher` | string? | in code | |
 | `Developer` | string? | in code | |
-| `IsDigital` | bool | in code | |
-| `DigitalStore` | enum? | in code | `Steam` / `Gog` / `Epic` / `Xbox` / `Psn` / `Nintendo` / `Other`. Required when `IsDigital`; ignored when not |
+| `DigitalStores` | `[Flags]` enum (int) | in code | Bitmask of the storefront(s) a digital copy is owned on: `None`=0, `Steam`=1, `Gog`=2, `Epic`=4, `Xbox`=8, `Psn`=16, `Nintendo`=32, `Other`=64. A game can own several (e.g. Steam|Gog = 3); "is digital" is derived (`DigitalStores != None`). Written as an int bitmask via the DTO (validated against defined bits); the enum is `[Flags]`. (`IsDigital` + single `DigitalStore` were merged into this in #91.) |
 | `IgdbId` | string? | in code | Primary game provider |
 | `CompletionStatus` | enum | planned | `NotStarted` / `Playing` / `Beaten` / `HundredPercent` / `Abandoned` (default `NotStarted`) |
 | `HoursPlayed` | int? | planned | |

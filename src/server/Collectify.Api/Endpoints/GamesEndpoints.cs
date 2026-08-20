@@ -7,6 +7,12 @@ namespace Collectify.Api.Endpoints;
 
 public static class GamesEndpoints
 {
+    // Union of every defined DigitalStore flag bit. Derived from the enum so
+    // a future member is covered automatically; computed once, not per write
+    // request. None (0) is excluded because it is the "no store" state.
+    private static readonly int ValidDigitalStoreBits =
+        Enum.GetValues<DigitalStore>().Aggregate(0, (mask, s) => mask | (int)s);
+
     public record GameDto(
         int? Id,
         string Title,
@@ -15,8 +21,7 @@ public static class GamesEndpoints
         int? Year,
         string? Publisher,
         string? Developer,
-        bool IsDigital,
-        DigitalStore? DigitalStore,
+        int DigitalStores,
         string? Barcode,
         string? IgdbId,
         string? ImagePath,
@@ -69,7 +74,9 @@ public static class GamesEndpoints
                     return (q, Results.BadRequest(new { error = "Query parameter 'digital' must have a single value." }));
                 if (!bool.TryParse(digitalValues.ToString(), out var digital))
                     return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digital'." }));
-                q = q.Where(g => g.IsDigital == digital);
+                // "Digital" == owning at least one store; derived from the
+                // bitmask (the IsDigital column no longer exists, #91).
+                q = q.Where(g => (g.DigitalStores != DigitalStore.None) == digital);
             }
 
             if (request.Query.TryGetValue("publisher", out var publisherValues))
@@ -111,11 +118,11 @@ public static class GamesEndpoints
             {
                 if (digitalStoreValues.Count > 1)
                     return (q, Results.BadRequest(new { error = "Query parameter 'digitalStore' must have a single value." }));
-                if (Enum.TryParse<DigitalStore>(digitalStoreValues, ignoreCase: true, out var digitalStore)
-                    && Enum.IsDefined(digitalStore))
-                    q = q.Where(g => g.DigitalStore == digitalStore);
-                else
+                var stores = ResolveDigitalStores(digitalStoreValues.ToString());
+                if (stores is null)
                     return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digitalStore'." }));
+                if (stores.Value != DigitalStore.None)
+                    q = q.Where(g => (g.DigitalStores & stores.Value) != 0);
             }
 
             return (q, null);
@@ -163,6 +170,38 @@ public static class GamesEndpoints
         return GamePlatformMapping.TryParse(raw);
     }
 
+    /// <summary>
+    /// Resolve the <c>?digitalStore=</c> filter to a <c>DigitalStore</c>
+    /// bitmask, mirroring the write-boundary's defined-member-only semantics
+    /// (same shape as MoviesEndpoints.ResolveFormat). Accepts a single member
+    /// name ("Steam"), a comma-joined combo of member names ("Steam,Gog"), or
+    /// a numeric flags combination whose bits are all defined ("5"). Returns
+    /// null for an undefined bit, an undefined member, or an empty member —
+    /// the caller turns that into a 400 (a present-but-invalid filter value
+    /// must not be silently dropped).
+    /// </summary>
+    private static DigitalStore? ResolveDigitalStores(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        if (int.TryParse(raw, out var asInt))
+        {
+            if ((asInt & ~ValidDigitalStoreBits) == 0) return (DigitalStore)asInt;
+            return null; // undefined bit(s) in a numeric combo
+        }
+        var parts = raw.Split(',', StringSplitOptions.TrimEntries);
+        var acc = DigitalStore.None;
+        foreach (var p in parts)
+        {
+            if (p.Length == 0)
+                return null; // empty member (',', 'Steam,', 'Steam,,Gog') — reject the whole filter
+            if (Enum.TryParse<DigitalStore>(p, ignoreCase: true, out var one) && Enum.IsDefined(one))
+                acc |= one; // None (0) ORs in as a no-op; named members set their bit
+            else
+                return null; // any undefined member name — reject the whole filter
+        }
+        return acc;
+    }
+
     public static IEndpointRouteBuilder MapGamesEndpoints(this IEndpointRouteBuilder app) =>
         app.MapCollectionEndpoints(Config);
 
@@ -172,13 +211,21 @@ public static class GamesEndpoints
             return Results.BadRequest(new { error = "Title is required." });
         if (dto.PersonalRating is { } r && (r < 1 || r > 10))
             return Results.BadRequest(new { error = "PersonalRating must be between 1 and 10." });
+        // DigitalStores is bound as an int (the client sends the flags bitmask
+        // as a number), so the enum converters never see it. Guard the unchecked
+        // (DigitalStore)dto.DigitalStores cast at the boundary: an arbitrary
+        // integer with bits outside the defined flag set must not persist an
+        // undefined DigitalStore. None (0) and any combination of defined bits
+        // are valid (ValidDigitalStoreBits, see above).
+        if ((dto.DigitalStores & ~ValidDigitalStoreBits) != 0)
+            return Results.BadRequest(new { error = "DigitalStores contains an undefined DigitalStore bit." });
         if (dto.AcquisitionCurrency is { Length: > 0 } c && c.Length != 3)
             return Results.BadRequest(new { error = "AcquisitionCurrency must be a 3-letter ISO 4217 code." });
         return null;
     }
 
     private static GameDto ToDto(Game g) => new(
-        g.Id, g.Title, g.Platform, g.PlatformLegacy, g.Year, g.Publisher, g.Developer, g.IsDigital, g.DigitalStore,
+        g.Id, g.Title, g.Platform, g.PlatformLegacy, g.Year, g.Publisher, g.Developer, (int)g.DigitalStores,
         g.Barcode, g.IgdbId, g.ImagePath, g.Description, g.Notes,
         g.PersonalRating, g.Status, g.Condition,
         g.AcquiredOn, g.AcquisitionPrice, g.AcquisitionCurrency, g.AcquisitionSource,
@@ -196,8 +243,7 @@ public static class GamesEndpoints
         g.Year = dto.Year;
         g.Publisher = dto.Publisher;
         g.Developer = dto.Developer;
-        g.IsDigital = dto.IsDigital;
-        g.DigitalStore = dto.DigitalStore;
+        g.DigitalStores = (DigitalStore)dto.DigitalStores;
         g.Barcode = dto.Barcode;
         g.IgdbId = dto.IgdbId;
         g.ImagePath = dto.ImagePath;
