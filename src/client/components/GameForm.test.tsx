@@ -116,6 +116,13 @@ describe('GameForm — fill-only IGDB import (no clobber)', () => {
 });
 
 describe('GameForm — digital store buttons', () => {
+  it('submits a release date', () => {
+    const onSubmit = vi.fn();
+    renderForm(onSubmit, { ...pcGame, releaseDate: '2013-03-05' });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ releaseDate: '2013-03-05' });
+  });
+
   it('exposes each store button\'s pressed state for screen readers', () => {
     const onSubmit = vi.fn();
     // Steam=1, Epic=4 => digitalStores 5 means Steam + Epic selected.

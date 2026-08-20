@@ -84,6 +84,8 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
       title: draft.title.trim() ? draft.title : r.title,
       platform: draft.platform && draft.platform !== 'Other' ? draft.platform : (r.platform ?? draft.platform),
       year: draft.year ?? r.year ?? null, publisher: draft.publisher ?? r.publisher ?? null,
+      releaseDate: draft.releaseDate ?? r.releaseDate ?? null,
+      ageRating: draft.ageRating ?? r.ageRating ?? null,
       developer: draft.developer ?? r.developer ?? null,
       description: draft.description ? draft.description : r.description ?? null,
       imagePath: draft.imagePath ? draft.imagePath : r.imageUrl ?? null,
@@ -187,6 +189,8 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
             <Field label="Year">
               <Input type="number" value={g.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
             </Field>
+            <Field label="Release date"><Input type="date" value={g.releaseDate ?? ''} onChange={(e) => set('releaseDate', e.target.value || null)} /></Field>
+            <Field label="Age rating"><Input value={g.ageRating ?? ''} onChange={(e) => set('ageRating', e.target.value || null)} /></Field>
             <Field label="Publisher">
               <Input value={g.publisher ?? ''} onChange={(e) => set('publisher', e.target.value || null)} />
             </Field>

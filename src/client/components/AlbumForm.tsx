@@ -49,11 +49,11 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
 
   const { importLookup, runById, prefillEffect, fetchState } = useLookupProtocol<'music', Album, MusicLookupResult>({
     getDraft: () => a, patchDraft: patch,
-    importFields: (_draft, r) => ({ title: r.title, artistName: r.artistName, year: r.year ?? null, label: r.label ?? null, imagePath: r.imageUrl ?? null }),
+    importFields: (_draft, r) => ({ title: r.title, artistName: r.artistName, year: r.year ?? null, releaseDate: r.releaseDate ?? null, label: r.label ?? null, imagePath: r.imageUrl ?? null }),
     providerNames: ['musicbrainz'], linkageKey: (draft) => draft.musicBrainzReleaseId ?? null,
     setLinkageKey: (draft, value) => ({ ...draft, musicBrainzReleaseId: value }),
     enrich: { keyOf: (draft) => draft.musicBrainzReleaseId ?? null, run: lookupAlbumByMbid,
-      fill: (draft, r) => ({ ...draft, artistName: draft.artistName || r.artistName, year: draft.year ?? r.year ?? null, label: draft.label ?? r.label ?? null }),
+      fill: (draft, r) => ({ ...draft, artistName: draft.artistName || r.artistName, year: draft.year ?? r.year ?? null, releaseDate: draft.releaseDate ?? r.releaseDate ?? null, label: draft.label ?? r.label ?? null }),
       shouldRun: (r) => r.provider === 'musicbrainz' && (!r.artistName || r.year == null || !r.label),
       loadingLabel: 'Loading artist & label…', successLabel: 'Populated from MusicBrainz.', notConfiguredLabel: 'MusicBrainz lookup not configured. Set the User-Agent.' },
     byId: { label: 'MusicBrainz Release ID', entityNoun: 'release', notConfiguredHint: 'MusicBrainz lookup not configured. Set the User-Agent.', lookup: lookupAlbumByMbid },
@@ -116,6 +116,7 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
             <Field label="Year">
               <Input type="number" value={a.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
             </Field>
+            <Field label="Release date"><Input type="date" value={a.releaseDate ?? ''} onChange={(e) => set('releaseDate', e.target.value || null)} /></Field>
             <Field label="Format">
               <div className="relative">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">

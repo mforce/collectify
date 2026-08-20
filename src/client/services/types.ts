@@ -68,6 +68,9 @@ export interface Movie extends CollectionItemBase {
   title: string;
   originalTitle?: string | null;
   year?: number | null;
+  releaseDate?: string | null;
+  cast?: string | null;
+  providerRating?: number | null;
   formats: number;
   director?: string | null;
   runtimeMinutes?: number | null;
@@ -99,6 +102,7 @@ export interface Album extends CollectionItemBase {
   title: string;
   artistName: string;
   year?: number | null;
+  releaseDate?: string | null;
   format: MusicFormat;
   label?: string | null;
   genres?: string | null;
@@ -223,6 +227,8 @@ export interface Game extends CollectionItemBase {
    * couldn't map to the enum. Read-only; saving clears it. */
   platformLegacy?: string | null;
   year?: number | null;
+  releaseDate?: string | null;
+  ageRating?: string | null;
   publisher?: string | null;
   developer?: string | null;
   /** Bitmask of the virtual storefront(s) the digital copy is owned on
