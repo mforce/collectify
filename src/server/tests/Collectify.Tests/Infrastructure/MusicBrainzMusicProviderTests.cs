@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using Collectify.Infrastructure.Lookup;
 using Collectify.Infrastructure.Lookup.MusicBrainz;
+using Collectify.Tests.TestSupport;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -320,27 +321,5 @@ public class MusicBrainzMusicProviderTests
         Assert.Single(barcodeHits);
         Assert.Equal("OK Computer", barcodeHits[0].Title);
         Assert.Single(barcodeHandler.RequestedUrls);
-    }
-
-    private sealed class StubHandler : HttpMessageHandler
-    {
-        private readonly string _body;
-        private readonly HttpStatusCode _status;
-        public List<string> RequestedUrls { get; } = new();
-
-        public StubHandler(string body, HttpStatusCode status = HttpStatusCode.OK)
-        {
-            _body = body;
-            _status = status;
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            RequestedUrls.Add(request.RequestUri!.AbsoluteUri);
-            return Task.FromResult(new HttpResponseMessage(_status)
-            {
-                Content = new StringContent(_body, Encoding.UTF8, "application/json"),
-            });
-        }
     }
 }
