@@ -59,9 +59,11 @@ public static class MoviesEndpoints
         },
         ExtraFilters = (q, request) =>
         {
-            if (request.Query.ContainsKey("format"))
+            if (request.Query.TryGetValue("format", out var formatValues))
             {
-                var format = ResolveFormat(request.Query["format"]);
+                if (formatValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'format' must have a single value." }));
+                var format = ResolveFormat(formatValues.ToString());
                 if (format is null)
                     return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'format'." }));
                 if (format.Value != MovieFormat.None)
@@ -106,9 +108,11 @@ public static class MoviesEndpoints
                 }
             }
 
-            if (request.Query.ContainsKey("watchStatus"))
+            if (request.Query.TryGetValue("watchStatus", out var watchStatusValues))
             {
-                if (Enum.TryParse<WatchStatus>(request.Query["watchStatus"], ignoreCase: true, out var watchStatus)
+                if (watchStatusValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'watchStatus' must have a single value." }));
+                if (Enum.TryParse<WatchStatus>(watchStatusValues, ignoreCase: true, out var watchStatus)
                     && Enum.IsDefined(watchStatus))
                     q = q.Where(m => m.WatchStatus == watchStatus);
                 else

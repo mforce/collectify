@@ -57,12 +57,17 @@ public static class GamesEndpoints
             // a mapping alias must still degrade to "no filter", per the
             // #96 oracle test (List_FiltersByPlatform_RetiredOrUndefinedNumeric_IsIgnoredNotStaleValue) —
             // a stale bookmarked platform value should not 400 the whole list.
-            var platformFilter = ResolvePlatform(request.Query["platform"]);
+            var platformValues = request.Query["platform"];
+            if (platformValues.Count > 1)
+                return (q, Results.BadRequest(new { error = "Query parameter 'platform' must have a single value." }));
+            var platformFilter = ResolvePlatform(platformValues);
             if (platformFilter.HasValue) q = q.Where(g => g.Platform == platformFilter.Value);
 
-            if (request.Query.ContainsKey("digital"))
+            if (request.Query.TryGetValue("digital", out var digitalValues))
             {
-                if (!bool.TryParse(request.Query["digital"], out var digital))
+                if (digitalValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'digital' must have a single value." }));
+                if (!bool.TryParse(digitalValues.ToString(), out var digital))
                     return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digital'." }));
                 q = q.Where(g => g.IsDigital == digital);
             }
@@ -91,18 +96,22 @@ public static class GamesEndpoints
                 }
             }
 
-            if (request.Query.ContainsKey("completionStatus"))
+            if (request.Query.TryGetValue("completionStatus", out var completionStatusValues))
             {
-                if (Enum.TryParse<CompletionStatus>(request.Query["completionStatus"], ignoreCase: true, out var completionStatus)
+                if (completionStatusValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'completionStatus' must have a single value." }));
+                if (Enum.TryParse<CompletionStatus>(completionStatusValues, ignoreCase: true, out var completionStatus)
                     && Enum.IsDefined(completionStatus))
                     q = q.Where(g => g.CompletionStatus == completionStatus);
                 else
                     return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'completionStatus'." }));
             }
 
-            if (request.Query.ContainsKey("digitalStore"))
+            if (request.Query.TryGetValue("digitalStore", out var digitalStoreValues))
             {
-                if (Enum.TryParse<DigitalStore>(request.Query["digitalStore"], ignoreCase: true, out var digitalStore)
+                if (digitalStoreValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'digitalStore' must have a single value." }));
+                if (Enum.TryParse<DigitalStore>(digitalStoreValues, ignoreCase: true, out var digitalStore)
                     && Enum.IsDefined(digitalStore))
                     q = q.Where(g => g.DigitalStore == digitalStore);
                 else

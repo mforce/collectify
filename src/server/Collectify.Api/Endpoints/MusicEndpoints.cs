@@ -50,9 +50,11 @@ public static class MusicEndpoints
         },
         ExtraFilters = (q, request) =>
         {
-            if (request.Query.ContainsKey("format"))
+            if (request.Query.TryGetValue("format", out var formatValues))
             {
-                if (Enum.TryParse<MusicFormat>(request.Query["format"], ignoreCase: true, out var format)
+                if (formatValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'format' must have a single value." }));
+                if (Enum.TryParse<MusicFormat>(formatValues, ignoreCase: true, out var format)
                     && Enum.IsDefined(format))
                     q = q.Where(a => a.Format == format);
                 else
