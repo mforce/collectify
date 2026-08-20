@@ -1,16 +1,16 @@
 # Graph Report - collectify  (2026-08-20)
 
 ## Corpus Check
-- 273 files · ~303,149 words
+- 276 files · ~306,107 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3740 nodes · 6968 edges · 239 communities (204 shown, 35 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 119 edges (avg confidence: 0.82)
+- 3769 nodes · 7027 edges · 248 communities (213 shown, 35 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 123 edges (avg confidence: 0.82)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `74187ea0`
+- Built from commit: `7fe4a155`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -34,9 +34,9 @@
 - .NewAliceAsync
 - LookupEndpointsTests
 - SteamOpenIdVerifierTests
-- .NewProvider
+- LookupCacheMockStorage
 - Microsoft.Extensions.Configuration.Abstractions
-- Collectify.Infrastructure.Data
+- AuthOptions.cs
 - net10.0
 - CoverImageStoreTests
 - Microsoft.Extensions.Logging
@@ -44,15 +44,15 @@
 - Collectify.Tests.Infrastructure
 - vuln-gate.mjs
 - api
-- Game
+- Microsoft.Extensions.Caching.Memory
 - dependencies
 - dependencies
 - net10.0
 - Collectify.Infrastructure (Adapters layer)
-- LookupCacheMigrationTests
+- dependencies
 - Collectify.Infrastructure
 - MusicAlbum
-- MetadataLookupOptions
+- .NewProvider
 - CollectionList.tsx
 - compilerOptions
 - Microsoft.Extensions.Primitives
@@ -81,11 +81,11 @@
 - Microsoft.EntityFrameworkCore.Sqlite
 - SteamStoreImportService
 - EnumParityTests
-- SteamStoreEndpoints
+- ISteamOpenIdVerifier
 - Microsoft.EntityFrameworkCore
 - CoverImageStore
 - .MapLookupEndpoints
-- MoviesEndpointsTests
+- .SearchCoreAsync
 - GamesEndpoints
 - check-enum-parity.mjs
 - dependencies
@@ -108,52 +108,52 @@
 - dependencies
 - IgdbAuth
 - Mono.TextTemplating
-- .SetAsync
+- useLookupProtocol.ts
 - CollectifyDbContext
 - Microsoft.AspNetCore.Cryptography.KeyDerivation
 - SteamStoreBrowseItem
 - dependencies
 - dependencies
-- Collectify.Infrastructure.Store
+- MultiDigitalStoresMigrationTests
 - xunit
-- FakeUpcClient
-- .AddVisionClient
-- Program.cs
+- UpcItemDbClient
+- Collectify.Infrastructure.Lookup.Vision
+- Collectify.Infrastructure.Lookup.Tmdb
 - EnumConverterRegistrationTests
 - dependencies
 - MusicLookupResult
 - MovieLookupResult
 - DashboardEndpointsTests
-- TagEndpointsTests
+- dependencies
 - Microsoft.NET.Test.Sdk
 - ImportSteam.test.tsx
-- UpcItemDbClient
+- IgdbGameProvider
 - dependencies
 - GameLookupResult
 - CollectionEndpointConfig
-- InitialCreate
+- Collectify.Infrastructure.Data.Migrations
 - FixDlcFkOwnerScoping
 - TmdbResponses.cs
-- FakeCoverImageStore
+- .TryParse
 - ISteamClient
 - Collectify project overview
 - Moq
 - .StoreAssetUrl
-- Microsoft.AspNetCore.Mvc.Testing
+- DistributedCacheAdapter
 - ci-local.sh
 - SQLitePCLRaw.bundle_e_sqlite3
 - AuthEndpoints
 - Microsoft.Extensions.Caching.StackExchangeRedis
-- AddPersonalAcquisitionAndTagFields
-- Collectify.Infrastructure.Data.Migrations
+- Migration
+- AddCoverImages
 - ConvertGamePlatformToEnum
 - AddStoreImport
 - ConvertSteamDeckToPc
 - AddGameDlcParent
 - ConvertLinuxToPc
-- Migration
+- DropLookupCacheEntries
 - SQLitePCLRaw.bundle_e_sqlite3
-- Microsoft.Extensions.Options
+- IgdbResponses.cs
 - MusicBrainzResponses.cs
 - System.Security.Cryptography.Xml
 - SteamResponses.cs
@@ -163,19 +163,19 @@
 - scripts
 - My Collection UI Layout (sidebar nav + category cards)
 - Mono.TextTemplating
-- GameForm.test.tsx
-- TagEndpoints
+- DetailView.tsx
+- TagEndpoints.cs
 - Microsoft.Build.Framework
 - CollectifyDbContextExtensions
 - Microsoft.EntityFrameworkCore.Analyzers
-- Npgsql
+- Collectify.Infrastructure.Lookup.MusicBrainz
 - dependencies
 - xunit.extensibility.core
 - Pipelines.Sockets.Unofficial
 - A01: Broken Access Control mitigations
 - SQLitePCLRaw.core
 - HealthEndpoints
-- System.Composition.AttributedModel
+- CoversEndpoints
 - SteamSchemaGuard
 - Collectify Dark Banner
 - DatabaseOptions
@@ -186,34 +186,43 @@
 - @testing-library/jest-dom
 - .AddIgdbBackfill
 - .AddIgdbGameProvider
+- DefinedEnumConverter
 - coverlet.collector
 - dependencies
+- MultiDigitalStores
+- MetadataLookupServiceCollectionExtensions.cs
+- IIgdbAuth
 - Microsoft.Extensions.DependencyInjection.Abstractions
+- .AddUpcItemDbLookup
 - Microsoft.Extensions.TimeProvider.Testing
-- StackExchange.Redis
+- Microsoft.EntityFrameworkCore.Abstractions
+- SQLitePCLRaw.lib.e_sqlite3
 - xunit.runner.visualstudio
 - OcrNoiseWords.cs
 - collectify service (consumer compose)
 - release-please-config.json
 - test-docker-entrypoint.sh
+- UpcItemDbResponses.cs
 - Collectify Banner (Light Theme)
 - Humanizer.Core
+- Microsoft.Build.Framework
+- Microsoft.Extensions.DependencyInjection.Abstractions
 - Microsoft.VisualStudio.SolutionPersistence
 - System.CodeDom
+- Microsoft.Extensions.DependencyModel
+- SQLitePCLRaw.core
 - Collectify.Domain/packages.lock.json
 - IgdbBackfillOptions
-- Microsoft.EntityFrameworkCore.Abstractions
-- Microsoft.EntityFrameworkCore.Analyzers
-- Microsoft.VisualStudio.SolutionPersistence
-- Newtonsoft.Json
+- System.Composition.AttributedModel
+- System.Composition.Runtime
+- Microsoft.AspNetCore.Cryptography.Internal
+- Pipelines.Sockets.Unofficial
+- SQLitePCLRaw.core
+- xunit.abstractions
 - System.CodeDom
-- System.Security.Cryptography.Pkcs
-- Microsoft.AspNetCore.TestHost
-- Microsoft.EntityFrameworkCore.Abstractions
-- dependencies
+- Microsoft.Extensions.Options
 - Microsoft.Extensions.Primitives
 - Microsoft.TestPlatform.ObjectModel
-- xunit.analyzers
 - pre-commit
 - LookupCacheJson.cs
 - entrypoint.sh
@@ -255,9 +264,9 @@
 3. `Collectify.Domain.Enums` - 47 edges
 4. `CollectionEndpointsTestsBase` - 44 edges
 5. `IgdbGameProviderTests` - 42 edges
-6. `net10.0` - 40 edges
-7. `Collectify.Tests.Infrastructure` - 40 edges
-8. `Collectify.Infrastructure.Data` - 37 edges
+6. `Collectify.Tests.Infrastructure` - 41 edges
+7. `net10.0` - 40 edges
+8. `Collectify.Infrastructure.Data` - 39 edges
 9. `TmdbMovieProviderTests` - 36 edges
 10. `SteamStoreImportService` - 34 edges
 
@@ -275,25 +284,25 @@
 
 ## Import Cycles
 - 2-file cycle: `src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/services/lookup.ts`
+- 3-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
+- 3-file cycle: `src/client/components/GameForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx`
+- 3-file cycle: `src/client/components/MovieForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx`
 - 3-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/BarcodeLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
 - 3-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/OnlineSearch.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
-- 3-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
 - 3-file cycle: `src/client/components/AlbumForm.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
-- 3-file cycle: `src/client/components/BarcodeLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx -> src/client/components/BarcodeLookup.tsx`
-- 3-file cycle: `src/client/components/GameForm.tsx -> src/client/components/OnlineSearch.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx`
-- 3-file cycle: `src/client/components/GameForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx`
 - 3-file cycle: `src/client/components/GameForm.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx`
-- 3-file cycle: `src/client/components/BarcodeLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx -> src/client/components/BarcodeLookup.tsx`
-- 3-file cycle: `src/client/components/MovieForm.tsx -> src/client/components/OnlineSearch.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx`
-- 3-file cycle: `src/client/components/MovieForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx`
 - 3-file cycle: `src/client/components/MovieForm.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx`
-- 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/BarcodeLookup.tsx -> src/client/components/CandidateList.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
-- 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/BarcodeLookup.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
-- 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/OnlineSearch.tsx -> src/client/components/CandidateList.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
-- 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/OnlineSearch.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
+- 3-file cycle: `src/client/components/BarcodeLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx -> src/client/components/BarcodeLookup.tsx`
+- 3-file cycle: `src/client/components/BarcodeLookup.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx -> src/client/components/BarcodeLookup.tsx`
+- 3-file cycle: `src/client/components/GameForm.tsx -> src/client/components/OnlineSearch.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx`
+- 3-file cycle: `src/client/components/MovieForm.tsx -> src/client/components/OnlineSearch.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx`
 - 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/components/CandidateList.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
+- 4-file cycle: `src/client/components/CandidateList.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/components/CandidateList.tsx`
+- 4-file cycle: `src/client/components/CandidateList.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/components/CandidateList.tsx`
 - 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
-- 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/hooks/useLookupProtocol.ts -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
+- 4-file cycle: `src/client/components/GameForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/GameForm.tsx`
+- 4-file cycle: `src/client/components/MovieForm.tsx -> src/client/components/PhotoLookup.tsx -> src/client/services/lookup.ts -> src/client/services/mediaRegistry.ts -> src/client/components/MovieForm.tsx`
+- 4-file cycle: `src/client/components/AlbumForm.tsx -> src/client/components/BarcodeLookup.tsx -> src/client/components/CandidateList.tsx -> src/client/services/mediaRegistry.ts -> src/client/components/AlbumForm.tsx`
 
 ## Hyperedges (group relationships)
 - **Clean Architecture layers (Api/Infrastructure/Domain/Tests)** — docs_architecture_collectify_api, docs_architecture_collectify_infrastructure, docs_architecture_collectify_domain, docs_architecture_collectify_tests [EXTRACTED 1.00]
@@ -306,51 +315,51 @@
 - **Gradient + Mask-Cutout Icon Visual System** — src_client_public_brand_media_games_svg_gamesicon, src_client_public_brand_media_home_svg_homeicon, src_client_public_brand_media_movies_svg_moviesicon, src_client_public_brand_media_settings_svg_settingsicon [INFERRED 0.85]
 - **CI/CD and supply-chain security automation pipeline** — github_workflows_ci_ci_workflow, github_workflows_codeql_codeql_workflow, github_workflows_dependency_submission_workflow, github_workflows_release_please_release_workflow, github_workflows_security_audit_workflow, github_dependabot_dependabot_config [INFERRED 0.85]
 
-## Communities (239 total, 35 thin omitted)
+## Communities (248 total, 35 thin omitted)
 
 ### Community 0 - "IgdbGameProviderTests"
 Cohesion: 0.10
 Nodes (20): CapturedRequest, FakeAuth, HttpMethod, Queue, CapturedRequest, FakeAuth, IgdbGameProviderTests, SequenceHandler (+12 more)
 
 ### Community 1 - "types.ts"
-Cohesion: 0.07
-Nodes (41): BaseItem, detailTheme(), DetailView(), formatDate(), formatPrice(), GameDetail(), HeroTitle(), MovieDetail() (+33 more)
+Cohesion: 0.08
+Nodes (33): ActiveChips(), ChipProps, describeActive(), FiltersPanel(), Props, Props, activeFilterCount(), AlbumFilters (+25 more)
 
 ### Community 2 - "SteamEndpointsTests"
-Cohesion: 0.12
-Nodes (18): Location, SteamImportResultDto, SteamPreviewDto, SteamConnectDto, SteamConnectionDto, SteamEndpointsTests, SteamImportItemDto, SteamImportResultDto (+10 more)
+Cohesion: 0.08
+Nodes (27): Location, SteamConnectDto, SteamConnectionDto, SteamImportItemDto, SteamImportRequest, SteamImportResultDto, SteamOwnedTitleDto, SteamPreviewDto (+19 more)
 
 ### Community 3 - "DistributedCacheAdapterTests"
-Cohesion: 0.06
-Nodes (35): DistributedCacheEntryOptions, EventId, Exception, ISystemClock, KeyValuePair, LogEntry, LogLevel, Options (+27 more)
+Cohesion: 0.07
+Nodes (29): DistributedCacheEntryOptions, EventId, Exception, ISystemClock, KeyValuePair, LogEntry, LogLevel, Options (+21 more)
 
 ### Community 4 - "VisionLookupEndpointsTests"
 Cohesion: 0.06
 Nodes (37): CloudVisionResultResponse, PageWithMatchingImage, CloudVisionClient, CloudVisionResponse, CloudVisionResultResponse, PageWithMatchingImage, TextAnnotation, VisuallySimilarImage (+29 more)
 
 ### Community 5 - "GamePlatform"
-Cohesion: 0.05
-Nodes (43): IGameMetadataProvider, JsonConverter, DefinedEnumConverter, JsonSerializerOptions, Type, Utf8JsonReader, Utf8JsonWriter, GamePlatformJsonConverter (+35 more)
+Cohesion: 0.18
+Nodes (9): JsonConverter, GamePlatformJsonConverter, JsonSerializerOptions, Type, Utf8JsonReader, Utf8JsonWriter, GamePlatform, GameLookupResult (+1 more)
 
 ### Community 6 - "dependencies"
 Cohesion: 0.04
 Nodes (55): Humanizer.Core, Microsoft.Build.Framework, Microsoft.CodeAnalysis.Analyzers, Microsoft.CodeAnalysis.Common, Microsoft.CodeAnalysis.CSharp, Microsoft.CodeAnalysis.CSharp.Workspaces, Microsoft.CodeAnalysis.Workspaces.Common, Microsoft.CodeAnalysis.Workspaces.MSBuild (+47 more)
 
 ### Community 7 - "lookup.ts"
-Cohesion: 0.06
-Nodes (43): Props, mockLookupAlbumByMbid, mockUseLookup, BarcodeLookup(), BarcodeScanner, Phase, Props, mockLookupByBarcode (+35 more)
+Cohesion: 0.07
+Nodes (41): Props, BarcodeLookup(), BarcodeScanner, Phase, Props, mockLookupByBarcode, seededMovie, stop (+33 more)
 
 ### Community 8 - "ui.tsx"
 Cohesion: 0.08
-Nodes (42): empty, ALLOWED_MIME, CoverEditor(), Props, CoverFormLayout(), Props, empty, empty (+34 more)
+Nodes (44): empty, ALLOWED_MIME, CoverEditor(), Props, CoverFormLayout(), Props, empty, empty (+36 more)
 
 ### Community 9 - "UrlRouterTests"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (7): UrlResolution, UrlResolution, UrlRouter, Uri, UrlResolution, UrlRouterTests, Fact
 
 ### Community 10 - "mediaRegistry.ts"
-Cohesion: 0.08
-Nodes (32): AlbumForm(), GameForm(), mockLocalStorage, MediaIcon(), MovieForm(), mockLookupMovieById, mockLookupMovieByImdbId, mockUseLookup (+24 more)
+Cohesion: 0.10
+Nodes (26): AlbumForm(), mockLookupAlbumByMbid, mockUseLookup, GameForm(), mockLocalStorage, MediaIcon(), MovieForm(), Card() (+18 more)
 
 ### Community 11 - ".NewProvider"
 Cohesion: 0.14
@@ -373,48 +382,44 @@ Cohesion: 0.16
 Nodes (12): FakeLocalCoverStore, IgdbBackfillRunnerTests, MultiplyGameProvider, CancellationToken, DbContextOptions, Fact, FakeTimeProvider, Func (+4 more)
 
 ### Community 16 - ".NewAliceAsync"
-Cohesion: 0.17
-Nodes (7): CollectionEndpointsTestsBase, DateTime, Fact, InlineData, Task, TestUser, Theory
+Cohesion: 0.06
+Nodes (25): IClassFixture, Game, DateOnly, DateTime, ICollection, CollectionEndpointsTestsBase, DateTime, Fact (+17 more)
 
 ### Community 17 - "LookupEndpointsTests"
 Cohesion: 0.14
 Nodes (8): LookupEndpointsTests, LookupResponse, MovieLookupResult, MusicLookupResult, Fact, InlineData, Task, Theory
 
 ### Community 18 - "SteamOpenIdVerifierTests"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (28): SteamId64, SteamOpenIdVerifier, CancellationToken, Dictionary, HttpClient, ILogger, IReadOnlyDictionary, SteamSubOptions (+20 more)
 
-### Community 19 - ".NewProvider"
-Cohesion: 0.06
-Nodes (33): Mock, Provider, SteamOptions, SteamSubOptions, SteamSubOptions, string, TimeSpan, LookupCacheMockStorage (+25 more)
+### Community 19 - "LookupCacheMockStorage"
+Cohesion: 0.07
+Nodes (29): Mock, Provider, SteamOptions, SteamSubOptions, SteamSubOptions, string, TimeSpan, LookupCacheMockStorage (+21 more)
 
 ### Community 20 - "Microsoft.Extensions.Configuration.Abstractions"
-Cohesion: 0.06
-Nodes (40): Microsoft.Extensions.Configuration.FileExtensions, Microsoft.EntityFrameworkCore, Microsoft.Extensions.Configuration, Microsoft.Extensions.Configuration.Abstractions, Microsoft.Extensions.Configuration.Binder, Microsoft.Extensions.Configuration.FileExtensions, Microsoft.EntityFrameworkCore, Microsoft.Extensions.Configuration (+32 more)
-
-### Community 21 - "Collectify.Infrastructure.Data"
-Cohesion: 0.16
-Nodes (5): Collectify.Infrastructure.Data, Collectify.Api.Endpoints, Collectify.Infrastructure.Identity, AuthOptions, string
+Cohesion: 0.05
+Nodes (42): Microsoft.Extensions.Configuration.FileExtensions, Microsoft.Extensions.Configuration, Microsoft.Extensions.Configuration.Abstractions, Microsoft.Extensions.Configuration.Binder, Microsoft.Extensions.Configuration.FileExtensions, Microsoft.Extensions.Diagnostics.Abstractions, Microsoft.Extensions.Options.ConfigurationExtensions, Microsoft.Extensions.Configuration (+34 more)
 
 ### Community 22 - "net10.0"
 Cohesion: 0.04
-Nodes (55): type, dependencies, net10.0, contentHash, resolved, type, contentHash, resolved (+47 more)
+Nodes (51): type, dependencies, net10.0, contentHash, resolved, type, contentHash, resolved (+43 more)
 
 ### Community 23 - "CoverImageStoreTests"
 Cohesion: 0.25
 Nodes (8): CoverImageStoreTests, DbContextOptions, Fact, InlineData, SqliteConnection, StubHandler, Task, Theory
 
 ### Community 24 - "Microsoft.Extensions.Logging"
-Cohesion: 0.04
-Nodes (52): Microsoft.Extensions.Logging.Configuration, contentHash, dependencies, resolved, type, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Logging, Microsoft.Extensions.Logging.Abstractions (+44 more)
+Cohesion: 0.06
+Nodes (33): Microsoft.Extensions.Logging.Configuration, Microsoft.Extensions.Logging, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.Logging.Configuration, Pipelines.Sockets.Unofficial, Microsoft.Extensions.Logging, Microsoft.Extensions.Logging.Abstractions, Pipelines.Sockets.Unofficial (+25 more)
 
 ### Community 25 - ".BestMatch"
-Cohesion: 0.17
-Nodes (12): BackfillMatch, IgdbBackfillPlanner, MatchTier, int, IReadOnlyList, List, string, IgdbBackfillPlannerTests (+4 more)
+Cohesion: 0.19
+Nodes (10): IgdbBackfillPlanner, int, IReadOnlyList, List, string, IgdbBackfillPlannerTests, Fact, Game (+2 more)
 
 ### Community 26 - "Collectify.Tests.Infrastructure"
-Cohesion: 0.14
-Nodes (5): Collectify.Infrastructure.Lookup.Vision, Collectify.Tests.Infrastructure, Collectify.Tests.TestSupport, Collectify.Tests.Api, Collectify.Infrastructure.Lookup
+Cohesion: 0.22
+Nodes (4): Collectify.Tests.Infrastructure, Collectify.Tests.TestSupport, Collectify.Domain.Entities, Collectify.Tests.Api
 
 ### Community 27 - "vuln-gate.mjs"
 Cohesion: 0.15
@@ -424,13 +429,13 @@ Nodes (28): advisoryId(), canonicalGhsa(), dedupe(), describe(), ECOSYSTEMS, emi
 Cohesion: 0.12
 Nodes (23): formatPlaytime(), ImportSteam(), TagsPage(), mockMutate, mockUseDeleteTag, mockUseTags, api(), ApiError (+15 more)
 
-### Community 29 - "Game"
-Cohesion: 0.15
-Nodes (9): Game, DateOnly, DateTime, ICollection, GamesEndpointsTests, DateTime, Fact, Task (+1 more)
+### Community 29 - "Microsoft.Extensions.Caching.Memory"
+Cohesion: 0.11
+Nodes (18): Microsoft.EntityFrameworkCore, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.Extensions.Caching.Memory, Microsoft.EntityFrameworkCore, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.Extensions.Caching.Memory (+10 more)
 
 ### Community 30 - "dependencies"
-Cohesion: 0.07
-Nodes (31): Collectify.Infrastructure, Microsoft.Extensions.Hosting.Abstractions, Microsoft.Extensions.Http, dependencies, type, dependencies, type, Collectify.Domain (+23 more)
+Cohesion: 0.10
+Nodes (22): Collectify.Infrastructure, Microsoft.Extensions.Hosting.Abstractions, Microsoft.Extensions.Http, dependencies, type, dependencies, type, Collectify.Domain (+14 more)
 
 ### Community 31 - "dependencies"
 Cohesion: 0.08
@@ -438,31 +443,31 @@ Nodes (25): Microsoft.Build.Framework, Microsoft.CodeAnalysis.CSharp.Workspaces,
 
 ### Community 32 - "net10.0"
 Cohesion: 0.04
-Nodes (49): type, dependencies, net10.0, contentHash, resolved, type, contentHash, resolved (+41 more)
+Nodes (45): type, dependencies, net10.0, contentHash, resolved, type, contentHash, resolved (+37 more)
 
 ### Community 33 - "Collectify.Infrastructure (Adapters layer)"
 Cohesion: 0.09
 Nodes (29): Clean/Onion Architecture layering, Collectify.Api (Presentation layer), Collectify.Domain (Core layer), Collectify.Infrastructure (Adapters layer), External providers seam (Infrastructure/Lookup), IMetadataProvider<T> domain interface (Phase 2), Migration policy (never edit an applied migration), What we are NOT doing (no CQRS/MediatR/AutoMapper/premature interfaces) (+21 more)
 
-### Community 34 - "LookupCacheMigrationTests"
-Cohesion: 0.24
-Nodes (8): ConnectionString, DbPath, Name, Sql, LookupCacheMigrationTests, Fact, List, Task
+### Community 34 - "dependencies"
+Cohesion: 0.13
+Nodes (15): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.Identity.Core, Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.Identity.Core, contentHash, dependencies, requested, resolved (+7 more)
 
 ### Community 35 - "Collectify.Infrastructure"
 Cohesion: 0.07
 Nodes (30): coverlet.collector, Microsoft.AspNetCore.Mvc.Testing, Microsoft.Data.Sqlite, Microsoft.EntityFrameworkCore.Sqlite, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Caching.StackExchangeRedis, Microsoft.Extensions.Hosting.Abstractions, Microsoft.Extensions.Http (+22 more)
 
 ### Community 36 - "MusicAlbum"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (10): MusicAlbum, DateOnly, DateTime, ICollection, MusicFormat, MusicEndpointsTests, DateTime, Fact (+2 more)
 
-### Community 37 - "MetadataLookupOptions"
-Cohesion: 0.14
-Nodes (14): Category, Category, IgdbOptions, MetadataLookupOptions, MusicBrainzOptions, NoiseWordsOptions, TmdbOptions, UpcOptions (+6 more)
+### Community 37 - ".NewProvider"
+Cohesion: 0.10
+Nodes (18): Category, Category, IgdbOptions, MetadataLookupOptions, MusicBrainzOptions, NoiseWordsOptions, TmdbOptions, UpcOptions (+10 more)
 
 ### Community 38 - "CollectionList.tsx"
-Cohesion: 0.09
-Nodes (28): BTN_CLASS, CARD_BORDER, CollectionList(), Props, RenderedItem, TITLE_CLASS, Props, TagChip() (+20 more)
+Cohesion: 0.12
+Nodes (17): BaseItem, BTN_CLASS, CARD_BORDER, CollectionList(), Props, RenderedItem, TITLE_CLASS, TagChip() (+9 more)
 
 ### Community 39 - "compilerOptions"
 Cohesion: 0.08
@@ -473,16 +478,16 @@ Cohesion: 0.09
 Nodes (22): Microsoft.Extensions.Primitives, Microsoft.Extensions.Primitives, contentHash, dependencies, resolved, type, contentHash, dependencies (+14 more)
 
 ### Community 41 - "Collectify.Domain.Enums"
-Cohesion: 0.15
-Nodes (5): Collectify.Infrastructure.Lookup.Igdb, Collectify.Infrastructure.Lookup.Images, Collectify.Domain.Enums, Collectify.Domain.Entities, Collectify.Tests
+Cohesion: 0.10
+Nodes (15): Collectify.Infrastructure.Lookup.Igdb, Collectify.Infrastructure.Data, Collectify.Api.Endpoints, Collectify.Infrastructure.Lookup.Upc, Collectify.Infrastructure.Store, Collectify.Infrastructure.Lookup.Images, Collectify.Domain.Enums, Collectify.Infrastructure.Identity (+7 more)
 
 ### Community 42 - ".CollectCandidates"
 Cohesion: 0.17
 Nodes (15): IMetadataProviderBase, GameAdapter, IMetadataProviderBase, LookupEndpoints, LookupResponse, MovieAdapter, MusicAdapter, CancellationToken (+7 more)
 
 ### Community 43 - "Microsoft.Extensions.DependencyInjection.Abstractions"
-Cohesion: 0.12
-Nodes (17): Microsoft.Extensions.DependencyInjection.Abstractions, Microsoft.Extensions.DependencyInjection.Abstractions, contentHash, dependencies, resolved, type, contentHash, dependencies (+9 more)
+Cohesion: 0.10
+Nodes (20): Microsoft.Extensions.Configuration.Binder, Microsoft.Extensions.DependencyInjection.Abstractions, Microsoft.Extensions.Configuration.Binder, Microsoft.Extensions.DependencyInjection.Abstractions, contentHash, dependencies, resolved, type (+12 more)
 
 ### Community 44 - "CoversEndpointsTests"
 Cohesion: 0.20
@@ -514,11 +519,11 @@ Nodes (13): HttpContent, IWebHostBuilder, CollectifyApiFactory, SqliteConnection
 
 ### Community 51 - "Movie"
 Cohesion: 0.07
-Nodes (20): MovieDto, MoviesEndpoints, IEndpointRouteBuilder, int, IResult, TagResolver, IEnumerable, List (+12 more)
+Nodes (19): MovieDto, MoviesEndpoints, IEndpointRouteBuilder, int, IResult, TagResolver, IEnumerable, List (+11 more)
 
 ### Community 52 - "Microsoft.Extensions.Primitives"
-Cohesion: 0.12
-Nodes (17): Microsoft.Extensions.Primitives, Microsoft.Extensions.Primitives, contentHash, dependencies, resolved, type, contentHash, dependencies (+9 more)
+Cohesion: 0.09
+Nodes (22): Microsoft.Extensions.Primitives, Microsoft.Extensions.Primitives, contentHash, dependencies, resolved, type, contentHash, dependencies (+14 more)
 
 ### Community 53 - "IgdbBackfillRunner"
 Cohesion: 0.18
@@ -529,20 +534,20 @@ Cohesion: 0.22
 Nodes (8): CookieHalf, IEndpointRouteBuilder, GameStoreConnection, DateTime, CancellationToken, Task, TimeSpan, State
 
 ### Community 55 - "TmdbMovieProvider"
-Cohesion: 0.22
-Nodes (11): IMovieMetadataProvider, TmdbMovieProvider, CancellationToken, HttpClient, ILogger, ILookupCache, IReadOnlyList, MetadataLookupOptions (+3 more)
+Cohesion: 0.15
+Nodes (15): IMovieMetadataProvider, ILookupCache, CancellationToken, Task, TimeSpan, TmdbMovieProvider, CancellationToken, HttpClient (+7 more)
 
 ### Community 56 - "Microsoft.Extensions.Logging.Abstractions"
-Cohesion: 0.07
-Nodes (30): Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.Logging.Abstractions, Pipelines.Sockets.Unofficial, StackExchange.Redis, Microsoft.Extensions.Caching.Abstractions, Microsoft.Extensions.Logging.Abstractions, Pipelines.Sockets.Unofficial, StackExchange.Redis (+22 more)
+Cohesion: 0.09
+Nodes (22): Microsoft.Extensions.Logging.Abstractions, Pipelines.Sockets.Unofficial, StackExchange.Redis, Microsoft.Extensions.Logging.Abstractions, Pipelines.Sockets.Unofficial, StackExchange.Redis, contentHash, dependencies (+14 more)
 
 ### Community 57 - "CancellationToken"
-Cohesion: 0.17
-Nodes (13): Collectify.Infrastructure.Lookup.Stub, MetadataLookupServiceCollectionExtensions, IConfiguration, IServiceCollection, StubGameProvider, StubMovieProvider, StubMusicProvider, CancellationToken (+5 more)
+Cohesion: 0.26
+Nodes (9): StubGameProvider, StubMovieProvider, StubMusicProvider, CancellationToken, GameLookupResult, IReadOnlyList, MovieLookupResult, MusicLookupResult (+1 more)
 
 ### Community 58 - "Microsoft.Extensions.Logging"
-Cohesion: 0.09
-Nodes (24): Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.Diagnostics, Microsoft.Extensions.Identity.Core, Microsoft.Extensions.Logging, Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.Diagnostics, Microsoft.Extensions.Identity.Core, Microsoft.Extensions.Logging (+16 more)
+Cohesion: 0.07
+Nodes (31): Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Diagnostics, Microsoft.Extensions.Logging, Microsoft.Extensions.Options, Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Diagnostics (+23 more)
 
 ### Community 59 - "Microsoft.AspNetCore.Identity.EntityFrameworkCore"
 Cohesion: 0.11
@@ -558,7 +563,7 @@ Nodes (21): ICollectionEntryDto, GameDto, DateOnly, DateTime, MovieDto, DateOnly
 
 ### Community 62 - "MusicBrainzMusicProvider"
 Cohesion: 0.20
-Nodes (8): IMusicMetadataProvider, MusicBrainzMusicProvider, HttpClient, ILogger, ILookupCache, IReadOnlyList, MetadataLookupOptions, string
+Nodes (11): IMusicMetadataProvider, MusicBrainzMusicProvider, CancellationToken, HttpClient, ILogger, ILookupCache, IReadOnlyList, MetadataLookupOptions (+3 more)
 
 ### Community 63 - "Microsoft.EntityFrameworkCore.Sqlite"
 Cohesion: 0.07
@@ -572,29 +577,29 @@ Nodes (13): CreatedGames, DbUpdateException, Results, DigitalStore, SteamStoreIm
 Cohesion: 0.18
 Nodes (9): IsFlags, Names, EnumParityTests, Fact, IEnumerable, IReadOnlyDictionary, MemberData, Theory (+1 more)
 
-### Community 66 - "SteamStoreEndpoints"
-Cohesion: 0.11
-Nodes (13): SteamConnectDto, SteamConnectionDto, SteamImportItemDto, SteamImportRequest, SteamOwnedTitleDto, SteamStoreEndpoints, HttpRequest, string (+5 more)
+### Community 66 - "ISteamOpenIdVerifier"
+Cohesion: 0.29
+Nodes (4): ISteamOpenIdVerifier, CancellationToken, IReadOnlyDictionary, Task
 
 ### Community 67 - "Microsoft.EntityFrameworkCore"
 Cohesion: 0.22
 Nodes (9): Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, contentHash, dependencies, resolved, type (+1 more)
 
 ### Community 68 - "CoverImageStore"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (9): CoverImageStore, ICoverImageStore, CancellationToken, HttpResponseMessage, IHttpClientFactory, ILogger, int, string (+1 more)
 
 ### Community 69 - ".MapLookupEndpoints"
 Cohesion: 0.29
 Nodes (7): IEndpointRouteBuilder, IGameMetadataProvider, IMovieMetadataProvider, IMusicMetadataProvider, CancellationToken, IReadOnlyList, Task
 
-### Community 70 - "MoviesEndpointsTests"
-Cohesion: 0.19
-Nodes (8): IClassFixture, HealthEndpointTests, HealthResponse, Fact, Task, MoviesEndpointsTests, Fact, Task
+### Community 70 - ".SearchCoreAsync"
+Cohesion: 0.42
+Nodes (5): CancellationToken, GameLookupResult, HttpResponseMessage, IReadOnlyList, Task
 
 ### Community 71 - "GamesEndpoints"
-Cohesion: 0.28
-Nodes (4): GameDto, GamesEndpoints, IEndpointRouteBuilder, IResult
+Cohesion: 0.24
+Nodes (5): GameDto, GamesEndpoints, IEndpointRouteBuilder, int, IResult
 
 ### Community 72 - "check-enum-parity.mjs"
 Cohesion: 0.16
@@ -602,15 +607,15 @@ Nodes (15): clientSource, clientTable, enumsDir, findArrayEnd(), notMirroredOnCl
 
 ### Community 73 - "dependencies"
 Cohesion: 0.08
-Nodes (26): Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.Caching.Memory, Microsoft.Extensions.Identity.Stores, Microsoft.EntityFrameworkCore.Abstractions, Microsoft.EntityFrameworkCore.Analyzers, Microsoft.EntityFrameworkCore.Relational (+18 more)
+Nodes (26): Microsoft.AspNetCore.TestHost, Microsoft.AspNetCore.TestHost, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.DependencyModel, Microsoft.Extensions.Hosting, Microsoft.Extensions.Identity.Stores, Microsoft.EntityFrameworkCore.Relational, Microsoft.Extensions.DependencyModel (+18 more)
 
 ### Community 74 - "SteamClient"
-Cohesion: 0.20
+Cohesion: 0.18
 Nodes (11): SteamClient, CancellationToken, HttpClient, ILogger, int, IReadOnlyCollection, IReadOnlyList, SteamSubOptions (+3 more)
 
 ### Community 75 - "EnumWriteBoundaryTests"
-Cohesion: 0.24
-Nodes (7): EnumWriteBoundaryTests, Fact, IEnumerable, MemberData, Task, Theory, StringContent
+Cohesion: 0.14
+Nodes (11): EnumWriteBoundaryTests, Fact, IEnumerable, MemberData, Task, Theory, TagEndpointsTests, TagResponse (+3 more)
 
 ### Community 76 - "CoverImageGarbageCollectorTests"
 Cohesion: 0.10
@@ -621,8 +626,8 @@ Cohesion: 0.28
 Nodes (7): SteamImportResultItem, SteamOwnedTitle, SteamTitleImportState, DateTimeOffset, SteamPreviewResult, SteamPreviewStatus, IReadOnlyList
 
 ### Community 78 - "IgdbBackfillServiceTests"
-Cohesion: 0.23
-Nodes (8): IgdbBackfillServiceTests, PassthroughCoverStore, CancellationToken, Fact, FakeTimeProvider, ServiceProvider, SqliteConnection, Task
+Cohesion: 0.21
+Nodes (9): IDisposable, IgdbBackfillServiceTests, PassthroughCoverStore, CancellationToken, Fact, FakeTimeProvider, ServiceProvider, SqliteConnection (+1 more)
 
 ### Community 79 - "http"
 Cohesion: 0.13
@@ -637,15 +642,15 @@ Cohesion: 0.13
 Nodes (15): autoprefixer, devDependencies, autoprefixer, tailwindcss, @tailwindcss/postcss, @testing-library/react, @testing-library/user-event, @vitejs/plugin-react (+7 more)
 
 ### Community 82 - ".RunAsync"
-Cohesion: 0.21
-Nodes (10): IDisposable, GamePlatformBackfill, CancellationToken, IReadOnlyDictionary, Task, GamePlatformBackfillTests, DbContextOptions, Fact (+2 more)
+Cohesion: 0.27
+Nodes (7): CancellationToken, Task, GamePlatformBackfillTests, DbContextOptions, Fact, SqliteConnection, Task
 
 ### Community 83 - "Phase 5 photo-snap visual lookup design spec"
 Cohesion: 0.13
 Nodes (15): Collectify.Tests layer, Vision client pattern (Phase 5), C3: Postgres EnsureCreatedAsync no-op on existing DB, Phase 5 photo-snap visual lookup implementation plan, Photo-snap decision log (14 decisions), Phase 5 photo-snap visual lookup design spec, Multi-signal matching strategy (OCR / web entity / URL routing), Cloud Vision API pricing (TEXT_DETECTION + WEB_DETECTION) (+7 more)
 
 ### Community 84 - "ScriptedSteamClient"
-Cohesion: 0.19
+Cohesion: 0.18
 Nodes (11): SteamFetchStatus, SteamGamesResult, IReadOnlyList, ScriptedSteamClient, ScriptedSteamOpenIdVerifier, CancellationToken, Dictionary, IReadOnlyCollection (+3 more)
 
 ### Community 85 - "StackExchange.Redis"
@@ -665,8 +670,8 @@ Cohesion: 0.24
 Nodes (9): BackgroundService, IOptionsMonitor, IServiceScopeFactory, IgdbBackfillService, CancellationToken, ILogger, long, Task (+1 more)
 
 ### Community 89 - ".ValidateAndReadAsync"
-Cohesion: 0.13
-Nodes (13): IFormFile, CoversEndpoints, UploadResponse, IEndpointRouteBuilder, string, ImageUploadResult, ImageUploadValidator, CancellationToken (+5 more)
+Cohesion: 0.22
+Nodes (8): IFormFile, ImageUploadResult, ImageUploadValidator, CancellationToken, HashSet, IResult, long, Task
 
 ### Community 90 - "dependencies"
 Cohesion: 0.15
@@ -680,13 +685,13 @@ Nodes (10): SemaphoreSlim, IgdbAuth, CancellationToken, DateTimeOffset, HttpClie
 Cohesion: 0.29
 Nodes (7): System.CodeDom, System.CodeDom, contentHash, dependencies, resolved, type, Mono.TextTemplating
 
-### Community 93 - ".SetAsync"
-Cohesion: 0.26
-Nodes (7): ILookupCache, CancellationToken, Task, TimeSpan, CancellationToken, MusicLookupResult, Task
+### Community 93 - "useLookupProtocol.ts"
+Cohesion: 0.17
+Nodes (8): mockLookupMovieById, mockLookupMovieByImdbId, mockUseLookup, LookupProtocolConfig, Draft, Result, setup(), LookupByIdOutcome
 
 ### Community 94 - "CollectifyDbContext"
-Cohesion: 0.15
-Nodes (10): IdentityDbContext, IdentityUser, GameStoreOwnedTitle, DateTime, SteamAuthRequest, DateTime, CollectifyDbContext, DbSet (+2 more)
+Cohesion: 0.08
+Nodes (21): IdentityDbContext, IdentityUser, Name, Sql, GameStoreOwnedTitle, DateTime, SteamAuthRequest, DateTime (+13 more)
 
 ### Community 95 - "Microsoft.AspNetCore.Cryptography.KeyDerivation"
 Cohesion: 0.29
@@ -704,24 +709,28 @@ Nodes (13): dependencies, type, Collectify.Domain, Microsoft.AspNetCore.Identity
 Cohesion: 0.07
 Nodes (31): Microsoft.Data.Sqlite.Core, Microsoft.EntityFrameworkCore.Sqlite.Core, Microsoft.Extensions.DependencyModel, SQLitePCLRaw.bundle_e_sqlite3, SQLitePCLRaw.core, Microsoft.Data.Sqlite.Core, Microsoft.EntityFrameworkCore.Sqlite.Core, Microsoft.Extensions.DependencyModel (+23 more)
 
+### Community 99 - "MultiDigitalStoresMigrationTests"
+Cohesion: 0.29
+Nodes (6): MultiDigitalStoresMigrationTests, ConnectionString, DbPath, Dictionary, Fact, Task
+
 ### Community 100 - "xunit"
 Cohesion: 0.17
 Nodes (12): xunit.analyzers, xunit.assert, xunit.core, xunit, contentHash, dependencies, requested, resolved (+4 more)
 
-### Community 101 - "FakeUpcClient"
-Cohesion: 0.24
-Nodes (8): IUpcLookupClient, UpcLookupResult, CancellationToken, Task, FakeUpcClient, CancellationToken, List, Task
+### Community 101 - "UpcItemDbClient"
+Cohesion: 0.11
+Nodes (16): IUpcLookupClient, UpcLookupResult, CancellationToken, Task, UpcItemDbClient, CancellationToken, HttpClient, ILogger (+8 more)
 
-### Community 102 - ".AddVisionClient"
-Cohesion: 0.40
-Nodes (3): VisionServiceCollectionExtensions, IConfiguration, IServiceCollection
+### Community 102 - "Collectify.Infrastructure.Lookup.Vision"
+Cohesion: 0.22
+Nodes (4): Collectify.Infrastructure.Lookup.Vision, VisionServiceCollectionExtensions, IConfiguration, IServiceCollection
 
-### Community 103 - "Program.cs"
-Cohesion: 0.08
-Nodes (15): Collectify.Infrastructure.Lookup.Tmdb, Collectify.Infrastructure.Lookup.Upc, Collectify.Infrastructure.Lookup.MusicBrainz, MusicBrainzServiceCollectionExtensions, IConfiguration, IServiceCollection, TmdbServiceCollectionExtensions, IConfiguration (+7 more)
+### Community 103 - "Collectify.Infrastructure.Lookup.Tmdb"
+Cohesion: 0.25
+Nodes (4): Collectify.Infrastructure.Lookup.Tmdb, TmdbServiceCollectionExtensions, IConfiguration, IServiceCollection
 
 ### Community 104 - "EnumConverterRegistrationTests"
-Cohesion: 0.27
+Cohesion: 0.24
 Nodes (6): EnumConverterRegistrationTests, Fact, HashSet, IEnumerable, JsonSerializerOptions, Type
 
 ### Community 105 - "dependencies"
@@ -729,20 +738,20 @@ Cohesion: 0.07
 Nodes (30): System.Composition.AttributedModel, System.Composition.Convention, System.Composition.Hosting, System.Composition.Runtime, System.Composition.TypedParts, System.Composition.AttributedModel, System.Composition.Convention, System.Composition.Hosting (+22 more)
 
 ### Community 106 - "MusicLookupResult"
-Cohesion: 0.29
+Cohesion: 0.26
 Nodes (6): ILookupResult, MusicLookupResult, ScriptedMusicProvider, CancellationToken, IReadOnlyList, Task
 
 ### Community 107 - "MovieLookupResult"
-Cohesion: 0.38
+Cohesion: 0.33
 Nodes (5): MovieLookupResult, ScriptedMovieProvider, CancellationToken, IReadOnlyList, Task
 
 ### Community 108 - "DashboardEndpointsTests"
 Cohesion: 0.12
 Nodes (17): DashboardCounts, DashboardRecent, DashboardCounts, DashboardEndpoints, DashboardRecent, DashboardSummary, DateTime, IEndpointRouteBuilder (+9 more)
 
-### Community 109 - "TagEndpointsTests"
-Cohesion: 0.40
-Nodes (4): TagEndpointsTests, TagResponse, Fact, Task
+### Community 109 - "dependencies"
+Cohesion: 0.17
+Nodes (12): contentHash, dependencies, resolved, type, System.Diagnostics.EventLog, contentHash, dependencies, resolved (+4 more)
 
 ### Community 110 - "Microsoft.NET.Test.Sdk"
 Cohesion: 0.20
@@ -752,25 +761,25 @@ Nodes (10): Microsoft.CodeCoverage, Microsoft.TestPlatform.TestHost, Microsoft.C
 Cohesion: 0.20
 Nodes (8): connected, disconnected, mockConnectMutate, mockUseConnect, mockUseConnection, mockUseDisconnect, mockUseGames, mockUseImport
 
-### Community 112 - "UpcItemDbClient"
+### Community 112 - "IgdbGameProvider"
 Cohesion: 0.20
-Nodes (8): UpcItemDbClient, CancellationToken, HttpClient, ILogger, ILookupCache, MetadataLookupOptions, string, Task
+Nodes (8): IGameMetadataProvider, IgdbGameProvider, HttpClient, ILogger, ILookupCache, int, MetadataLookupOptions, string
 
 ### Community 113 - "dependencies"
 Cohesion: 0.07
 Nodes (30): System.Composition.AttributedModel, System.Composition.Convention, System.Composition.Hosting, System.Composition.Runtime, System.Composition.TypedParts, System.Composition.AttributedModel, System.Composition.Convention, System.Composition.Hosting (+22 more)
 
 ### Community 114 - "GameLookupResult"
-Cohesion: 0.32
+Cohesion: 0.28
 Nodes (6): GameLookupResult, IReadOnlyList, ScriptedGameProvider, CancellationToken, IReadOnlyList, Task
 
 ### Community 115 - "CollectionEndpointConfig"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (15): AlbumDto, Error, IQueryable, Query, CollectionEndpointConfig, CollectionEndpoints, Action, DbSet (+7 more)
 
-### Community 116 - "InitialCreate"
-Cohesion: 0.29
-Nodes (3): MigrationBuilder, InitialCreate, ModelBuilder
+### Community 116 - "Collectify.Infrastructure.Data.Migrations"
+Cohesion: 0.28
+Nodes (4): Collectify.Infrastructure.Data.Migrations, MigrationBuilder, InitialCreate, ModelBuilder
 
 ### Community 117 - "FixDlcFkOwnerScoping"
 Cohesion: 0.29
@@ -780,12 +789,12 @@ Nodes (3): MigrationBuilder, FixDlcFkOwnerScoping, ModelBuilder
 Cohesion: 0.39
 Nodes (7): TmdbCredits, TmdbCrewMember, TmdbFindResponse, TmdbMovieDetail, TmdbMovieSummary, TmdbSearchResponse, IReadOnlyList
 
-### Community 119 - "FakeCoverImageStore"
-Cohesion: 0.60
-Nodes (3): FakeCoverImageStore, CancellationToken, Task
+### Community 119 - ".TryParse"
+Cohesion: 0.29
+Nodes (5): GamePlatformMapping, Dictionary, GamePlatformMappingTests, InlineData, Theory
 
 ### Community 120 - "ISteamClient"
-Cohesion: 0.33
+Cohesion: 0.39
 Nodes (5): ISteamClient, CancellationToken, IReadOnlyCollection, IReadOnlyList, Task
 
 ### Community 121 - "Collectify project overview"
@@ -800,9 +809,9 @@ Nodes (8): Castle.Core, Castle.Core, contentHash, dependencies, requested, resol
 Cohesion: 0.39
 Nodes (3): Collectify.Tests.Unit.Store, SteamStoreCoverUrlTests, Fact
 
-### Community 124 - "Microsoft.AspNetCore.Mvc.Testing"
-Cohesion: 0.18
-Nodes (11): Microsoft.AspNetCore.TestHost, Microsoft.AspNetCore.TestHost, Microsoft.Extensions.DependencyModel, Microsoft.Extensions.Hosting, Microsoft.Extensions.DependencyModel, contentHash, dependencies, requested (+3 more)
+### Community 124 - "DistributedCacheAdapter"
+Cohesion: 0.31
+Nodes (6): DistributedCacheAdapter, CancellationToken, IDistributedCache, ILogger, Task, TimeSpan
 
 ### Community 125 - "ci-local.sh"
 Cohesion: 0.54
@@ -813,20 +822,20 @@ Cohesion: 0.22
 Nodes (9): SQLitePCLRaw.lib.e_sqlite3, SQLitePCLRaw.provider.e_sqlite3, SQLitePCLRaw.lib.e_sqlite3, SQLitePCLRaw.provider.e_sqlite3, SQLitePCLRaw.bundle_e_sqlite3, contentHash, dependencies, resolved (+1 more)
 
 ### Community 127 - "AuthEndpoints"
-Cohesion: 0.25
+Cohesion: 0.29
 Nodes (6): AuthEndpoints, AuthState, LoginRequest, RegisterRequest, SetupRequest, IEndpointRouteBuilder
 
 ### Community 128 - "Microsoft.Extensions.Caching.StackExchangeRedis"
 Cohesion: 0.25
 Nodes (8): StackExchange.Redis, StackExchange.Redis, contentHash, dependencies, requested, resolved, type, Microsoft.Extensions.Caching.StackExchangeRedis
 
-### Community 129 - "AddPersonalAcquisitionAndTagFields"
-Cohesion: 0.29
-Nodes (3): MigrationBuilder, AddPersonalAcquisitionAndTagFields, ModelBuilder
+### Community 129 - "Migration"
+Cohesion: 0.25
+Nodes (4): Migration, MigrationBuilder, AddPersonalAcquisitionAndTagFields, ModelBuilder
 
-### Community 130 - "Collectify.Infrastructure.Data.Migrations"
-Cohesion: 0.28
-Nodes (4): Collectify.Infrastructure.Data.Migrations, MigrationBuilder, AddCoverImages, ModelBuilder
+### Community 130 - "AddCoverImages"
+Cohesion: 0.29
+Nodes (3): MigrationBuilder, AddCoverImages, ModelBuilder
 
 ### Community 131 - "ConvertGamePlatformToEnum"
 Cohesion: 0.29
@@ -848,17 +857,17 @@ Nodes (3): MigrationBuilder, AddGameDlcParent, ModelBuilder
 Cohesion: 0.29
 Nodes (3): MigrationBuilder, ConvertLinuxToPc, ModelBuilder
 
-### Community 136 - "Migration"
-Cohesion: 0.25
-Nodes (4): Migration, MigrationBuilder, DropLookupCacheEntries, ModelBuilder
+### Community 136 - "DropLookupCacheEntries"
+Cohesion: 0.29
+Nodes (3): MigrationBuilder, DropLookupCacheEntries, ModelBuilder
 
 ### Community 137 - "SQLitePCLRaw.bundle_e_sqlite3"
 Cohesion: 0.22
 Nodes (9): SQLitePCLRaw.lib.e_sqlite3, SQLitePCLRaw.provider.e_sqlite3, SQLitePCLRaw.lib.e_sqlite3, SQLitePCLRaw.provider.e_sqlite3, SQLitePCLRaw.bundle_e_sqlite3, contentHash, dependencies, resolved (+1 more)
 
-### Community 138 - "Microsoft.Extensions.Options"
-Cohesion: 0.09
-Nodes (22): Microsoft.Extensions.Configuration.Binder, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Options, Microsoft.Extensions.Configuration.Binder, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Options, contentHash, dependencies (+14 more)
+### Community 138 - "IgdbResponses.cs"
+Cohesion: 0.36
+Nodes (8): IgdbCompany, IgdbCover, IgdbGame, IgdbGenre, IgdbInvolvedCompany, IgdbPlatform, TwitchTokenResponse, IReadOnlyList
 
 ### Community 139 - "MusicBrainzResponses.cs"
 Cohesion: 0.52
@@ -896,12 +905,12 @@ Nodes (7): Collectify Brand/Marketing Screenshot, Games Collection Category, Mov
 Cohesion: 0.29
 Nodes (7): System.CodeDom, System.CodeDom, contentHash, dependencies, resolved, type, Mono.TextTemplating
 
-### Community 148 - "GameForm.test.tsx"
-Cohesion: 0.33
-Nodes (4): igdbResult, mockLookupGameByIgdbId, mockUseLookup, pcGame
+### Community 148 - "DetailView.tsx"
+Cohesion: 0.12
+Nodes (21): detailTheme(), DetailView(), formatDate(), formatPrice(), GameDetail(), HeroTitle(), MovieDetail(), MusicDetail() (+13 more)
 
-### Community 149 - "TagEndpoints"
-Cohesion: 0.40
+### Community 149 - "TagEndpoints.cs"
+Cohesion: 0.33
 Nodes (4): CreateTagRequest, TagDto, TagEndpoints, IEndpointRouteBuilder
 
 ### Community 150 - "Microsoft.Build.Framework"
@@ -916,9 +925,9 @@ Nodes (4): CollectifyDbContextExtensions, IConfiguration, IServiceCollection, Ta
 Cohesion: 0.50
 Nodes (4): contentHash, resolved, type, Microsoft.EntityFrameworkCore.Analyzers
 
-### Community 153 - "Npgsql"
-Cohesion: 0.50
-Nodes (4): Npgsql, contentHash, resolved, type
+### Community 153 - "Collectify.Infrastructure.Lookup.MusicBrainz"
+Cohesion: 0.25
+Nodes (4): Collectify.Infrastructure.Lookup.MusicBrainz, MusicBrainzServiceCollectionExtensions, IConfiguration, IServiceCollection
 
 ### Community 154 - "dependencies"
 Cohesion: 0.13
@@ -944,12 +953,12 @@ Nodes (4): SQLitePCLRaw.core, contentHash, resolved, type
 Cohesion: 0.33
 Nodes (4): HealthEndpoints, HealthResponse, IEndpointRouteBuilder, string
 
-### Community 160 - "System.Composition.AttributedModel"
-Cohesion: 0.50
-Nodes (4): System.Composition.AttributedModel, contentHash, resolved, type
+### Community 160 - "CoversEndpoints"
+Cohesion: 0.29
+Nodes (5): CoversEndpoints, UploadResponse, IEndpointRouteBuilder, string, StringValues
 
 ### Community 161 - "SteamSchemaGuard"
-Cohesion: 0.33
+Cohesion: 0.29
 Nodes (4): SteamSchemaGuard, bool, CancellationToken, Task
 
 ### Community 162 - "Collectify Dark Banner"
@@ -984,6 +993,10 @@ Nodes (3): IgdbBackfillServiceCollectionExtensions, IConfiguration, IServiceColl
 Cohesion: 0.40
 Nodes (3): IgdbServiceCollectionExtensions, IConfiguration, IServiceCollection
 
+### Community 172 - "DefinedEnumConverter"
+Cohesion: 0.29
+Nodes (5): DefinedEnumConverter, JsonSerializerOptions, Type, Utf8JsonReader, Utf8JsonWriter
+
 ### Community 173 - "coverlet.collector"
 Cohesion: 0.40
 Nodes (5): contentHash, requested, resolved, type, coverlet.collector
@@ -992,17 +1005,37 @@ Nodes (5): contentHash, requested, resolved, type, coverlet.collector
 Cohesion: 0.07
 Nodes (30): Microsoft.Data.Sqlite.Core, Microsoft.EntityFrameworkCore.Sqlite.Core, SQLitePCLRaw.bundle_e_sqlite3, SQLitePCLRaw.core, Microsoft.Data.Sqlite.Core, Microsoft.EntityFrameworkCore.Sqlite.Core, SQLitePCLRaw.bundle_e_sqlite3, SQLitePCLRaw.core (+22 more)
 
+### Community 175 - "MultiDigitalStores"
+Cohesion: 0.29
+Nodes (3): MigrationBuilder, MultiDigitalStores, ModelBuilder
+
+### Community 176 - "MetadataLookupServiceCollectionExtensions.cs"
+Cohesion: 0.33
+Nodes (4): Collectify.Infrastructure.Lookup.Stub, MetadataLookupServiceCollectionExtensions, IConfiguration, IServiceCollection
+
+### Community 177 - "IIgdbAuth"
+Cohesion: 0.40
+Nodes (3): IIgdbAuth, CancellationToken, Task
+
 ### Community 178 - "Microsoft.Extensions.DependencyInjection.Abstractions"
 Cohesion: 0.12
 Nodes (17): Microsoft.Extensions.DependencyInjection.Abstractions, Microsoft.Extensions.DependencyInjection.Abstractions, contentHash, dependencies, resolved, type, contentHash, dependencies (+9 more)
+
+### Community 179 - ".AddUpcItemDbLookup"
+Cohesion: 0.40
+Nodes (3): UpcServiceCollectionExtensions, IConfiguration, IServiceCollection
 
 ### Community 180 - "Microsoft.Extensions.TimeProvider.Testing"
 Cohesion: 0.40
 Nodes (5): contentHash, requested, resolved, type, Microsoft.Extensions.TimeProvider.Testing
 
-### Community 182 - "StackExchange.Redis"
-Cohesion: 0.29
-Nodes (7): Pipelines.Sockets.Unofficial, Pipelines.Sockets.Unofficial, StackExchange.Redis, contentHash, dependencies, resolved, type
+### Community 181 - "Microsoft.EntityFrameworkCore.Abstractions"
+Cohesion: 0.50
+Nodes (4): contentHash, resolved, type, Microsoft.EntityFrameworkCore.Abstractions
+
+### Community 182 - "SQLitePCLRaw.lib.e_sqlite3"
+Cohesion: 0.50
+Nodes (4): SQLitePCLRaw.lib.e_sqlite3, contentHash, resolved, type
 
 ### Community 183 - "xunit.runner.visualstudio"
 Cohesion: 0.40
@@ -1024,6 +1057,10 @@ Nodes (3): draft, packages, $schema
 Cohesion: 0.83
 Nodes (3): assert_log_contains(), run_entrypoint(), test-docker-entrypoint.sh script
 
+### Community 188 - "UpcItemDbResponses.cs"
+Cohesion: 0.67
+Nodes (3): UpcItemDbItem, UpcItemDbResponse, IReadOnlyList
+
 ### Community 189 - "Collectify Banner (Light Theme)"
 Cohesion: 0.67
 Nodes (4): Collectify Banner (Light Theme), Stacked Book/Item Icon Mark, Light Theme Variant, Collectify Wordmark
@@ -1031,6 +1068,14 @@ Nodes (4): Collectify Banner (Light Theme), Stacked Book/Item Icon Mark, Light T
 ### Community 190 - "Humanizer.Core"
 Cohesion: 0.50
 Nodes (4): contentHash, resolved, type, Humanizer.Core
+
+### Community 191 - "Microsoft.Build.Framework"
+Cohesion: 0.50
+Nodes (4): contentHash, resolved, type, Microsoft.Build.Framework
+
+### Community 192 - "Microsoft.Extensions.DependencyInjection.Abstractions"
+Cohesion: 0.50
+Nodes (4): contentHash, resolved, type, Microsoft.Extensions.DependencyInjection.Abstractions
 
 ### Community 193 - "Microsoft.VisualStudio.SolutionPersistence"
 Cohesion: 0.50
@@ -1040,6 +1085,14 @@ Nodes (4): contentHash, resolved, type, Microsoft.VisualStudio.SolutionPersisten
 Cohesion: 0.50
 Nodes (4): System.CodeDom, contentHash, resolved, type
 
+### Community 195 - "Microsoft.Extensions.DependencyModel"
+Cohesion: 0.50
+Nodes (4): contentHash, resolved, type, Microsoft.Extensions.DependencyModel
+
+### Community 196 - "SQLitePCLRaw.core"
+Cohesion: 0.50
+Nodes (4): SQLitePCLRaw.core, contentHash, resolved, type
+
 ### Community 197 - "Collectify.Domain/packages.lock.json"
 Cohesion: 0.50
 Nodes (3): dependencies, net10.0, version
@@ -1048,41 +1101,37 @@ Nodes (3): dependencies, net10.0, version
 Cohesion: 0.50
 Nodes (3): IgdbBackfillOptions, string, TimeSpan
 
-### Community 201 - "Microsoft.EntityFrameworkCore.Abstractions"
+### Community 199 - "System.Composition.AttributedModel"
 Cohesion: 0.50
-Nodes (4): contentHash, resolved, type, Microsoft.EntityFrameworkCore.Abstractions
+Nodes (4): System.Composition.AttributedModel, contentHash, resolved, type
 
-### Community 202 - "Microsoft.EntityFrameworkCore.Analyzers"
+### Community 200 - "System.Composition.Runtime"
 Cohesion: 0.50
-Nodes (4): contentHash, resolved, type, Microsoft.EntityFrameworkCore.Analyzers
+Nodes (4): System.Composition.Runtime, contentHash, resolved, type
 
-### Community 205 - "Microsoft.VisualStudio.SolutionPersistence"
+### Community 201 - "Microsoft.AspNetCore.Cryptography.Internal"
 Cohesion: 0.50
-Nodes (4): contentHash, resolved, type, Microsoft.VisualStudio.SolutionPersistence
+Nodes (4): contentHash, resolved, type, Microsoft.AspNetCore.Cryptography.Internal
 
-### Community 206 - "Newtonsoft.Json"
+### Community 202 - "Pipelines.Sockets.Unofficial"
 Cohesion: 0.50
-Nodes (4): Newtonsoft.Json, contentHash, resolved, type
+Nodes (4): Pipelines.Sockets.Unofficial, contentHash, resolved, type
+
+### Community 203 - "SQLitePCLRaw.core"
+Cohesion: 0.50
+Nodes (4): SQLitePCLRaw.core, contentHash, resolved, type
+
+### Community 204 - "xunit.abstractions"
+Cohesion: 0.50
+Nodes (4): xunit.abstractions, contentHash, resolved, type
 
 ### Community 207 - "System.CodeDom"
 Cohesion: 0.50
 Nodes (4): System.CodeDom, contentHash, resolved, type
 
-### Community 210 - "System.Security.Cryptography.Pkcs"
-Cohesion: 0.50
-Nodes (4): System.Security.Cryptography.Pkcs, contentHash, resolved, type
-
-### Community 211 - "Microsoft.AspNetCore.TestHost"
-Cohesion: 0.50
-Nodes (4): contentHash, resolved, type, Microsoft.AspNetCore.TestHost
-
-### Community 214 - "Microsoft.EntityFrameworkCore.Abstractions"
-Cohesion: 0.50
-Nodes (4): contentHash, resolved, type, Microsoft.EntityFrameworkCore.Abstractions
-
-### Community 219 - "dependencies"
-Cohesion: 0.22
-Nodes (9): Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.Diagnostics, Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.Diagnostics, contentHash, dependencies, resolved, type (+1 more)
+### Community 219 - "Microsoft.Extensions.Options"
+Cohesion: 0.09
+Nodes (23): Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Diagnostics, Microsoft.Extensions.Options, Microsoft.AspNetCore.Cryptography.KeyDerivation, Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.Diagnostics, Microsoft.Extensions.Options (+15 more)
 
 ### Community 224 - "Microsoft.Extensions.Primitives"
 Cohesion: 0.50
@@ -1091,10 +1140,6 @@ Nodes (4): contentHash, resolved, type, Microsoft.Extensions.Primitives
 ### Community 225 - "Microsoft.TestPlatform.ObjectModel"
 Cohesion: 0.50
 Nodes (4): contentHash, resolved, type, Microsoft.TestPlatform.ObjectModel
-
-### Community 230 - "xunit.analyzers"
-Cohesion: 0.50
-Nodes (4): xunit.analyzers, contentHash, resolved, type
 
 ### Community 273 - "StubHandler"
 Cohesion: 0.14
@@ -1108,17 +1153,17 @@ Nodes (12): HttpMessageHandler, IHttpClientFactory, SingleClientFactory, StubHan
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Microsoft.Extensions.Hosting` connect `Collectify.Infrastructure.Store` to `Microsoft.AspNetCore.Mvc.Testing`?**
-  _High betweenness centrality (0.124) - this node is a cross-community bridge._
-- **Why does `Collectify.Tests.Infrastructure` connect `Collectify.Tests.Infrastructure` to `Collectify.Domain.Enums`, `Collectify.Infrastructure.Store`, `Collectify.Infrastructure.Data`, `Program.cs`?**
+- **Why does `Microsoft.Extensions.Hosting` connect `Collectify.Domain.Enums` to `dependencies`?**
+  _High betweenness centrality (0.123) - this node is a cross-community bridge._
+- **Why does `Microsoft.Extensions.Hosting` connect `dependencies` to `Collectify.Domain.Enums`?**
   _High betweenness centrality (0.123) - this node is a cross-community bridge._
 - **What connects `SEVERITIES`, `ECOSYSTEMS`, `SCRIPT` to the rest of the system?**
   _994 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `IgdbGameProviderTests` be split into smaller, more focused modules?**
   _Cohesion score 0.1 - nodes in this community are weakly interconnected._
 - **Should `types.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.07103825136612021 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08233117483811286 - nodes in this community are weakly interconnected._
 - **Should `SteamEndpointsTests` be split into smaller, more focused modules?**
-  _Cohesion score 0.11616161616161616 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08246753246753247 - nodes in this community are weakly interconnected._
 - **Should `DistributedCacheAdapterTests` be split into smaller, more focused modules?**
-  _Cohesion score 0.060041407867494824 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07422559906487435 - nodes in this community are weakly interconnected._

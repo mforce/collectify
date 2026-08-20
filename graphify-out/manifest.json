@@ -147,40 +147,40 @@
     "semantic_hash": "35702ccaf704d254261c940607e9fa90"
   },
   "src/client/components/DetailView.test.tsx": {
-    "mtime": 1787177197.6728256,
-    "seen": 1787211140.067595,
-    "ast_hash": "38d2ff5439a8c77cc291265d61ac67df",
-    "semantic_hash": "38d2ff5439a8c77cc291265d61ac67df"
+    "mtime": 1787216739.8087814,
+    "seen": 1787231747.3262432,
+    "ast_hash": "1efa048110346452c533622003fa23e1",
+    "semantic_hash": ""
   },
   "src/client/components/DetailView.tsx": {
-    "mtime": 1787210946.2458224,
-    "seen": 1787211140.0675955,
-    "ast_hash": "8fc6eb15846a2c0659f7ff00b6529d6f",
-    "semantic_hash": "8fc6eb15846a2c0659f7ff00b6529d6f"
+    "mtime": 1787216684.7054698,
+    "seen": 1787231747.3262444,
+    "ast_hash": "a41c91ddf4b6d40a9ec4a92d2d1760af",
+    "semantic_hash": ""
   },
   "src/client/components/FiltersPanel.test.tsx": {
-    "mtime": 1787177197.6728256,
-    "seen": 1787211140.0675962,
-    "ast_hash": "7a797d00229eb2c607b0e62a304c7d26",
-    "semantic_hash": "7a797d00229eb2c607b0e62a304c7d26"
+    "mtime": 1787216843.7912786,
+    "seen": 1787231747.3262453,
+    "ast_hash": "cda7b24a004caac872ae55ab58767287",
+    "semantic_hash": ""
   },
   "src/client/components/FiltersPanel.tsx": {
-    "mtime": 1787177197.6728256,
-    "seen": 1787211140.067597,
-    "ast_hash": "91fe6582ca66fb9f3d57403256c2a7f9",
-    "semantic_hash": "91fe6582ca66fb9f3d57403256c2a7f9"
+    "mtime": 1787216716.0732164,
+    "seen": 1787231747.3262463,
+    "ast_hash": "6eaf96825de3dfff971b0da8361cce31",
+    "semantic_hash": ""
   },
   "src/client/components/GameForm.test.tsx": {
-    "mtime": 1787177197.6728256,
-    "seen": 1787211140.0675976,
-    "ast_hash": "d3e703ddb195ba65a79fb835858d3622",
-    "semantic_hash": "d3e703ddb195ba65a79fb835858d3622"
+    "mtime": 1787216752.4520824,
+    "seen": 1787231747.3262472,
+    "ast_hash": "4b48f59370f3c5f44827d597aaeed36c",
+    "semantic_hash": ""
   },
   "src/client/components/GameForm.tsx": {
-    "mtime": 1787210946.2458224,
-    "seen": 1787211140.067598,
-    "ast_hash": "a56046177a4e5308645a992cd9d45f5a",
-    "semantic_hash": "a56046177a4e5308645a992cd9d45f5a"
+    "mtime": 1787216665.099003,
+    "seen": 1787231747.326248,
+    "ast_hash": "8a378a9a720c3c39370321d300111b5a",
+    "semantic_hash": ""
   },
   "src/client/components/Layout.test.tsx": {
     "mtime": 1787210946.2468226,
@@ -315,16 +315,16 @@
     "semantic_hash": "1d960c29fa31e6d2f2e1bf5936d98e83"
   },
   "src/client/pages/GamesList.test.tsx": {
-    "mtime": 1787177197.6748693,
-    "seen": 1787211140.0676153,
-    "ast_hash": "4ccf4a53e5d4ec5693dc55400326f2dc",
-    "semantic_hash": "4ccf4a53e5d4ec5693dc55400326f2dc"
+    "mtime": 1787216731.102574,
+    "seen": 1787231747.3267155,
+    "ast_hash": "f27e5965d55bca465fb88d07bf746672",
+    "semantic_hash": ""
   },
   "src/client/pages/GamesList.tsx": {
-    "mtime": 1787177197.6748693,
-    "seen": 1787211140.0676157,
-    "ast_hash": "f58e511be9e6230d120cd882aaea100f",
-    "semantic_hash": "f58e511be9e6230d120cd882aaea100f"
+    "mtime": 1787216673.917213,
+    "seen": 1787231747.3267162,
+    "ast_hash": "932237a49a7cb350d7ecc4859925abc7",
+    "semantic_hash": ""
   },
   "src/client/pages/ImportSteam.test.tsx": {
     "mtime": 1787177197.6748693,
@@ -387,10 +387,10 @@
     "semantic_hash": "6d787f7d4ddbb943db3480f724aa3fc5"
   },
   "src/client/scripts/check-enum-parity.mjs": {
-    "mtime": 1787177197.6782541,
-    "seen": 1787211140.0676224,
-    "ast_hash": "1cd1bfb6e82aeb9947eae12e927eb9d5",
-    "semantic_hash": "1cd1bfb6e82aeb9947eae12e927eb9d5"
+    "mtime": 1787215723.4646022,
+    "seen": 1787231747.3268995,
+    "ast_hash": "dbf18da814b94237b4115f790b815919",
+    "semantic_hash": ""
   },
   "src/client/services/auth.ts": {
     "mtime": 1787177197.6782541,
@@ -417,10 +417,10 @@
     "semantic_hash": "1da9d2f8fa543e0b490222d4bb2941bb"
   },
   "src/client/services/filters.ts": {
-    "mtime": 1787177197.6791348,
-    "seen": 1787211140.0676255,
-    "ast_hash": "9c47feef5988e823fd9cf9c859d2da78",
-    "semantic_hash": "9c47feef5988e823fd9cf9c859d2da78"
+    "mtime": 1787216610.4467022,
+    "seen": 1787231747.326972,
+    "ast_hash": "0dc4e9eb0a5b4733c9cdae05e0583aa9",
+    "semantic_hash": ""
   },
   "src/client/services/lookup.ts": {
     "mtime": 1787210946.2478225,
@@ -441,16 +441,16 @@
     "semantic_hash": "fa6ae3408038a074155fa18e96b3e6ad"
   },
   "src/client/services/types.test.ts": {
-    "mtime": 1787177197.6791348,
-    "seen": 1787211140.0676293,
-    "ast_hash": "96348767bcebaee15f823c4088982c90",
-    "semantic_hash": "96348767bcebaee15f823c4088982c90"
+    "mtime": 1787216726.633468,
+    "seen": 1787231747.32706,
+    "ast_hash": "894c4676263cfd201835946d860b6fa4",
+    "semantic_hash": ""
   },
   "src/client/services/types.ts": {
-    "mtime": 1787177197.6791348,
-    "seen": 1787211140.0676303,
-    "ast_hash": "e844bbed51ca9557bc980bd25be40377",
-    "semantic_hash": "e844bbed51ca9557bc980bd25be40377"
+    "mtime": 1787216592.6172779,
+    "seen": 1787231747.3270607,
+    "ast_hash": "10d5257aa9c574520389d8d9ca78d258",
+    "semantic_hash": ""
   },
   "src/client/tailwind.config.js": {
     "mtime": 1787177197.6791348,
@@ -519,10 +519,10 @@
     "semantic_hash": "fbdb4386cf3a8e8a7e6dda318bb1e83e"
   },
   "src/server/Collectify.Api/Endpoints/GamesEndpoints.cs": {
-    "mtime": 1787204486.8808465,
-    "seen": 1787211140.0676394,
-    "ast_hash": "26aa11a95377081d635a3f8a185633a7",
-    "semantic_hash": "26aa11a95377081d635a3f8a185633a7"
+    "mtime": 1787217105.7436209,
+    "seen": 1787231747.3272803,
+    "ast_hash": "37069a678e38b632004f6a5f5778f627",
+    "semantic_hash": ""
   },
   "src/server/Collectify.Api/Endpoints/HealthEndpoints.cs": {
     "mtime": 1787177197.6795137,
@@ -573,10 +573,10 @@
     "semantic_hash": "b1c2177bedceab2af3b8f07e6646d5ce"
   },
   "src/server/Collectify.Api/Program.cs": {
-    "mtime": 1787177197.6795137,
-    "seen": 1787211140.0676448,
-    "ast_hash": "00452ccb333fd0b8485375de28618dab",
-    "semantic_hash": "00452ccb333fd0b8485375de28618dab"
+    "mtime": 1787215670.3593647,
+    "seen": 1787231747.327434,
+    "ast_hash": "972e7ac6c97a751a5811af98cdc68ee5",
+    "semantic_hash": ""
   },
   "src/server/Collectify.Api/Properties/launchSettings.json": {
     "mtime": 1787177197.6795137,
@@ -608,10 +608,10 @@
     "semantic_hash": "039ce6b2686a39f0d7b640cd18ddac83"
   },
   "src/server/Collectify.Domain/Entities/Game.cs": {
-    "mtime": 1787204486.8818467,
-    "seen": 1787211140.067648,
-    "ast_hash": "c520840d6c2a529f6ae6322ddf9e64db",
-    "semantic_hash": "c520840d6c2a529f6ae6322ddf9e64db"
+    "mtime": 1787215594.4645963,
+    "seen": 1787231747.327509,
+    "ast_hash": "7e508435bd63919eaf17d36442ee408e",
+    "semantic_hash": ""
   },
   "src/server/Collectify.Domain/Entities/GameStoreConnection.cs": {
     "mtime": 1787177197.6802769,
@@ -668,10 +668,10 @@
     "semantic_hash": "81a599d525444ae3b9dec76e81e409d1"
   },
   "src/server/Collectify.Domain/Enums/DigitalStore.cs": {
-    "mtime": 1787177197.6804261,
-    "seen": 1787211140.0676563,
-    "ast_hash": "7518a5b6a8d8b9e1aef0802f0fa93a20",
-    "semantic_hash": "7518a5b6a8d8b9e1aef0802f0fa93a20"
+    "mtime": 1787215576.5731795,
+    "seen": 1787231747.327706,
+    "ast_hash": "8d97178cbe64ef3e5b053b2ce7f8fa44",
+    "semantic_hash": ""
   },
   "src/server/Collectify.Domain/Enums/GamePlatform.cs": {
     "mtime": 1787177197.6804261,
@@ -860,10 +860,10 @@
     "semantic_hash": "2093add0b089a6b52a9f66911eb598fd"
   },
   "src/server/Collectify.Infrastructure/Data/Migrations/CollectifyDbContextModelSnapshot.cs": {
-    "mtime": 1787177197.680778,
-    "seen": 1787211140.067678,
-    "ast_hash": "fd467e69d338aa996c3292ce861f8fbe",
-    "semantic_hash": "fd467e69d338aa996c3292ce861f8fbe"
+    "mtime": 1787216298.4982767,
+    "seen": 1787231747.3283403,
+    "ast_hash": "fc535621afaf6771f1916733e03eecc6",
+    "semantic_hash": ""
   },
   "src/server/Collectify.Infrastructure/DatabaseOptions.cs": {
     "mtime": 1787177197.680778,
@@ -1160,10 +1160,10 @@
     "semantic_hash": "02fbd0a6bede42f5a05f393fb455c174"
   },
   "src/server/Collectify.Infrastructure/Store/SteamStoreImportService.cs": {
-    "mtime": 1787177197.6824548,
-    "seen": 1787211140.0677156,
-    "ast_hash": "31c4c70482e2361da4ce0f8faebab816",
-    "semantic_hash": "31c4c70482e2361da4ce0f8faebab816"
+    "mtime": 1787215684.3486907,
+    "seen": 1787231747.329344,
+    "ast_hash": "a1761cbe21a37186629dfbec8ecef44d",
+    "semantic_hash": ""
   },
   "src/server/Collectify.Infrastructure/Store/SteamStoreServiceCollectionExtensions.cs": {
     "mtime": 1787177197.6824548,
@@ -1202,16 +1202,16 @@
     "semantic_hash": "fb6d6a615f22f5229fc89bd236980fd7"
   },
   "src/server/tests/Collectify.Tests/Api/EnumWriteBoundaryTests.cs": {
-    "mtime": 1787177197.6830115,
-    "seen": 1787211140.0677214,
-    "ast_hash": "091b384b54b26a405431372c75c9790d",
-    "semantic_hash": "091b384b54b26a405431372c75c9790d"
+    "mtime": 1787216004.732284,
+    "seen": 1787231747.3294854,
+    "ast_hash": "a620ee83f304f0fdc5bf8ae775c345a3",
+    "semantic_hash": ""
   },
   "src/server/tests/Collectify.Tests/Api/GamesEndpointsTests.cs": {
-    "mtime": 1787204486.8828466,
-    "seen": 1787211140.0677223,
-    "ast_hash": "8ef811af9d51539b6b5c8ff1e8bf35b7",
-    "semantic_hash": "8ef811af9d51539b6b5c8ff1e8bf35b7"
+    "mtime": 1787216894.5595076,
+    "seen": 1787231747.3294861,
+    "ast_hash": "a0d6ca9c858765a07407fd513e349ff5",
+    "semantic_hash": ""
   },
   "src/server/tests/Collectify.Tests/Api/HealthEndpointTests.cs": {
     "mtime": 1787177197.6830115,
@@ -1238,10 +1238,10 @@
     "semantic_hash": "94da1ec0b936a6cef9621165eab8655b"
   },
   "src/server/tests/Collectify.Tests/Api/SteamEndpointsTests.cs": {
-    "mtime": 1787177197.6830115,
-    "seen": 1787211140.0677254,
-    "ast_hash": "9300d4fa23e20fce4a8631849af61289",
-    "semantic_hash": "9300d4fa23e20fce4a8631849af61289"
+    "mtime": 1787215785.388063,
+    "seen": 1787231747.329571,
+    "ast_hash": "2a05a89c263c408097456c8293f19956",
+    "semantic_hash": ""
   },
   "src/server/tests/Collectify.Tests/Api/TagEndpointsTests.cs": {
     "mtime": 1787177197.6830115,
@@ -1262,10 +1262,10 @@
     "semantic_hash": "5bd07318fa7d3addc64a648054ff4410"
   },
   "src/server/tests/Collectify.Tests/Domain/EnumParityTests.cs": {
-    "mtime": 1787177197.6830115,
-    "seen": 1787211140.067728,
-    "ast_hash": "ed8efcf8e7da0b46fa052b6324245fca",
-    "semantic_hash": "ed8efcf8e7da0b46fa052b6324245fca"
+    "mtime": 1787215712.599349,
+    "seen": 1787231747.3296325,
+    "ast_hash": "388cf12d93d7420dfd06c60d2f16c744",
+    "semantic_hash": ""
   },
   "src/server/tests/Collectify.Tests/Domain/GamePlatformMappingTests.cs": {
     "mtime": 1787177197.6836233,
@@ -1556,10 +1556,10 @@
     "semantic_hash": "05efca64c031b3db3a8751bdeebe867d"
   },
   "docs/data-model.md": {
-    "mtime": 1787177197.6409,
-    "seen": 1787211199.3316753,
-    "ast_hash": "1f595268e3ad03c94896fd9e3c60a099",
-    "semantic_hash": "1f595268e3ad03c94896fd9e3c60a099"
+    "mtime": 1787217184.17852,
+    "seen": 1787231747.3305655,
+    "ast_hash": "8cad4169cb7075504b40391668ead06b",
+    "semantic_hash": ""
   },
   "docs/decisions/108-ci-security-gates.md": {
     "mtime": 1787177197.6409,
@@ -1742,21 +1742,39 @@
     "semantic_hash": "a0e031c551dfc213decf0fc891353074"
   },
   "src/server/tests/Collectify.Tests/Api/EnumConverterRegistrationTests.cs": {
-    "mtime": 1787204486.8828466,
-    "seen": 1787211140.067721,
-    "ast_hash": "f0f79dd124ae279eea4a98abfeea36fe",
-    "semantic_hash": "f0f79dd124ae279eea4a98abfeea36fe"
+    "mtime": 1787215820.7369044,
+    "seen": 1787231747.3294842,
+    "ast_hash": "cdefa8d493142df53144f6b7c1ff11c6",
+    "semantic_hash": ""
   },
   "src/server/tests/Collectify.Tests/TestSupport/CollectionTestSupport.cs": {
-    "mtime": 1787190242.416794,
-    "seen": 1787211140.0677476,
-    "ast_hash": "5a38ff34a8e171f1832143aa93940675",
-    "semantic_hash": "5a38ff34a8e171f1832143aa93940675"
+    "mtime": 1787215744.6760967,
+    "seen": 1787231747.3302252,
+    "ast_hash": "106e9fe530055ad439334f3ce93d598d",
+    "semantic_hash": ""
   },
   "src/server/tests/Collectify.Tests/TestSupport/StubHandler.cs": {
     "mtime": 1787208395.7270188,
     "seen": 1787211140.0677483,
     "ast_hash": "6c436d6c2b0c880300f64d6799b8a542",
     "semantic_hash": "6c436d6c2b0c880300f64d6799b8a542"
+  },
+  "src/server/Collectify.Infrastructure/Data/Migrations/20260820085818_MultiDigitalStores.Designer.cs": {
+    "mtime": 1787216298.4982767,
+    "seen": 1787231747.3283377,
+    "ast_hash": "f2e6295d22352877a78ad9bddbed0d96",
+    "semantic_hash": ""
+  },
+  "src/server/Collectify.Infrastructure/Data/Migrations/20260820085818_MultiDigitalStores.cs": {
+    "mtime": 1787216369.3699636,
+    "seen": 1787231747.3283389,
+    "ast_hash": "211bbe83068813fec78841e9dea74fb6",
+    "semantic_hash": ""
+  },
+  "src/server/tests/Collectify.Tests/Infrastructure/MultiDigitalStoresMigrationTests.cs": {
+    "mtime": 1787217027.4047241,
+    "seen": 1787231747.329954,
+    "ast_hash": "86b202a217593834c0ded7d96440a0f3",
+    "semantic_hash": ""
   }
 }

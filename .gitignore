@@ -41,6 +41,9 @@ graphify-out/cost.json
 # faster first builds.
 graphify-out/cache/
 
+# graphify dated backup snapshots (regenerable on every update)
+graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+
 # Ad-hoc review artifacts
 architecture-review-collectify.html
 
