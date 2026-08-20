@@ -74,8 +74,7 @@ Shared fields plus:
 | `Platform` | string? | in code | Free text for now (`PS5`, `Switch`, `PC`, …); revisit if filters require an enum |
 | `Publisher` | string? | in code | |
 | `Developer` | string? | in code | |
-| `IsDigital` | bool | in code | |
-| `DigitalStore` | enum? | in code | `Steam` / `Gog` / `Epic` / `Xbox` / `Psn` / `Nintendo` / `Other`. Required when `IsDigital`; ignored when not |
+| `DigitalStores` | `[Flags]` enum (int) | in code | Bitmask of the storefront(s) a digital copy is owned on: `None`=0, `Steam`=1, `Gog`=2, `Epic`=4, `Xbox`=8, `Psn`=16, `Nintendo`=32, `Other`=64. A game can own several (e.g. Steam|Gog = 3); "is digital" is derived (`DigitalStores != None`). Written as an int bitmask via the DTO (validated against defined bits); the enum is `[Flags]`. (`IsDigital` + single `DigitalStore` were merged into this in #91.) |
 | `IgdbId` | string? | in code | Primary game provider |
 | `CompletionStatus` | enum | planned | `NotStarted` / `Playing` / `Beaten` / `HundredPercent` / `Abandoned` (default `NotStarted`) |
 | `HoursPlayed` | int? | planned | |
@@ -151,9 +150,9 @@ duplicate the title.
 | `CreatedAt` / `ExpiresAt` | DateTime | |
 | `Consumed` | bool | single-use |
 
-Imported `Game` rows default to `Platform = Pc`, `IsDigital = true`,
-`DigitalStore = Store`, `Status = Owned`, `HoursPlayed` from playtime, and
-`AcquisitionSource = "Steam Import"`.
+Imported `Game` rows default to `Platform = Pc`, `DigitalStores = Store`
+(the bitmask of the storefront it was imported from), `Status = Owned`,
+`HoursPlayed` from playtime, and `AcquisitionSource = "Steam Import"`.
 
 ### DLC / add-on (schema hook, provider-agnostic)
 
@@ -182,9 +181,12 @@ public enum WatchStatus       { Unwatched, Watching, Watched }
 public enum CompletionStatus  { NotStarted, Playing, Beaten, HundredPercent, Abandoned }
 ```
 
-All enums serialize as **strings** in JSON (already configured globally via `JsonStringEnumConverter`), with one exception:
+All enums serialize as **strings** in JSON (already configured globally via `JsonStringEnumConverter`), with two `[Flags]` exceptions that serialize as **integer bitmasks**:
 
-- **`MovieFormat`** is a `[Flags]` enum that serializes as an **integer bitmask** (e.g. `3` for Dvd | BluRay). The DTO carries it as `int` so the frontend can use bitwise ops to read/write checkbox state. All other enums remain string-serialized.
+- **`MovieFormat`** — e.g. `3` for Dvd | BluRay. The DTO carries it as `int` so the frontend can use bitwise ops to read/write checkbox state.
+- **`DigitalStores`** — a per-game bitmask of virtual storefronts, e.g. `5` for Steam | Epic. The DTO (`GameDto.DigitalStores`) carries it as `int` for the same reason. `0` = physical.
+
+All other enums remain string-serialized.
 
 ## Migration plan
 

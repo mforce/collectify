@@ -4,7 +4,7 @@ import { Card, CoverPreview, StatusPill, TagChip } from './ui';
 import type { Album, Game, MediaType, Movie } from '../services/types';
 import {
   completionStatusLabel,
-  digitalStoreLabel,
+  digitalStoresLabel,
   gamePlatformLabel,
   MOVIE_FORMAT_FLAGS,
   musicFormatLabel,
@@ -325,9 +325,9 @@ function GameDetail({ item }: { item: Game }) {
           {/* Year / Platform row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span className="shrink-0">{item.year}</span>}
-            {item.isDigital ? (
+            {item.digitalStores ? (
               <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('games').accent}`}>
-                Digital{item.digitalStore && <span className="min-w-0 truncate"> ({digitalStoreLabel(item.digitalStore) ?? item.digitalStore})</span>}
+                Digital <span className="min-w-0 truncate"> · {digitalStoresLabel(item.digitalStores)}</span>
               </span>
             ) : (
               <span className="inline-flex items-center shrink-0 px-2 py-0.5 rounded-full text-xs font-medium bg-pill-bg text-text-secondary border border-border">

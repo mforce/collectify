@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { digitalStoreLabel, musicFormatLabel, type DigitalStore, type MusicFormat } from './types';
+import { digitalStoresLabel, musicFormatLabel, type DigitalStore, type MusicFormat } from './types';
 
 describe('enum label helpers', () => {
   it('maps music formats and leaves unknown values to the call site', () => {
@@ -7,8 +7,9 @@ describe('enum label helpers', () => {
     expect(musicFormatLabel('Cassette' as MusicFormat)).toBeUndefined();
   });
 
-  it('maps digital stores and leaves unknown values to the call site', () => {
-    expect(digitalStoreLabel('Psn')).toBe('PlayStation Network');
-    expect(digitalStoreLabel('Itch' as DigitalStore)).toBeUndefined();
+  it('renders a DigitalStores bitmask as a comma-joined label list', () => {
+    expect(digitalStoresLabel(16)).toBe('PlayStation Network');
+    expect(digitalStoresLabel(5)).toBe('Steam, Epic'); // Steam|Epic = 1|4
+    expect(digitalStoresLabel(0)).toBe('');
   });
 });

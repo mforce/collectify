@@ -31,8 +31,7 @@ const pcGame: Game = {
   developer: null,
   description: 'My own description that must survive.',
   imagePath: '/covers/mine.jpg',
-  isDigital: true,
-  digitalStore: 'Steam',
+  digitalStores: 1, // Steam
   status: 'Owned',
   completionStatus: 'NotStarted',
   tags: [],
@@ -113,5 +112,16 @@ describe('GameForm — fill-only IGDB import (no clobber)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const s = onSubmit.mock.calls[0][0] as Game;
     expect(s.title).toBe('Tomb Raider: Game of the Year Edition');
+  });
+});
+
+describe('GameForm — digital store buttons', () => {
+  it('exposes each store button\'s pressed state for screen readers', () => {
+    const onSubmit = vi.fn();
+    // Steam=1, Epic=4 => digitalStores 5 means Steam + Epic selected.
+    renderForm(onSubmit, { ...pcGame, digitalStores: 5 });
+    expect(screen.getByRole('button', { name: 'Steam' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Epic' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'GOG' })).toHaveAttribute('aria-pressed', 'false');
   });
 });

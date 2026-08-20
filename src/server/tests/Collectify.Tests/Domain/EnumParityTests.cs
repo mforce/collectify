@@ -63,7 +63,7 @@ public class EnumParityTests
         ["CompletionStatus"] = "COMPLETION_STATUSES",
         ["MovieFormat"] = "MOVIE_FORMAT_FLAGS",
         ["MusicFormat"] = "MUSIC_FORMATS",
-        ["DigitalStore"] = "DIGITAL_STORES",
+        ["DigitalStore"] = "DIGITAL_STORE_FLAGS",
         ["GamePlatform"] = "GAME_PLATFORMS",
     };
 
@@ -105,7 +105,7 @@ public class EnumParityTests
             },
             ["DigitalStore"] = new Dictionary<string, int>
             {
-                ["Steam"] = 0, ["Gog"] = 1, ["Epic"] = 2, ["Xbox"] = 3, ["Psn"] = 4, ["Nintendo"] = 5, ["Other"] = 99,
+                ["None"] = 0, ["Steam"] = 1, ["Gog"] = 2, ["Epic"] = 4, ["Xbox"] = 8, ["Psn"] = 16, ["Nintendo"] = 32, ["Other"] = 64,
             },
             ["GamePlatform"] = new Dictionary<string, int>
             {
@@ -149,10 +149,11 @@ public class EnumParityTests
         var (clientNames, clientValues) = ParseClientTable(File.ReadAllText(ClientTypesPath), tableName, server.IsFlags);
 
         // 'None' is the flags-zero value with no UI checkbox; the client
-        // table omits it -- but ONLY for MovieFormat (the sole enum with a
-        // None member today), mirroring check-enum-parity.mjs. A future
-        // None on another enum must appear in the table.
-        var noneExempt = enumName == "MovieFormat";
+        // table omits it -- but ONLY for the two [Flags] enums that declare a
+        // None member (MovieFormat, DigitalStore), mirroring
+        // check-enum-parity.mjs. A future None on another flags enum must
+        // join this exemption, and its own table must omit None too.
+        var noneExempt = enumName is "MovieFormat" or "DigitalStore";
         var serverNames = (noneExempt ? server.Names.Where(n => n != "None") : server.Names).ToArray();
 
         // Duplicates: a repeated member passes set-membership but renders

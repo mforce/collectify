@@ -17,7 +17,8 @@ public enum GamePlatform
     // Pc is the Windows-PC / generic desktop catch-all (per IGDB's "PC
     // (Microsoft Windows)" id 6). Linux (3) was folded into Pc (#102): a
     // Linux/Steam-Deck title is the same desktop library, and the "how you
-    // play" dimension is IsDigital + DigitalStore, not the platform enum.
+    // play" dimension is DigitalStores (digital-vs-physical + storefront),
+    // not the platform enum.
     // Mac (2) stays its own platform.
     Pc = 1,
     Mac = 2,

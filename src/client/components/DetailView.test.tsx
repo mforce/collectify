@@ -15,8 +15,7 @@ const album: Album = {
 const game: Game = {
   title: 'Journey',
   platform: 'Ps5',
-  isDigital: true,
-  digitalStore: 'Psn',
+  digitalStores: 16, // Psn
   status: 'Owned',
   completionStatus: 'Beaten',
 };

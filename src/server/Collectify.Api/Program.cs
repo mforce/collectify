@@ -99,7 +99,6 @@ builder.Services.ConfigureHttpJsonOptions(opt =>
     opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<Condition>());
     opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<WatchStatus>());
     opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<CompletionStatus>());
-    opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<DigitalStore>());
     opt.SerializerOptions.Converters.Add(new DefinedEnumConverter<MusicFormat>());
     opt.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });

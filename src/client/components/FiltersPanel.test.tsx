@@ -49,4 +49,109 @@ describe('FiltersPanel', () => {
     expect(screen.getByText('PlayStation Network')).toBeInTheDocument();
     expect(screen.queryByText('Psn')).not.toBeInTheDocument();
   });
+
+  it('renders canonical store labels for case-insensitive digital-store names', () => {
+    // The server accepts lowercase store names (ResolveDigitalStores,
+    // ignoreCase), so a deep-linked ?digitalStore=steam,epic must show the
+    // canonical labels in the active-filter chip, not the raw lowercase names.
+    renderPanel('games', { digitalStore: 'steam,epic' });
+
+    // describeActive aggregates one chip per filter key, so the digital-store
+    // chip's display is the comma-joined canonical labels "Steam, Epic". The
+    // getByText proves case-insensitive resolution (the pre-fix code fell
+    // through to the raw "steam, epic"), so the raw form must be absent.
+    expect(screen.getByText('Steam, Epic')).toBeInTheDocument();
+    expect(screen.queryByText('steam, epic')).not.toBeInTheDocument();
+  });
+
+  it('renders canonical store labels for a numeric-mask digital-store chip', () => {
+    // A deep-linked ?digitalStore=5 (= Steam|Epic) is server-valid; the chip
+    // must show the store names, not the raw mask digits.
+    renderPanel('games', { digitalStore: '5' });
+
+    expect(screen.getByText('Steam, Epic')).toBeInTheDocument();
+    expect(screen.queryByText('5')).not.toBeInTheDocument();
+  });
+
+  it('hides the digital-store chip when the mask has no defined bits', () => {
+    // ?digitalStore=0 (or any mask with no defined store bits) parses to an
+    // empty set; the chip must be hidden instead of rendering a blank
+    // "Store: ". (The filter still counts as active under activeFilterCount,
+    // so "Clear all" remains — only the blank chip is suppressed.)
+    renderPanel('games', { digitalStore: '0' });
+    expect(screen.queryByText('Store:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Store: ')).not.toBeInTheDocument();
+  });
+
+  it('toggles digital-store checkboxes into a comma-joined filter', async () => {
+    // The real app drives the panel from URL-synced filter state, so toggles
+    // accumulate; a plain vi.fn() would stay on the initial value and every
+    // toggle would start from scratch. Mirror that statefulness here.
+    let current: Filters<'games'> = {};
+    const onToggle = (next: Filters<'games'>) => { current = next; };
+    const { rerender } = render(
+      <FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />,
+    );
+    // Expand the filter section first (the chevron is part of the accessible name).
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const click = async (name: string) => {
+      await userEvent.click(screen.getByRole('button', { name }));
+      rerender(<FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />);
+    };
+
+    await click('Steam');
+    await click('Epic');
+    expect(current).toEqual({ digitalStore: 'Steam,Epic' });
+
+    // Toggling Epic back off leaves only Steam.
+    await click('Epic');
+    expect(current).toEqual({ digitalStore: 'Steam' });
+  });
+
+  it('decodes a numeric-mask store filter and toggles into name-only keys', async () => {
+    // A server-valid numeric URL (?digitalStore=5 = Steam|Epic) must render
+    // Steam + Epic pressed, and toggling must serialize canonical names (not
+    // "5,Steam", which the server 400s).
+    let current: Filters<'games'> = { digitalStore: '5' };
+    const onToggle = (next: Filters<'games'>) => { current = next; };
+    const { rerender } = render(
+      <FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const press = (name: string) =>
+      screen.getByRole('button', { name }).getAttribute('aria-pressed');
+
+    expect(press('Steam')).toBe('true');
+    expect(press('Epic')).toBe('true');
+    expect(press('GOG')).toBe('false');
+
+    await userEvent.click(screen.getByRole('button', { name: 'GOG' }));
+    rerender(<FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />);
+    // Steam|Epic|Gog canonical keys (serialized as the flag `key`), not a
+    // mixed "5,Gog".
+    expect(current).toEqual({ digitalStore: 'Steam,Epic,Gog' });
+  });
+
+  it('decodes case-insensitive store names into canonical keys', async () => {
+    // The server parses names with ignoreCase (ResolveDigitalStores), so a
+    // server-valid URL like ?digitalStore=steam,epic must render Steam + Epic
+    // pressed and serialize canonical keys (not re-add/dupe on toggle).
+    let current: Filters<'games'> = { digitalStore: 'steam,epic' };
+    const onToggle = (next: Filters<'games'>) => { current = next; };
+    const { rerender } = render(
+      <FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const press = (name: string) =>
+      screen.getByRole('button', { name }).getAttribute('aria-pressed');
+
+    expect(press('Steam')).toBe('true');
+    expect(press('Epic')).toBe('true');
+    expect(press('GOG')).toBe('false');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Epic' }));
+    rerender(<FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />);
+    // Toggling off the lowercased Epic yields the remaining canonical Steam key.
+    expect(current).toEqual({ digitalStore: 'Steam' });
+  });
 });

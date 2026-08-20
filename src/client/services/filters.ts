@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import type {
   CollectionStatus,
   CompletionStatus,
-  DigitalStore,
   GamePlatform,
   MediaType,
   MovieFormat,
@@ -47,7 +46,9 @@ export interface GameFilters {
   developer?: string;
   platform?: GamePlatform;
   digital?: boolean;
-  digitalStore?: DigitalStore;
+  /** Comma-joined store names, e.g. "Steam,Epic"; the server any-of matches
+   * the bits and accepts a legacy single name like "Steam". */
+  digitalStore?: string;
   status?: CollectionStatus;
   completionStatus?: CompletionStatus;
   ratingMin?: number;

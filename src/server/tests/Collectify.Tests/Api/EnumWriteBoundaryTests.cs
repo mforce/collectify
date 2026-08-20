@@ -26,7 +26,7 @@ public class EnumWriteBoundaryTests
         $@"{{""title"":""Kind of Blue"",""artistName"":""Miles Davis"",{fieldToken}}}";
 
     private static string GameBody(string fieldToken) =>
-        $@"{{""title"":""Hades"",""platform"":""Pc"",""isDigital"":true,{fieldToken}}}";
+        $@"{{""title"":""Hades"",""platform"":""Pc"",{fieldToken}}}";
 
     /// <summary>(resource/userName key, path, field, valid-integer body, valid-string body)</summary>
     public static IEnumerable<object[]> EnumEndpoints => new List<object[]>
@@ -36,7 +36,6 @@ public class EnumWriteBoundaryTests
         new object[] { "movie", "/api/movies/", "condition",       MovieBody(@"""condition"":0"),        MovieBody(@"""condition"":""Poor""") },
         new object[] { "music", "/api/music/",  "format",          MusicBody(@"""format"":0"),           MusicBody(@"""format"":""Vinyl""") },
         new object[] { "game",  "/api/games/",  "completionStatus",GameBody(@"""completionStatus"":2"), GameBody(@"""completionStatus"":""NotStarted""") },
-        new object[] { "game",  "/api/games/",  "digitalStore",    GameBody(@"""digitalStore"":0"),      GameBody(@"""digitalStore"":""Epic""") },
     };
 
     /// <summary>(resource/userName key, path, valid body with the field set to an undefined integer)</summary>
@@ -47,7 +46,6 @@ public class EnumWriteBoundaryTests
         new object[] { "movie", "/api/movies/", MovieBody(@"""condition"":999") },
         new object[] { "music", "/api/music/",  MusicBody(@"""format"":999") },
         new object[] { "game",  "/api/games/",  GameBody(@"""completionStatus"":999") },
-        new object[] { "game",  "/api/games/",  GameBody(@"""digitalStore"":999") },
     };
 
     /// <summary>(resource/userName key, path, valid body with the field set to an unknown string)</summary>
@@ -62,7 +60,6 @@ public class EnumWriteBoundaryTests
         new object[] { "movie", "/api/movies/", MovieBody(@"""condition"":""NotARealMember""") },
         new object[] { "music", "/api/music/",  MusicBody(@"""format"":""NotARealMember""") },
         new object[] { "game",  "/api/games/",  GameBody(@"""completionStatus"":""NotARealMember""") },
-        new object[] { "game",  "/api/games/",  GameBody(@"""digitalStore"":""NotARealMember""") },
     };
 
     // A defined-integer send must continue to bind (the pre-existing contract),
@@ -142,6 +139,44 @@ public class EnumWriteBoundaryTests
 
         var response = await user.Client.PostAsync("/api/movies/",
             Json(@"{""title"":""Inception"",""formats"":0,""watchStatus"":""Unwatched"",""watchCount"":0}"));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DigitalStores_UndefinedBits_ReturnsBadRequest()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var user = await factory.CreateAuthenticatedUserAsync("u_gmst_undef");
+
+        // 999 = bits outside Steam|Gog|Epic|Xbox|Psn|Nintendo|Other.
+        var response = await user.Client.PostAsync("/api/games/",
+            Json(@"{""title"":""Hades"",""platform"":""Pc"",""digitalStores"":999}"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DigitalStores_ValidCombination_ReturnsCreated()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var user = await factory.CreateAuthenticatedUserAsync("u_gmst_ok");
+
+        // Steam|Epic = 1|4 = 5 is a valid flags combination.
+        var response = await user.Client.PostAsync("/api/games/",
+            Json(@"{""title"":""Hades"",""platform"":""Pc"",""digitalStores"":5}"));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DigitalStores_None_ReturnsCreated()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var user = await factory.CreateAuthenticatedUserAsync("u_gmst_none");
+
+        var response = await user.Client.PostAsync("/api/games/",
+            Json(@"{""title"":""Hades"",""platform"":""Pc"",""digitalStores"":0}"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }

@@ -41,7 +41,7 @@ public record AlbumResponse(
 
 public record GameResponse(
     int Id, string Title, GamePlatform Platform, string? PlatformLegacy, int? Year,
-    string? Publisher, string? Developer, bool IsDigital, DigitalStore? DigitalStore,
+    string? Publisher, string? Developer, int DigitalStores,
     string? Barcode, string? IgdbId, string? ImagePath, string? Description, string? Notes,
     int? PersonalRating, CollectionStatus Status, Condition? Condition,
     DateOnly? AcquiredOn, decimal? AcquisitionPrice, string? AcquisitionCurrency, string? AcquisitionSource,
@@ -148,8 +148,7 @@ public static class GameTestSupport
             Year = (int?)2020,
             Publisher = "Supergiant Games",
             Developer = "Supergiant Games",
-            IsDigital = isDigital,
-            DigitalStore = store,
+            DigitalStores = isDigital ? (store is { } s ? (int)s : (int)DigitalStore.Other) : 0,
             Barcode = (string?)null,
             IgdbId = (string?)null,
             ImagePath = (string?)null,

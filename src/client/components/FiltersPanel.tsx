@@ -13,13 +13,11 @@ import { activeFilterCount, type Filters } from '../services/filters';
 import {
   COLLECTION_STATUSES,
   COMPLETION_STATUSES,
-  DIGITAL_STORES,
-  digitalStoreLabel,
+  DIGITAL_STORE_FLAGS,
   GAME_PLATFORMS,
   MOVIE_FORMAT_FLAGS,
   MUSIC_FORMATS,
   WATCH_STATUSES,
-  type DigitalStore,
   type MediaType,
 } from '../services/types';
 
@@ -161,6 +159,30 @@ function AlbumFields({ value, onChange }: { value: Filters<'music'>; onChange: (
   );
 }
 
+/**
+ * Decode a GameFilters.digitalStore value into the canonical set of store keys.
+ * The value can be a legacy single member name ("Psn"), comma-joined names
+ * ("Steam,Epic"), case-insensitive names ("steam,epic"), or a numeric bitmask
+ * ("5" = Steam|Epic). Names are matched case-insensitively and mapped to the
+ * canonical key; undefined bits/names are dropped (the server rejects them
+ * anyway, and rejects empty members with a 400 — see ResolveDigitalStores).
+ */
+function parseStoreFilter(raw: string | undefined): string[] {
+  if (!raw) return [];
+  // Numeric bitmask -> matching store keys.
+  if (/^\d+$/.test(raw.trim())) {
+    const mask = Number(raw.trim());
+    return DIGITAL_STORE_FLAGS.filter((s) => (mask & s.value) !== 0).map((s) => s.key);
+  }
+  return raw
+    .split(',')
+    .map((x) => x.trim().toLowerCase())
+    .filter((x) => x.length > 0)
+    .map((x) => DIGITAL_STORE_FLAGS.find((s) => s.key.toLowerCase() === x))
+    .filter((s): s is (typeof DIGITAL_STORE_FLAGS)[number] => !!s)
+    .map((s) => s.key);
+}
+
 function GameFields({ value, onChange }: { value: Filters<'games'>; onChange: (next: Filters<'games'>) => void }) {
   const set = <K extends keyof Filters<'games'>>(k: K, v: Filters<'games'>[K]) =>
     onChange({ ...value, [k]: v });
@@ -206,10 +228,38 @@ function GameFields({ value, onChange }: { value: Filters<'games'>; onChange: (n
         </Select>
       </Field>
       <Field label="Digital store">
-        <Select value={value.digitalStore ?? ''} onChange={(e) => set('digitalStore', (e.target.value || undefined) as Filters<'games'>['digitalStore'])}>
-          <option value="">Any</option>
-          {DIGITAL_STORES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </Select>
+        {/* Canonicalize the filter value (names, comma-joined names, or a
+            numeric bitmask like "5") into the set of store keys before
+            rendering/toggling. Without this a server-valid numeric URL such as
+            ?digitalStore=5 leaves every button unpressed, and clicking one
+            would serialize "5,Steam" which ResolveDigitalStores 400s. */}
+        {(() => {
+          const keys = parseStoreFilter(value.digitalStore);
+          return (
+            <div className="flex flex-wrap gap-2">
+              {DIGITAL_STORE_FLAGS.map((s) => {
+                const selected = keys.includes(s.key);
+                const toggle = () => {
+                  const next = selected
+                    ? keys.filter((x) => x !== s.key)
+                    : [...keys, s.key];
+                  set('digitalStore', next.length ? next.join(',') : undefined);
+                };
+                return (
+                  <button
+                    type="button"
+                    key={s.key}
+                    onClick={toggle}
+                    aria-pressed={selected}
+                    className={`inline-flex min-h-[38px] items-center rounded-lg border px-3 text-sm font-semibold transition-colors ${selected ? 'category-active' : 'border-border bg-input-bg text-text-primary category-hover-soft'}`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </Field>
       <RatingMin value={value.ratingMin} onChange={(v) => set('ratingMin', v)} />
     </>
@@ -327,11 +377,23 @@ function describeActive<T extends MediaType>(_type: T, filters: Filters<T>): { k
   for (const [key, value] of Object.entries(f)) {
     if (key === 'yearFrom' || key === 'yearTo' || key === 'tag') continue;
     if (value === undefined || value === null || value === '') continue;
-    const display = key === 'digitalStore'
-      ? digitalStoreLabel(value as DigitalStore) ?? String(value)
-      : typeof value === 'boolean'
-        ? (value ? 'Digital' : 'Physical')
-        : String(value);
+    if (key === 'digitalStore') {
+      // Reuse parseStoreFilter so a numeric bitmask (?digitalStore=5) and
+      // case-insensitive names both resolve to canonical labels in the chip.
+      // A mask with no defined bits (e.g. ?digitalStore=0 or 128) parses to
+      // an empty set — hide the chip rather than render a blank "Store: ".
+      const keys = parseStoreFilter(value as string);
+      if (keys.length === 0) continue;
+      out.push({
+        key,
+        label: labels[key] ?? key,
+        display: keys.map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key === k)?.label ?? k).join(', '),
+      });
+      continue;
+    }
+    const display = typeof value === 'boolean'
+      ? (value ? 'Digital' : 'Physical')
+      : String(value);
     out.push({ key, label: labels[key] ?? key, display });
   }
   if (Array.isArray(f.tag) && f.tag.length > 0) {

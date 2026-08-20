@@ -20,8 +20,7 @@ public class Game : ICollectionEntry
     public int? Year { get; set; }
     public string? Publisher { get; set; }
     public string? Developer { get; set; }
-    public bool IsDigital { get; set; }
-    public DigitalStore? DigitalStore { get; set; }
+    public DigitalStore DigitalStores { get; set; } = DigitalStore.None;
     public string? Barcode { get; set; }
 
     public string? IgdbId { get; set; }
