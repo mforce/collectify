@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import CollectionList from '../components/CollectionList';
+import { PlatformIcon } from '../components/FormatIcons';
 import { digitalStoresLabel, gamePlatformLabel, type Game } from '../services/types';
 
 export default function GamesList() {
@@ -35,9 +36,16 @@ export default function GamesList() {
           return {
             primary: g.title,
             secondary: [platform, g.year].filter(Boolean).join(' · '),
-            tertiary: g.digitalStores
-              ? `Digital · ${digitalStoresLabel(g.digitalStores)}`
-              : 'Physical',
+            tertiary: (
+              <>
+                {g.platform && (
+                  <PlatformIcon platform={g.platform} className="mr-1 inline h-3.5 w-3.5 align-[-2px] text-text-secondary" />
+                )}
+                {g.digitalStores
+                  ? `Digital · ${digitalStoresLabel(g.digitalStores)}`
+                  : 'Physical'}
+              </>
+            ),
           };
         }}
       />

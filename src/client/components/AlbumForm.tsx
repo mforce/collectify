@@ -7,6 +7,7 @@ import OnlineSearch from './OnlineSearch';
 import BarcodeLookup from './BarcodeLookup';
 import PhotoLookup from './PhotoLookup';
 import { MUSIC_FORMATS, type Album } from '../services/types';
+import { MusicFormatIcon } from './FormatIcons';
 import { lookupAlbumByMbid, type MusicLookupResult } from '../services/lookup';
 import { useLookupProtocol } from '../hooks/useLookupProtocol';
 
@@ -116,11 +117,16 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
               <Input type="number" value={a.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
             </Field>
             <Field label="Format">
-              <Select value={a.format} onChange={(e) => set('format', e.target.value as Album['format'])}>
-                {MUSIC_FORMATS.map((f) => (
-                  <option key={f.value} value={f.value}>{f.label}</option>
-                ))}
-              </Select>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">
+                  <MusicFormatIcon format={a.format} className="h-4 w-4" />
+                </span>
+                <Select value={a.format} onChange={(e) => set('format', e.target.value as Album['format'])} className="pl-10">
+                  {MUSIC_FORMATS.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </Select>
+              </div>
             </Field>
             <Field label="Label">
               <Input value={a.label ?? ''} onChange={(e) => set('label', e.target.value || null)} />

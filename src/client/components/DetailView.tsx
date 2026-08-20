@@ -12,6 +12,7 @@ import {
 } from '../services/types';
 import MediaIcon from './MediaIcon';
 import { MEDIA } from '../services/mediaRegistry';
+import { MovieFormatIcon, MusicFormatIcon, PlatformIcon } from './FormatIcons';
 
 interface Props<T> {
   item: T;
@@ -108,7 +109,8 @@ function MovieDetail({ item }: { item: Movie }) {
           {formats.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {formats.map((f) => (
-                <span key={f.key} className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('movies').accent}`}>
+                <span key={f.key} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('movies').accent}`}>
+                  <MovieFormatIcon format={f.key} className="h-3.5 w-3.5" />
                   {f.label}
                 </span>
               ))}
@@ -220,7 +222,8 @@ function MusicDetail({ item }: { item: Album }) {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span className="shrink-0">{item.year}</span>}
             {item.format && (
-              <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('music').accent}`}>
+              <span className={`inline-flex items-center gap-1 shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('music').accent}`}>
+                <MusicFormatIcon format={item.format} className="h-3.5 w-3.5" />
                 {musicFormatLabel(item.format) ?? item.format}
               </span>
             )}
@@ -325,6 +328,10 @@ function GameDetail({ item }: { item: Game }) {
           {/* Year / Platform row */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
             {item.year && <span className="shrink-0">{item.year}</span>}
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <PlatformIcon platform={item.platform} className="h-4 w-4" />
+              {gamePlatformLabel(item.platform)}
+            </span>
             {item.digitalStores ? (
               <span className={`inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${detailTheme('games').accent}`}>
                 Digital <span className="min-w-0 truncate"> · {digitalStoresLabel(item.digitalStores)}</span>

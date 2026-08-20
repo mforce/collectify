@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Button, CoverPreview, ExternalIdField, Field, Input, SearchableSelect, SectionHeading, Select, Textarea } from './ui';
+import {
+  Button,
+  CoverPreview,
+  ExternalIdField,
+  Field,
+  Input,
+  SearchableSelect,
+  SectionHeading,
+  Select,
+  Textarea,
+} from './ui';
+import { PlatformIcon } from './FormatIcons';
 import CoverEditor from './CoverEditor';
 import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
@@ -150,12 +161,19 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
               <Input value={g.title} onChange={(e) => set('title', e.target.value)} required />
             </Field>
             <Field label="Platform">
-              <SearchableSelect
-                value={g.platform}
-                onChange={(v) => set('platform', v as GamePlatform)}
-                options={GAME_PLATFORMS}
-                placeholder="Type to search platforms…"
-              />
+              <div className="flex items-center gap-2">
+                <span className="shrink-0 text-text-secondary">
+                  <PlatformIcon platform={g.platform} className="h-4 w-4" />
+                </span>
+                <div className="flex-1">
+                  <SearchableSelect
+                    value={g.platform}
+                    onChange={(v) => set('platform', v as GamePlatform)}
+                    options={GAME_PLATFORMS}
+                    placeholder="Type to search platforms…"
+                  />
+                </div>
+              </div>
               {g.platformLegacy && (
                 // Stickier than a generic placeholder -- surfaces the
                 // original free-text so the user can see what they had

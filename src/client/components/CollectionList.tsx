@@ -1,4 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { useList } from '../services/collection';
 import { useFiltersState } from '../services/filters';
 import { Button, Card, Input, StatusPill, TagChip, ViewSwitcher } from './ui';
@@ -13,7 +14,7 @@ import type { MediaResultMap } from '../services/mediaRegistry';
 interface RenderedItem {
   primary: string;
   secondary?: string;
-  tertiary?: string;
+  tertiary?: ReactNode;
 }
 
 interface Props<T extends MediaType> {
