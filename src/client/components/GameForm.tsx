@@ -78,7 +78,7 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
     }),
     providerNames: ['igdb'], linkageKey: (draft) => draft.igdbId ?? null,
     setLinkageKey: (draft, value) => ({ ...draft, igdbId: value }),
-    byId: { label: 'IGDB ID', lookup: lookupGameByIgdbId },
+    byId: { label: 'IGDB ID', entityNoun: 'game', notConfiguredHint: 'IGDB lookup not configured. Set the Twitch client id and secret.', lookup: lookupGameByIgdbId },
   });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => prefillEffect(prefillLookup, prefillBarcode), []);
