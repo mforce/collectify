@@ -378,8 +378,10 @@ function describeActive<T extends MediaType>(_type: T, filters: Filters<T>): { k
     if (key === 'yearFrom' || key === 'yearTo' || key === 'tag') continue;
     if (value === undefined || value === null || value === '') continue;
     const display = key === 'digitalStore'
-      ? (value as string).split(',').map((x) => x.trim()).filter(Boolean)
-          .map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key.toLowerCase() === k.toLowerCase())?.label ?? k).join(', ')
+      // Reuse parseStoreFilter so a numeric bitmask (?digitalStore=5) and
+      // case-insensitive names both resolve to canonical labels in the chip.
+      ? parseStoreFilter(value as string)
+          .map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key === k)?.label ?? k).join(', ')
       : typeof value === 'boolean'
         ? (value ? 'Digital' : 'Physical')
         : String(value);

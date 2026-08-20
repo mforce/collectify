@@ -64,6 +64,15 @@ describe('FiltersPanel', () => {
     expect(screen.queryByText('steam, epic')).not.toBeInTheDocument();
   });
 
+  it('renders canonical store labels for a numeric-mask digital-store chip', () => {
+    // A deep-linked ?digitalStore=5 (= Steam|Epic) is server-valid; the chip
+    // must show the store names, not the raw mask digits.
+    renderPanel('games', { digitalStore: '5' });
+
+    expect(screen.getByText('Steam, Epic')).toBeInTheDocument();
+    expect(screen.queryByText('5')).not.toBeInTheDocument();
+  });
+
   it('toggles digital-store checkboxes into a comma-joined filter', async () => {
     // The real app drives the panel from URL-synced filter state, so toggles
     // accumulate; a plain vi.fn() would stay on the initial value and every
