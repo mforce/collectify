@@ -13,13 +13,6 @@ export type MediaResultMap = {
   games: GameLookupResult;
 };
 
-/** The per-media-type collection item type. */
-export type MediaItemMap = {
-  movies: Movie;
-  music: Album;
-  games: Game;
-};
-
 export interface MediaConfig {
   /** Singular human label, e.g. 'Movie'. */
   label: string;
@@ -63,10 +56,6 @@ export interface MediaConfig {
   formComponent: ComponentType<never>;
   /** Provider canonical name used to detect the prefill provider-key, e.g. 'tmdb'. */
   providerName: string;
-  /** Lookup-result type for this media type. */
-  lookupResultType: MediaResultMap[MediaType];
-  /** Collection item type for this media type. */
-  itemType: MediaItemMap[MediaType];
 }
 
 export const MEDIA: Record<MediaType, MediaConfig> = {
@@ -82,7 +71,7 @@ export const MEDIA: Record<MediaType, MediaConfig> = {
       navActiveDesktop: 'bg-movies-light text-movies border-movies-border shadow-sm',
       navActiveMobile: 'bg-movies-light text-movies border-movies-border',
     },
-    formComponent: MovieForm, providerName: 'tmdb', lookupResultType: null!, itemType: null!,
+    formComponent: MovieForm, providerName: 'tmdb',
   },
   music: {
     label: 'Album', pluralLabel: 'Music', iconSrc: '/brand/media-music.svg', iconAlt: 'Music',
@@ -96,7 +85,7 @@ export const MEDIA: Record<MediaType, MediaConfig> = {
       navActiveDesktop: 'bg-music-light text-music border-music-border shadow-sm',
       navActiveMobile: 'bg-music-light text-music border-music-border',
     },
-    formComponent: AlbumForm, providerName: 'musicbrainz', lookupResultType: null!, itemType: null!,
+    formComponent: AlbumForm, providerName: 'musicbrainz',
   },
   games: {
     label: 'Game', pluralLabel: 'Games', iconSrc: '/brand/media-games.svg', iconAlt: 'Games',
@@ -110,6 +99,6 @@ export const MEDIA: Record<MediaType, MediaConfig> = {
       navActiveDesktop: 'bg-games-light text-games border-games-border shadow-sm',
       navActiveMobile: 'bg-games-light text-games border-games-border',
     },
-    formComponent: GameForm, providerName: 'igdb', lookupResultType: null!, itemType: null!,
+    formComponent: GameForm, providerName: 'igdb',
   },
 };

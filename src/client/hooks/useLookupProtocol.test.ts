@@ -14,7 +14,7 @@ function setup(lookup = vi.fn()) {
     providerNames: ['provider'],
     linkageKey: (d: Draft) => d.key,
     setLinkageKey: (d: Draft, key: string) => ({ ...d, key }),
-    byId: { label: 'item', lookup },
+    byId: { label: 'item', entityNoun: 'widget', notConfiguredHint: 'provider not configured', lookup },
   } as const;
   const hook = renderHook(() => useLookupProtocol<'movies', Draft, Result>(config));
   return { ...hook, draft: () => draft };
@@ -26,10 +26,10 @@ describe.each(['movies', 'music', 'games'])('useLookupProtocol %s', () => {
     await act(() => s.result.current.runById('1'));
     expect(s.draft()).toMatchObject({ title: 'Found', key: '1' });
   });
-  it.each([['not-configured', 'not configured'], ['not-found', 'no ']] as const)('%s exposes outcome', async (kind, message) => {
+  it.each([['not-configured', 'provider not configured'], ['not-found', 'No widget with item 1.']] as const)('%s exposes outcome', async (kind, expected) => {
     const s = setup(vi.fn().mockResolvedValue({ kind }));
     await act(() => s.result.current.runById('1'));
-    expect(s.result.current.fetchState.message?.toLowerCase()).toContain(message);
+    expect(s.result.current.fetchState.message).toBe(expected);
     expect(s.draft().title).toBe('');
   });
   it('surfaces errors', async () => {
@@ -49,7 +49,7 @@ it('guards enrichment against a newer linkage key', async () => {
     importFields: (_d, r) => ({ title: r.title }), providerNames: ['provider'],
     linkageKey: (d) => d.key, setLinkageKey: (d, key) => ({ ...d, key }),
     enrich: { keyOf: (d) => d.key, run: (id) => id === 'old' ? pending as never : new Promise(() => undefined), fill: (d) => ({ ...d, title: 'old enriched' }), shouldRun: () => true, loadingLabel: 'loading', successLabel: 'done', notConfiguredLabel: 'no' },
-    byId: { label: 'item', lookup: vi.fn() },
+    byId: { label: 'item', entityNoun: 'widget', notConfiguredHint: 'provider not configured', lookup: vi.fn() },
   }));
   act(() => { result.current.importLookup({ title: 'old', provider: 'provider', providerKey: 'old' }); result.current.importLookup({ title: 'new', provider: 'provider', providerKey: 'new' }); });
   resolve({ kind: 'found', result: { title: 'old enriched', provider: 'provider', providerKey: 'old' } });

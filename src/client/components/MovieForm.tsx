@@ -59,7 +59,7 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
       fill: (draft: Movie, r: MovieLookupResult) => ({ ...draft, director: draft.director ?? r.director ?? null, runtimeMinutes: draft.runtimeMinutes ?? r.runtimeMinutes ?? null }),
       shouldRun: (r: MovieLookupResult) => r.provider === 'tmdb' && (r.director == null || r.runtimeMinutes == null),
       loadingLabel: 'Loading director and runtime…', successLabel: 'Populated from TMDB.', notConfiguredLabel: 'TMDB lookup not configured. Set the provider key.' },
-    byId: { label, lookup },
+    byId: { label, entityNoun: 'movie', notConfiguredHint: 'TMDB lookup not configured. Set the provider key.', lookup },
   });
   const { importLookup, runById, prefillEffect, fetchState } = useLookupProtocol<'movies', Movie, MovieLookupResult>(protocolConfig(lookupMovieById, 'TMDB ID'));
   const imdbProtocol = useLookupProtocol<'movies', Movie, MovieLookupResult>(protocolConfig(lookupMovieByImdbId, 'IMDB ID'));

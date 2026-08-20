@@ -18,7 +18,15 @@ export interface LookupProtocolConfig<TMedia extends MediaType, TItem, TResult> 
     successLabel: string;
     notConfiguredLabel: string;
   };
-  byId: { label: string; lookup: (id: string) => Promise<LookupByIdOutcome<TResult>> };
+  byId: {
+    /** Human prompt for the input, e.g. 'TMDB ID'. */
+    label: string;
+    /** Noun for "No <noun> with <label> …" — e.g. 'movie'. */
+    entityNoun: string;
+    /** Shown when the provider is not configured, e.g. 'TMDB lookup not configured. Set the provider key.' */
+    notConfiguredHint: string;
+    lookup: (id: string) => Promise<LookupByIdOutcome<TResult>>;
+  };
 }
 
 export function useLookupProtocol<TMedia extends MediaType, TItem, TResult>(cfg: LookupProtocolConfig<TMedia, TItem, TResult>) {
@@ -65,11 +73,9 @@ export function useLookupProtocol<TMedia extends MediaType, TItem, TResult>(cfg:
       const outcome = await cfg.byId.lookup(trimmed);
       if (outcome.kind === 'found') { importLookup(outcome.result); setFetchState({ status: 'idle', message: 'Populated.' }); }
       else if (outcome.kind === 'not-configured') {
-        const provider = cfg.byId.label.includes('MusicBrainz') ? 'MusicBrainz lookup not configured. Set the User-Agent.' : cfg.byId.label.includes('IGDB') ? 'IGDB lookup not configured. Set the Twitch client id and secret.' : 'TMDB lookup not configured. Set the provider key.';
-        setFetchState({ status: 'idle', message: provider });
+        setFetchState({ status: 'idle', message: cfg.byId.notConfiguredHint });
       } else {
-        const noun = cfg.byId.label.includes('MusicBrainz') ? 'release' : cfg.byId.label.includes('IGDB') ? 'game' : 'movie';
-        setFetchState({ status: 'idle', message: `No ${noun} with ${cfg.byId.label} ${trimmed}.` });
+        setFetchState({ status: 'idle', message: `No ${cfg.byId.entityNoun} with ${cfg.byId.label} ${trimmed}.` });
       }
     } catch (error) { setFetchState({ status: 'idle', message: (error as Error).message ?? 'Lookup failed.' }); }
   }, [importLookup]);

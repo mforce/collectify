@@ -55,7 +55,7 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
       fill: (draft, r) => ({ ...draft, artistName: draft.artistName || r.artistName, year: draft.year ?? r.year ?? null, label: draft.label ?? r.label ?? null }),
       shouldRun: (r) => r.provider === 'musicbrainz' && (!r.artistName || r.year == null || !r.label),
       loadingLabel: 'Loading artist & label…', successLabel: 'Populated from MusicBrainz.', notConfiguredLabel: 'MusicBrainz lookup not configured. Set the User-Agent.' },
-    byId: { label: 'MusicBrainz Release ID', lookup: lookupAlbumByMbid },
+    byId: { label: 'MusicBrainz Release ID', entityNoun: 'release', notConfiguredHint: 'MusicBrainz lookup not configured. Set the User-Agent.', lookup: lookupAlbumByMbid },
   });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => prefillEffect(prefillLookup, prefillBarcode), []);
