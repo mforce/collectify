@@ -73,6 +73,16 @@ describe('FiltersPanel', () => {
     expect(screen.queryByText('5')).not.toBeInTheDocument();
   });
 
+  it('hides the digital-store chip when the mask has no defined bits', () => {
+    // ?digitalStore=0 (or any mask with no defined store bits) parses to an
+    // empty set; the chip must be hidden instead of rendering a blank
+    // "Store: ". (The filter still counts as active under activeFilterCount,
+    // so "Clear all" remains — only the blank chip is suppressed.)
+    renderPanel('games', { digitalStore: '0' });
+    expect(screen.queryByText('Store:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Store: ')).not.toBeInTheDocument();
+  });
+
   it('toggles digital-store checkboxes into a comma-joined filter', async () => {
     // The real app drives the panel from URL-synced filter state, so toggles
     // accumulate; a plain vi.fn() would stay on the initial value and every

@@ -377,14 +377,23 @@ function describeActive<T extends MediaType>(_type: T, filters: Filters<T>): { k
   for (const [key, value] of Object.entries(f)) {
     if (key === 'yearFrom' || key === 'yearTo' || key === 'tag') continue;
     if (value === undefined || value === null || value === '') continue;
-    const display = key === 'digitalStore'
+    if (key === 'digitalStore') {
       // Reuse parseStoreFilter so a numeric bitmask (?digitalStore=5) and
       // case-insensitive names both resolve to canonical labels in the chip.
-      ? parseStoreFilter(value as string)
-          .map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key === k)?.label ?? k).join(', ')
-      : typeof value === 'boolean'
-        ? (value ? 'Digital' : 'Physical')
-        : String(value);
+      // A mask with no defined bits (e.g. ?digitalStore=0 or 128) parses to
+      // an empty set — hide the chip rather than render a blank "Store: ".
+      const keys = parseStoreFilter(value as string);
+      if (keys.length === 0) continue;
+      out.push({
+        key,
+        label: labels[key] ?? key,
+        display: keys.map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key === k)?.label ?? k).join(', '),
+      });
+      continue;
+    }
+    const display = typeof value === 'boolean'
+      ? (value ? 'Digital' : 'Physical')
+      : String(value);
     out.push({ key, label: labels[key] ?? key, display });
   }
   if (Array.isArray(f.tag) && f.tag.length > 0) {
