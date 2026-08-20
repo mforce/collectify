@@ -162,8 +162,10 @@ function AlbumFields({ value, onChange }: { value: Filters<'music'>; onChange: (
 /**
  * Decode a GameFilters.digitalStore value into the canonical set of store keys.
  * The value can be a legacy single member name ("Psn"), comma-joined names
- * ("Steam,Epic"), or a numeric bitmask ("5" = Steam|Epic). Defined keys are
- * kept; undefined bits/names are dropped (the server rejects them anyway).
+ * ("Steam,Epic"), case-insensitive names ("steam,epic"), or a numeric bitmask
+ * ("5" = Steam|Epic). Names are matched case-insensitively and mapped to the
+ * canonical key; undefined bits/names are dropped (the server rejects them
+ * anyway, and rejects empty members with a 400 — see ResolveDigitalStores).
  */
 function parseStoreFilter(raw: string | undefined): string[] {
   if (!raw) return [];
@@ -174,8 +176,11 @@ function parseStoreFilter(raw: string | undefined): string[] {
   }
   return raw
     .split(',')
-    .map((x) => x.trim())
-    .filter((x) => DIGITAL_STORE_FLAGS.some((s) => s.key === x));
+    .map((x) => x.trim().toLowerCase())
+    .filter((x) => x.length > 0)
+    .map((x) => DIGITAL_STORE_FLAGS.find((s) => s.key.toLowerCase() === x))
+    .filter((s): s is (typeof DIGITAL_STORE_FLAGS)[number] => !!s)
+    .map((s) => s.key);
 }
 
 function GameFields({ value, onChange }: { value: Filters<'games'>; onChange: (next: Filters<'games'>) => void }) {

@@ -181,9 +181,12 @@ public enum WatchStatus       { Unwatched, Watching, Watched }
 public enum CompletionStatus  { NotStarted, Playing, Beaten, HundredPercent, Abandoned }
 ```
 
-All enums serialize as **strings** in JSON (already configured globally via `JsonStringEnumConverter`), with one exception:
+All enums serialize as **strings** in JSON (already configured globally via `JsonStringEnumConverter`), with two `[Flags]` exceptions that serialize as **integer bitmasks**:
 
-- **`MovieFormat`** is a `[Flags]` enum that serializes as an **integer bitmask** (e.g. `3` for Dvd | BluRay). The DTO carries it as `int` so the frontend can use bitwise ops to read/write checkbox state. All other enums remain string-serialized.
+- **`MovieFormat`** — e.g. `3` for Dvd | BluRay. The DTO carries it as `int` so the frontend can use bitwise ops to read/write checkbox state.
+- **`DigitalStores`** — a per-game bitmask of virtual storefronts, e.g. `5` for Steam | Epic. The DTO (`GameDto.DigitalStores`) carries it as `int` for the same reason. `0` = physical.
+
+All other enums remain string-serialized.
 
 ## Migration plan
 

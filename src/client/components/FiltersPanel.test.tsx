@@ -98,4 +98,27 @@ describe('FiltersPanel', () => {
     // mixed "5,Gog".
     expect(current).toEqual({ digitalStore: 'Steam,Epic,Gog' });
   });
+
+  it('decodes case-insensitive store names into canonical keys', async () => {
+    // The server parses names with ignoreCase (ResolveDigitalStores), so a
+    // server-valid URL like ?digitalStore=steam,epic must render Steam + Epic
+    // pressed and serialize canonical keys (not re-add/dupe on toggle).
+    let current: Filters<'games'> = { digitalStore: 'steam,epic' };
+    const onToggle = (next: Filters<'games'>) => { current = next; };
+    const { rerender } = render(
+      <FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    const press = (name: string) =>
+      screen.getByRole('button', { name }).getAttribute('aria-pressed');
+
+    expect(press('Steam')).toBe('true');
+    expect(press('Epic')).toBe('true');
+    expect(press('GOG')).toBe('false');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Epic' }));
+    rerender(<FiltersPanel type="games" value={current} onChange={onToggle} onClear={vi.fn()} />);
+    // Toggling off the lowercased Epic yields the remaining canonical Steam key.
+    expect(current).toEqual({ digitalStore: 'Steam' });
+  });
 });
