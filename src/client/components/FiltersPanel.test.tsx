@@ -50,6 +50,20 @@ describe('FiltersPanel', () => {
     expect(screen.queryByText('Psn')).not.toBeInTheDocument();
   });
 
+  it('renders canonical store labels for case-insensitive digital-store names', () => {
+    // The server accepts lowercase store names (ResolveDigitalStores,
+    // ignoreCase), so a deep-linked ?digitalStore=steam,epic must show the
+    // canonical labels in the active-filter chip, not the raw lowercase names.
+    renderPanel('games', { digitalStore: 'steam,epic' });
+
+    // describeActive aggregates one chip per filter key, so the digital-store
+    // chip's display is the comma-joined canonical labels "Steam, Epic". The
+    // getByText proves case-insensitive resolution (the pre-fix code fell
+    // through to the raw "steam, epic"), so the raw form must be absent.
+    expect(screen.getByText('Steam, Epic')).toBeInTheDocument();
+    expect(screen.queryByText('steam, epic')).not.toBeInTheDocument();
+  });
+
   it('toggles digital-store checkboxes into a comma-joined filter', async () => {
     // The real app drives the panel from URL-synced filter state, so toggles
     // accumulate; a plain vi.fn() would stay on the initial value and every

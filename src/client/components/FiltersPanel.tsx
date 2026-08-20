@@ -379,7 +379,7 @@ function describeActive<T extends MediaType>(_type: T, filters: Filters<T>): { k
     if (value === undefined || value === null || value === '') continue;
     const display = key === 'digitalStore'
       ? (value as string).split(',').map((x) => x.trim()).filter(Boolean)
-          .map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key === k)?.label ?? k).join(', ')
+          .map((k) => DIGITAL_STORE_FLAGS.find((s) => s.key.toLowerCase() === k.toLowerCase())?.label ?? k).join(', ')
       : typeof value === 'boolean'
         ? (value ? 'Digital' : 'Physical')
         : String(value);
