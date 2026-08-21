@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\Collectify.PostgresMigrations\Collectify.PostgresMigrations.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
