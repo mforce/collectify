@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -167,7 +168,11 @@ public sealed class PostgresProviderSelectionTests
     {
         Assert.True(bytes.Length > 1 && bytes[^1] == (byte)'\n' && bytes[^2] != (byte)'\n');
         using var document = JsonDocument.Parse(bytes);
-        var canonical = JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions { WriteIndented = false }) + "\n";
+        var canonical = JsonSerializer.Serialize(document.RootElement, new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        }) + "\n";
         Assert.Equal(canonical, Encoding.UTF8.GetString(bytes));
     }
 
@@ -179,7 +184,7 @@ public sealed class PostgresProviderSelectionTests
         {
             ["databaseSchema"] = ["databaseOwnerIsCurrentUser", "schemaOwnerIsDatabaseOwner", "currentUserHasUsage", "currentUserHasCreate", "publicHasCreate"],
             ["relations"] = ["name", "kind", "persistence", "ownerIsCurrentUser", "acl"],
-            ["columns"] = ["relation", "ordinal", "name", "typeOid", "typeName", "typmod", "length", "notNull", "collation", "default", "identity", "generated", "ownedSequence"],
+            ["columns"] = ["relation", "name", "typeOid", "typeName", "typmod", "length", "notNull", "collation", "default", "identity", "generated", "ownedSequence"],
             ["sequences"] = ["name", "dataType", "start", "increment", "minimum", "maximum", "cache", "cycle", "ownerIsCurrentUser", "dependencyType", "ownedRelation", "ownedColumn"],
             ["constraints"] = ["relation", "name", "type", "columns", "referencedRelation", "referencedColumns", "matchType", "updateAction", "deleteAction", "validated", "deferrable", "initiallyDeferred", "definition"],
             ["indexes"] = ["relation", "name", "unique", "valid", "ready", "method", "keyCount", "columns", "operatorClasses", "collations", "options", "expressions", "predicate"],
@@ -187,7 +192,7 @@ public sealed class PostgresProviderSelectionTests
             ["rewriteRules"] = ["relation", "name", "event", "instead", "enabled", "definition"],
             ["rls"] = ["relation", "enabled", "forced"],
             ["policies"] = ["relation", "name", "permissive", "roles", "command", "using", "check"],
-            ["inboundDependencies"] = ["sourceClass", "sourceObject", "sourceSubId", "targetRelation", "targetSubId", "dependencyType"]
+            ["inboundDependencies"] = ["sourceClass", "sourceIdentity", "targetRelation", "targetColumn", "dependencyType"]
         };
         Assert.Equal(required.Keys.Order(StringComparer.Ordinal), document.RootElement.EnumerateObject().Select(x => x.Name).Order(StringComparer.Ordinal));
         Assert.Single(document.RootElement.GetProperty("databaseSchema").EnumerateArray());
