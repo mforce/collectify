@@ -159,7 +159,7 @@ for index in "${!commits[@]}"; do
   raw="$state_root/schema.raw.sql"
   "${docker_cmd[@]}" exec -e PGPASSWORD="$password" "$active_container" pg_dump \
     -U collectify_fixture -d collectify_fixture --schema-only --schema=public --no-owner --no-privileges \
-    --no-comments --quote-all-identifiers --restrict-key=COLLECTIFY_ISSUE_100_PROVENANCE > "$raw"
+    --no-comments --quote-all-identifiers --restrict-key=COLLECTIFYISSUE100PROVENANCE > "$raw"
   pg_dump_version=$("${docker_cmd[@]}" exec "$active_container" pg_dump --version | tr -d '\r')
   output="$publish_root/$commit"
   mkdir -p "$output"
@@ -216,7 +216,7 @@ s=json.loads(state)
 s.update(family=family,variant='',postgresImageDigest=image.split('@',1)[1],dotnetSdkVersion=sdk,
  dockerServerVersion=docker,pgDumpVersion=pgdump,
  productionBootCommand='Collectify__Database__Provider=postgres Collectify__Database__ConnectionString=[REDACTED] ASPNETCORE_URLS=http://127.0.0.1:[PORT] dotnet run --project Collectify.Api --no-launch-profile',
- pgDumpCommand='pg_dump --schema-only --schema=public --no-owner --no-privileges --no-comments --quote-all-identifiers --restrict-key=COLLECTIFY_ISSUE_100_PROVENANCE',normalizationVersion='1',rawDumpSha256=raw,
+ pgDumpCommand='pg_dump --schema-only --schema=public --no-owner --no-privileges --no-comments --quote-all-identifiers --restrict-key=COLLECTIFYISSUE100PROVENANCE',normalizationVersion='1',rawDumpSha256=raw,
  normalizedFixturePath=f"src/server/tests/Collectify.PostgresTests/Fixtures/generated/{s['commit']}/schema.normalized.sql",normalizedFixtureSha256=norm,
  catalogManifestPath=f"src/server/tests/Collectify.PostgresTests/Fixtures/generated/{s['commit']}/catalog-manifest.json",catalogManifestSha256=manifest)
 with open(path,'a') as f: f.write(json.dumps(s,sort_keys=True,separators=(',',':'))+'\n')
