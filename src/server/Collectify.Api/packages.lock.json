@@ -278,6 +278,12 @@
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )"
         }
       },
+      "collectify.postgresmigrations": {
+        "type": "Project",
+        "dependencies": {
+          "Collectify.Infrastructure": "[1.0.0, )"
+        }
+      },
       "Microsoft.EntityFrameworkCore.Sqlite": {
         "type": "CentralTransitive",
         "requested": "[10.0.11, )",

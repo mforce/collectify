@@ -3,9 +3,11 @@
     <Project Path="Collectify.Api/Collectify.Api.csproj" />
     <Project Path="Collectify.Domain/Collectify.Domain.csproj" />
     <Project Path="Collectify.Infrastructure/Collectify.Infrastructure.csproj" />
+    <Project Path="Collectify.PostgresMigrations/Collectify.PostgresMigrations.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Collectify.Tests/Collectify.Tests.csproj" />
+    <Project Path="tests/Collectify.PostgresTests/Collectify.PostgresTests.csproj" />
   </Folder>
   <Folder Name="/client/">
     <File Path="../client/package.json" />

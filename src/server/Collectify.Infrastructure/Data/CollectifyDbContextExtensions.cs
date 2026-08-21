@@ -15,34 +15,56 @@ public static class CollectifyDbContextExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var provider = configuration["Collectify:Database:Provider"]
-            ?? DatabaseOptions.DefaultProvider;
+        var configuredProvider = configuration[DatabaseOptions.ProviderKey];
+        var provider = string.IsNullOrWhiteSpace(configuredProvider)
+            ? DatabaseOptions.DefaultProvider
+            : configuredProvider.Trim();
 
-        return services.AddDbContext<CollectifyDbContext>(opt =>
+        if (!provider.Equals(DatabaseOptions.SqliteProvider, StringComparison.OrdinalIgnoreCase)
+            && !provider.Equals(DatabaseOptions.PostgresProvider, StringComparison.OrdinalIgnoreCase))
         {
-            switch (provider.ToLowerInvariant())
-            {
-                case "postgres":
-                {
-                    var connectionString = configuration["Collectify:Database:ConnectionString"]
-                        ?? throw new InvalidOperationException(
-                            $"Database provider is '{provider}' but no connection string is configured. " +
-                            "Set Collectify__Database__ConnectionString.");
-                    opt.UseNpgsql(connectionString);
-                    break;
-                }
+            throw new InvalidOperationException(
+                $"Unsupported database provider '{provider}' configured in " +
+                $"'{DatabaseOptions.ProviderKey}'. Supported providers: " +
+                $"'{DatabaseOptions.SqliteProvider}', '{DatabaseOptions.PostgresProvider}'.");
+        }
 
-                case "sqlite":
-                default:
+        services.AddSingleton<CollectifyDbContextRegistrationMarker>();
+
+        return services.AddDbContext<CollectifyDbContext>((serviceProvider, options) =>
+        {
+            if (provider.Equals(DatabaseOptions.PostgresProvider, StringComparison.OrdinalIgnoreCase))
+            {
+                var connectionString = configuration[DatabaseOptions.ConnectionStringKey]
+                    ?? throw new InvalidOperationException(
+                        $"Database provider is '{provider}' but no connection string is configured. " +
+                        "Set Collectify__Database__ConnectionString.");
+                var connection = new NpgsqlConnectionStringBuilder(connectionString)
                 {
-                    var dataDir = configuration["Collectify:DataDir"]
-                        ?? Path.Combine(AppContext.BaseDirectory, "data");
-                    Directory.CreateDirectory(dataDir);
-                    var dbPath = Path.Combine(dataDir, "collectify.db");
-                    opt.UseSqlite($"Data Source={dbPath}");
-                    break;
-                }
+                    SearchPath = DatabaseOptions.PostgresSchema,
+                };
+
+                options.UseNpgsql(connection.ConnectionString, npgsql =>
+                {
+                    npgsql.MigrationsAssembly(DatabaseOptions.PostgresMigrationsAssembly);
+                    npgsql.MigrationsHistoryTable(
+                        DatabaseOptions.MigrationsHistoryTable,
+                        DatabaseOptions.PostgresSchema);
+                });
             }
+            else
+            {
+                var dataDir = configuration["Collectify:DataDir"]
+                    ?? Path.Combine(AppContext.BaseDirectory, "data");
+                Directory.CreateDirectory(dataDir);
+                var dbPath = Path.Combine(dataDir, "collectify.db");
+                options.UseSqlite(
+                    $"Data Source={dbPath}",
+                    sqlite => sqlite.MigrationsAssembly(DatabaseOptions.SqliteMigrationsAssembly));
+            }
+
+            options.AddInterceptors(
+                serviceProvider.GetRequiredService<CollectifyDbContextRegistrationMarker>());
         });
     }
 

@@ -6,16 +6,25 @@ namespace Collectify.Infrastructure;
 /// </summary>
 public static class DatabaseOptions
 {
-    /// <summary>Configuration section name.</summary>
     public const string SectionName = "Collectify:Database";
+    public const string ProviderKey = SectionName + ":Provider";
+    public const string ConnectionStringKey = SectionName + ":ConnectionString";
+    public const string AdminConnectionStringKey = SectionName + ":AdminConnectionString";
+    public const string AdminDatabaseKey = SectionName + ":AdminDatabase";
 
-    /// <summary>Default provider.</summary>
-    public const string DefaultProvider = "sqlite";
+    public const string SqliteProvider = "sqlite";
+    public const string PostgresProvider = "postgres";
+    public const string DefaultProvider = SqliteProvider;
 
-    /// <summary>Supported provider identifiers.</summary>
+    public const string SqliteMigrationsAssembly = "Collectify.Infrastructure";
+    public const string PostgresMigrationsAssembly = "Collectify.PostgresMigrations";
+    public const string PostgresSchema = "public";
+    public const string MigrationsHistoryTable = "__EFMigrationsHistory";
+    public const string DefaultPostgresAdminDatabase = "postgres";
+
     public static readonly HashSet<string> Providers = new(StringComparer.OrdinalIgnoreCase)
     {
-        "sqlite",
-        "postgres",
+        SqliteProvider,
+        PostgresProvider,
     };
 }

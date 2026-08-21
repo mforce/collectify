@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Collectify.Infrastructure\Collectify.Infrastructure.csproj" />
+    <ProjectReference Include="..\Collectify.PostgresMigrations\Collectify.PostgresMigrations.csproj" />
     <ProjectReference Include="..\Collectify.Domain\Collectify.Domain.csproj" />
   </ItemGroup>
 
