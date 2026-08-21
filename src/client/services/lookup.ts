@@ -10,6 +10,9 @@ export interface MovieLookupResult {
   title: string;
   originalTitle: string | null;
   year: number | null;
+  releaseDate?: string | null;
+  cast?: string | null;
+  providerRating?: number | null;
   director: string | null;
   runtimeMinutes: number | null;
   description: string | null;
@@ -23,6 +26,7 @@ export interface MusicLookupResult {
   title: string;
   artistName: string;
   year: number | null;
+  releaseDate?: string | null;
   label: string | null;
   description: string | null;
   imageUrl: string | null;
@@ -44,6 +48,8 @@ export interface GameLookupResult {
   // actually matches the local game's platform.
   platforms: GamePlatform[];
   year: number | null;
+  releaseDate?: string | null;
+  ageRating?: string | null;
   publisher: string | null;
   developer: string | null;
   description: string | null;

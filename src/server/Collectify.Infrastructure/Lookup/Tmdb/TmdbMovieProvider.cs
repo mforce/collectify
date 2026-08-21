@@ -17,6 +17,13 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
 {
     public const string ProviderName = "tmdb";
 
+    /// <summary>
+    /// Bumped when the cached <see cref="MovieLookupResult"/> shape changes.
+    /// The lookup cache has no schema guard, so versioning the key forces a
+    /// one-time refresh instead of serving stale, wrongly-shaped results.
+    /// </summary>
+    private const int CacheSchemaVersion = 1;
+
     private readonly HttpClient _http;
     private readonly IUpcLookupClient _upc;
     private readonly ILookupCache _cache;
@@ -46,7 +53,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         var trimmed = query.Trim();
         if (trimmed.Length == 0) return [];
 
-        var cacheKey = "search:" + trimmed.ToLowerInvariant();
+        var cacheKey = $"v{CacheSchemaVersion}:search:" + trimmed.ToLowerInvariant();
 
         var cached = await _cache.GetAsync<List<MovieLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
@@ -75,7 +82,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
 
         // Separate cache namespace from search so the two flows can't poison
         // each other's results.
-        var cacheKey = "id:" + providerKey;
+        var cacheKey = $"v{CacheSchemaVersion}:id:" + providerKey;
         var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
@@ -113,7 +120,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         // Separate cache namespace from id-lookup and search so an unrelated
         // string that happens to match (e.g. "tt27205") can't satisfy a
         // different lookup.
-        var cacheKey = "imdb:" + trimmed;
+        var cacheKey = $"v{CacheSchemaVersion}:imdb:" + trimmed;
         var cached = await _cache.GetAsync<MovieLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
@@ -155,7 +162,7 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
 
         // Cache the final list per barcode so a second scan of the same
         // disc is a single DB hit -- no UPC lookup, no TMDB title search.
-        var cacheKey = "barcode:" + trimmed;
+        var cacheKey = $"v{CacheSchemaVersion}:barcode:" + trimmed;
         var cached = await _cache.GetAsync<List<MovieLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
@@ -181,7 +188,10 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         RuntimeMinutes: null,
         Description: s.Overview,
         ImageUrl: BuildImageUrl(s.PosterPath),
-        Genres: null);
+        Genres: null,
+        ReleaseDate: ParseDateOnly(s.ReleaseDate),
+        Cast: null,
+        ProviderRating: null);
 
     private MovieLookupResult MapDetail(TmdbMovieDetail d) => new(
         Provider: ProviderName,
@@ -193,7 +203,24 @@ public sealed class TmdbMovieProvider : IMovieMetadataProvider
         RuntimeMinutes: d.Runtime,
         Description: d.Overview,
         ImageUrl: BuildImageUrl(d.PosterPath),
-        Genres: null);
+        Genres: null,
+        ReleaseDate: ParseDateOnly(d.ReleaseDate),
+        Cast: ExtractTopCast(d.Credits),
+        ProviderRating: d.VoteAverage);
+
+    private static DateOnly? ParseDateOnly(string? releaseDate)
+    {
+        if (releaseDate is null) return null;
+        return DateOnly.TryParseExact(releaseDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var d) ? d : null;
+    }
+
+    private static string? ExtractTopCast(TmdbCredits? credits)
+    {
+        if (credits?.Cast is null) return null;
+        var names = credits.Cast.Select(c => c.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Cast<string>().Take(5).ToList();
+        return names.Count == 0 ? null : string.Join(", ", names);
+    }
 
     private static string? ExtractDirector(TmdbCredits? credits)
     {

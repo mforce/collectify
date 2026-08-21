@@ -211,6 +211,50 @@ public class IgdbBackfillRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task RunSweepAsync_FillOnly_FillsAndPreservesReleaseDateAndAgeRating()
+    {
+        await using (var seed = new CollectifyDbContext(_options))
+        {
+            seed.Games.AddRange(
+                new Game { OwnerId = "alice", Title = "Missing Rich Fields", Platform = GamePlatform.Pc },
+                new Game
+                {
+                    OwnerId = "alice",
+                    Title = "Existing Rich Fields",
+                    Platform = GamePlatform.Pc,
+                    ReleaseDate = new DateOnly(2001, 2, 3),
+                    AgeRating = "ESRB E",
+                });
+            await seed.SaveChangesAsync();
+        }
+
+        var provider = new MultiplyGameProvider(new Dictionary<string, Func<IReadOnlyList<GameLookupResult>>>
+        {
+            ["Missing Rich Fields"] = () =>
+                [Hit("Missing Rich Fields", GamePlatform.Pc, "1") with
+                {
+                    ReleaseDate = new DateOnly(2024, 5, 6),
+                    AgeRating = "ESRB T",
+                }],
+            ["Existing Rich Fields"] = () =>
+                [Hit("Existing Rich Fields", GamePlatform.Pc, "2") with
+                {
+                    ReleaseDate = new DateOnly(2025, 6, 7),
+                    AgeRating = "ESRB M",
+                }],
+        });
+
+        await NewRunner(provider).RunSweepAsync(CancellationToken.None);
+
+        await using var assert = new CollectifyDbContext(_options);
+        var games = assert.Games.ToDictionary(g => g.Title);
+        Assert.Equal(new DateOnly(2024, 5, 6), games["Missing Rich Fields"].ReleaseDate);
+        Assert.Equal("ESRB T", games["Missing Rich Fields"].AgeRating);
+        Assert.Equal(new DateOnly(2001, 2, 3), games["Existing Rich Fields"].ReleaseDate);
+        Assert.Equal("ESRB E", games["Existing Rich Fields"].AgeRating);
+    }
+
+    [Fact]
     public async Task RunSweepAsync_IgdbNulls_DoNotEraseExistingValues()
     {
         await using (var seed = new CollectifyDbContext(_options))
@@ -220,7 +264,7 @@ public class IgdbBackfillRunnerTests : IDisposable
         }
 
         // IGDB entry here has a null Publisher / Year (Map returns null).
-        var nullPub = new GameLookupResult("igdb", "9", "Hades", GamePlatform.Pc, null, null, null, "Summary", "https://images.igdb.com/c.jpg", "RPG");
+        var nullPub = new GameLookupResult("igdb", "9", "Hades", GamePlatform.Pc, null, null, null, "Summary", "https://images.igdb.com/c.jpg", "RPG", null, null);
         var runner = NewRunner(provider: new ScriptedGameProvider { SearchResults = [nullPub] });
         await runner.RunSweepAsync(CancellationToken.None);
 

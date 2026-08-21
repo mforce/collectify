@@ -108,6 +108,7 @@ public class IgdbGameProviderTests
         Assert.Equal("1942", hit.ProviderKey);
         Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
         Assert.Equal(2015, hit.Year);
+        Assert.Equal(new DateOnly(2015, 5, 19), hit.ReleaseDate);
         Assert.Equal(GamePlatform.Pc, hit.Platform);
         Assert.Equal("CD Projekt Red", hit.Developer);
         Assert.Equal("Warner Bros", hit.Publisher);
@@ -127,6 +128,35 @@ public class IgdbGameProviderTests
         Assert.Null(hit.Year);
         Assert.Null(hit.Developer);
         Assert.Null(hit.Publisher);
+        Assert.Null(hit.ReleaseDate);
+        Assert.Null(hit.AgeRating);
+    }
+
+    [Theory]
+    [InlineData(2, 4, "PEGI 16")]
+    [InlineData(1, 6, "ESRB M")]
+    [InlineData(9, 9, null)]
+    public async Task SearchAsync_MapsAgeRatings_AndUnknownValuesGracefully(int category, int rating, string? expected)
+    {
+        var json = $$"""
+            [ { "id": 1, "name": "Rated Game", "age_ratings": [ { "category": {{category}}, "rating": {{rating}} } ] } ]
+            """;
+        var hit = Assert.Single(await NewProvider(new StubHandler(json), new LookupCacheMockStorage()).SearchAsync("rated"));
+
+        Assert.Equal(expected, hit.AgeRating);
+    }
+
+    [Fact]
+    public async Task SearchAsync_PrefersPegiAgeRatingOverEsrb()
+    {
+        const string json = """
+            [ { "id": 1, "name": "Rated Game", "age_ratings": [
+                { "category": 1, "rating": 6 }, { "category": 2, "rating": 4 }
+            ] } ]
+            """;
+        var hit = Assert.Single(await NewProvider(new StubHandler(json), new LookupCacheMockStorage()).SearchAsync("rated"));
+
+        Assert.Equal("PEGI 16", hit.AgeRating);
     }
 
     [Fact]
@@ -211,15 +241,15 @@ public class IgdbGameProviderTests
     public async Task SearchByPlatformAsync_UsesPlatformScopedCacheKey_NotSharedWithUnscoped()
     {
         // The platform-scoped cache key must be distinct from the unscoped one:
-        // an unscoped "v3:search:witcher" entry must NOT satisfy a PC-scoped
-        // "v3:search:witcher|Pc" request (or the platform filter would be wrong).
+        // an unscoped "v4:search:witcher" entry must NOT satisfy a PC-scoped
+        // "v4:search:witcher|Pc" request (or the platform filter would be wrong).
         var handler = new StubHandler(SingleGameJson);
         var storage = new LookupCacheMockStorage();
         var p1 = NewProvider(handler, storage);
         var p2 = NewProvider(handler, storage); // shared mock storage
 
-        await p1.SearchAsync("witcher");                            // unscoped: key "v3:search:witcher"
-        await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "v3:search:witcher|Pc"
+        await p1.SearchAsync("witcher");                            // unscoped: key "v4:search:witcher"
+        await p2.SearchByPlatformAsync("witcher", GamePlatform.Pc); // PC: key "v4:search:witcher|Pc"
 
         // Two distinct cache keys -> two upstream calls, not a cache hit.
         Assert.Equal(2, handler.Requests.Count);
@@ -319,8 +349,8 @@ public class IgdbGameProviderTests
     {
         // After the persisted SQLite table is dropped, a cache miss (there is
         // no old row to serve) must refresh the search from IGDB and write the
-        // current v3: logical key. The stale v2/unversioned rows of the past no
-        // longer exist post-migration; only the current v3: key may be read.
+        // current v4: logical key. The stale v3/unversioned rows of the past no
+        // longer exist post-migration; only the current v4: key may be read.
         var handler = new StubHandler(SingleGameJson);
         var storage = new LookupCacheMockStorage();
         var provider = NewProvider(handler, storage);
@@ -334,14 +364,14 @@ public class IgdbGameProviderTests
 
         // The logical write used the current versioned key (physical
         // lookup:igdb: prefix is proven separately by the adapter tests).
-        Assert.Contains(storage.Writes, w => w.Provider == "igdb" && w.Key == "v3:search:witcher");
+        Assert.Contains(storage.Writes, w => w.Provider == "igdb" && w.Key == "v4:search:witcher");
     }
 
     [Fact]
     public async Task SearchByPlatformAsync_RequestsCurrentVersionedScopedKey_AndRefreshesFromHttp()
     {
         // Platform-scoped searches read/write the versioned, platform-scoped
-        // logical key (v3:search:<query>|<platform>), not a legacy row.
+        // logical key (v4:search:<query>|<platform>), not a legacy row.
         var handler = new StubHandler(SingleGameJson);
         var storage = new LookupCacheMockStorage();
         var provider = NewProvider(handler, storage);
@@ -350,7 +380,7 @@ public class IgdbGameProviderTests
 
         Assert.Equal("The Witcher 3: Wild Hunt", hit.Title);
         Assert.Single(handler.Requests);
-        Assert.Contains(storage.Writes, w => w.Provider == "igdb" && w.Key == "v3:search:witcher|Pc");
+        Assert.Contains(storage.Writes, w => w.Provider == "igdb" && w.Key == "v4:search:witcher|Pc");
     }
 
     [Fact]

@@ -53,11 +53,11 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
 
   const protocolConfig = (lookup: typeof lookupMovieById, label: string) => ({
     getDraft: () => m, patchDraft: patch,
-    importFields: (_draft: Movie, r: MovieLookupResult) => ({ title: r.title, originalTitle: r.originalTitle ?? null, year: r.year ?? null, director: r.director ?? null, runtimeMinutes: r.runtimeMinutes ?? null, description: r.description ?? null, imagePath: r.imageUrl ?? null }),
+    importFields: (_draft: Movie, r: MovieLookupResult) => ({ title: r.title, originalTitle: r.originalTitle ?? null, year: r.year ?? null, releaseDate: r.releaseDate ?? null, director: r.director ?? null, cast: r.cast ?? null, runtimeMinutes: r.runtimeMinutes ?? null, providerRating: r.providerRating ?? null, description: r.description ?? null, imagePath: r.imageUrl ?? null }),
     providerNames: ['tmdb'] as const, linkageKey: (draft: Movie) => draft.tmdbId ?? null,
     setLinkageKey: (draft: Movie, value: string) => ({ ...draft, tmdbId: value }),
     enrich: { keyOf: (draft: Movie) => draft.tmdbId ?? null, run: lookupMovieById,
-      fill: (draft: Movie, r: MovieLookupResult) => ({ ...draft, director: draft.director ?? r.director ?? null, runtimeMinutes: draft.runtimeMinutes ?? r.runtimeMinutes ?? null }),
+      fill: (draft: Movie, r: MovieLookupResult) => ({ ...draft, releaseDate: draft.releaseDate ?? r.releaseDate ?? null, director: draft.director ?? r.director ?? null, cast: draft.cast ?? r.cast ?? null, runtimeMinutes: draft.runtimeMinutes ?? r.runtimeMinutes ?? null, providerRating: draft.providerRating ?? r.providerRating ?? null }),
       shouldRun: (r: MovieLookupResult) => r.provider === 'tmdb' && (r.director == null || r.runtimeMinutes == null),
       loadingLabel: 'Loading director and runtime…', successLabel: 'Populated from TMDB.', notConfiguredLabel: 'TMDB lookup not configured. Set the provider key.' },
     byId: { label, entityNoun: 'movie', notConfiguredHint: 'TMDB lookup not configured. Set the provider key.', lookup },
@@ -125,9 +125,12 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
             <Field label="Year">
               <Input type="number" value={m.year ?? ''} onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)} />
             </Field>
+            <Field label="Release date"><Input type="date" value={m.releaseDate ?? ''} onChange={(e) => set('releaseDate', e.target.value || null)} /></Field>
             <Field label="Director">
               <Input value={m.director ?? ''} onChange={(e) => set('director', e.target.value || null)} />
             </Field>
+            <Field label="Cast (comma separated)"><Input value={m.cast ?? ''} onChange={(e) => set('cast', e.target.value || null)} /></Field>
+            <Field label="Provider rating"><Input type="number" step="0.1" min="0" max="10" value={m.providerRating ?? ''} onChange={(e) => set('providerRating', e.target.value ? Number(e.target.value) : null)} /></Field>
             <Field label="Runtime (min)">
               <Input type="number" value={m.runtimeMinutes ?? ''} onChange={(e) => set('runtimeMinutes', e.target.value ? Number(e.target.value) : null)} />
             </Field>

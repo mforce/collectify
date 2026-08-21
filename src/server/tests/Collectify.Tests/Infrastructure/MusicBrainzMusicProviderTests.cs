@@ -121,6 +121,21 @@ public class MusicBrainzMusicProviderTests
             hit.ImageUrl);
     }
 
+    [Theory]
+    [InlineData("2003-04-03", 2003, "2003-04-03")]
+    [InlineData("2003", 2003, null)]
+    public async Task SearchAsync_MapsCompleteReleaseDate_AndKeepsYearForPartialDate(
+        string date, int expectedYear, string? expectedReleaseDate)
+    {
+        var json = $$"""
+            { "releases": [ { "id": "release-1", "title": "Album", "date": "{{date}}" } ] }
+            """;
+        var hit = Assert.Single(await NewProvider(new StubHandler(json), new LookupCacheMockStorage()).SearchAsync("album"));
+
+        Assert.Equal(expectedYear, hit.Year);
+        Assert.Equal(expectedReleaseDate is null ? null : DateOnly.Parse(expectedReleaseDate), hit.ReleaseDate);
+    }
+
     [Fact]
     public async Task SearchAsync_JoinsCollaboratingArtistsViaJoinPhrases()
     {
@@ -175,6 +190,7 @@ public class MusicBrainzMusicProviderTests
         await provider.SearchAsync("ok computer");
 
         Assert.NotEmpty(storage.Writes);
+        Assert.Contains(storage.Writes, w => w.Provider == "musicbrainz" && w.Key == "v1:search:ok computer");
         Assert.All(storage.Writes, w => Assert.Equal(expectedTtl, w.Ttl));
     }
 
@@ -231,6 +247,7 @@ public class MusicBrainzMusicProviderTests
         Assert.NotNull(second);
         Assert.Equal("OK Computer", second!.Title);
         Assert.Single(handler.RequestedUrls);
+        Assert.Contains(storage.Writes, w => w.Provider == "musicbrainz" && w.Key == "v1:id:f4e51c80-99e2-39e1-8062-c9b8e2685bdf");
     }
 
     [Fact]
@@ -302,6 +319,7 @@ public class MusicBrainzMusicProviderTests
         await p2.SearchByBarcodeAsync("634904012623");
 
         Assert.Single(handler.RequestedUrls);
+        Assert.Contains(storage.Writes, w => w.Provider == "musicbrainz" && w.Key == "v1:barcode:634904012623");
     }
 
     [Fact]

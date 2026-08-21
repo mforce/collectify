@@ -27,6 +27,9 @@ public class Game : ICollectionEntry
     public string? ImagePath { get; set; }
     public string? Description { get; set; }
     public string? Notes { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
+    /// <summary>Display age rating string, e.g. "PEGI 16" or "ESRB M".</summary>
+    public string? AgeRating { get; set; }
 
     /// <summary>
     /// If this game is downloadable content (DLC / add-on), the base game it

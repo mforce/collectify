@@ -308,8 +308,9 @@ public sealed class IgdbBackfillRunner
     /// <summary>
     /// Fill-only merge: existing values always win; only IgdbId is always
     /// written. Never overwrites a developer/publisher/year/description/cover
-    /// the user or a Steam import already set. Never writes Platform — the
-    /// existing value (or Other, left for the user) is preserved.
+    /// the user or a Steam import already set. ReleaseDate and AgeRating are
+    /// filled when missing. Never writes Platform — the existing value (or
+    /// Other, left for the user) is preserved.
     /// </summary>
     private void Apply(Game game, GameLookupResult r, string? coverPath)
     {
@@ -317,6 +318,8 @@ public sealed class IgdbBackfillRunner
         game.Developer ??= r.Developer;
         game.Publisher ??= r.Publisher;
         game.Year ??= r.Year;
+        game.ReleaseDate ??= r.ReleaseDate;
+        game.AgeRating ??= r.AgeRating;
         if (string.IsNullOrWhiteSpace(game.Description))
             game.Description = ComposeDescription(r.Description, r.Genres);
         if (string.IsNullOrWhiteSpace(game.ImagePath))

@@ -31,10 +31,15 @@ internal sealed record TmdbMovieDetail(
     [property: JsonPropertyName("runtime")] int? Runtime,
     [property: JsonPropertyName("overview")] string? Overview,
     [property: JsonPropertyName("poster_path")] string? PosterPath,
+    [property: JsonPropertyName("vote_average")] float? VoteAverage,
     [property: JsonPropertyName("credits")] TmdbCredits? Credits);
 
 internal sealed record TmdbCredits(
-    [property: JsonPropertyName("crew")] IReadOnlyList<TmdbCrewMember>? Crew);
+    [property: JsonPropertyName("crew")] IReadOnlyList<TmdbCrewMember>? Crew,
+    [property: JsonPropertyName("cast")] IReadOnlyList<TmdbCastMember>? Cast);
+
+internal sealed record TmdbCastMember(
+    [property: JsonPropertyName("name")] string? Name);
 
 internal sealed record TmdbCrewMember(
     [property: JsonPropertyName("job")] string? Job,

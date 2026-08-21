@@ -23,7 +23,10 @@ public record MovieLookupResult(
     int? RuntimeMinutes,
     string? Description,
     string? ImageUrl,
-    string? Genres) : ILookupResult;
+    string? Genres,
+    DateOnly? ReleaseDate = null,
+    string? Cast = null,
+    float? ProviderRating = null) : ILookupResult;
 
 public record MusicLookupResult(
     string Provider,
@@ -34,7 +37,8 @@ public record MusicLookupResult(
     string? Label,
     string? Description,
     string? ImageUrl,
-    string? Genres) : ILookupResult;
+    string? Genres,
+    DateOnly? ReleaseDate = null) : ILookupResult;
 
 public record GameLookupResult(
     string Provider,
@@ -52,7 +56,9 @@ public record GameLookupResult(
     string? Developer,
     string? Description,
     string? ImageUrl,
-    string? Genres) : ILookupResult
+    string? Genres,
+    DateOnly? ReleaseDate = null,
+    string? AgeRating = null) : ILookupResult
 {
     /// <summary>
     /// Every platform this result's source lists, mapped to our enum. This is

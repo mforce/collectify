@@ -23,6 +23,13 @@ public sealed class MusicBrainzMusicProvider : IMetadataProvider<MusicLookupResu
 {
     public const string ProviderName = "musicbrainz";
     public const string HttpClientName = "musicbrainz";
+
+    /// <summary>
+    /// Bumped when the cached <see cref="MusicLookupResult"/> shape changes.
+    /// The lookup cache has no schema guard, so versioning the key forces a
+    /// one-time refresh instead of serving stale, wrongly-shaped results.
+    /// </summary>
+    private const int CacheSchemaVersion = 1;
     private const string CoverArtBase = "https://coverartarchive.org/release";
 
     private readonly HttpClient _http;
@@ -51,7 +58,7 @@ public sealed class MusicBrainzMusicProvider : IMetadataProvider<MusicLookupResu
         var trimmed = query.Trim();
         if (trimmed.Length == 0) return [];
 
-        var cacheKey = "search:" + trimmed.ToLowerInvariant();
+        var cacheKey = $"v{CacheSchemaVersion}:search:" + trimmed.ToLowerInvariant();
         var cached = await _cache.GetAsync<List<MusicLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
@@ -79,7 +86,7 @@ public sealed class MusicBrainzMusicProvider : IMetadataProvider<MusicLookupResu
         if (!IsConfigured) return null;
         if (string.IsNullOrWhiteSpace(providerKey)) return null;
 
-        var cacheKey = "id:" + providerKey;
+        var cacheKey = $"v{CacheSchemaVersion}:id:" + providerKey;
         var cached = await _cache.GetAsync<MusicLookupResult>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
@@ -117,7 +124,7 @@ public sealed class MusicBrainzMusicProvider : IMetadataProvider<MusicLookupResu
         // the /release search index, so we can skip UPCitemdb entirely.
         // Cache key is namespaced "barcode:" so it can't collide with
         // free-text searches whose content happens to be a 12-digit number.
-        var cacheKey = "barcode:" + trimmed;
+        var cacheKey = $"v{CacheSchemaVersion}:barcode:" + trimmed;
         var cached = await _cache.GetAsync<List<MusicLookupResult>>(ProviderName, cacheKey, ct);
         if (cached is not null) return cached;
 
@@ -147,7 +154,17 @@ public sealed class MusicBrainzMusicProvider : IMetadataProvider<MusicLookupResu
         Label: r.LabelInfo?.FirstOrDefault()?.Label?.Name,
         Description: null,
         ImageUrl: $"{CoverArtBase}/{r.Id}/front-500",
-        Genres: null);
+        Genres: null,
+        ReleaseDate: ParseDateOnly(r.Date));
+
+    private static DateOnly? ParseDateOnly(string? date)
+    {
+        if (string.IsNullOrWhiteSpace(date)) return null;
+        // MB dates are "YYYY", "YYYY-MM" or "YYYY-MM-DD".
+        if (date.Length >= 10) return DateOnly.TryParseExact(date.AsSpan(0, 10), "yyyy-MM-dd",
+            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : null;
+        return null;
+    }
 
     private static string JoinArtistCredits(IReadOnlyList<MbArtistCredit>? credits)
     {
