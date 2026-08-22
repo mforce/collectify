@@ -100,7 +100,7 @@ public static class CollectifyDbContextExtensions
         var quotedDatabase = QuoteDatabaseIdentifier(databaseName);
 
         // Connect to the default "postgres" admin database to check/create.
-        builder.Database = "postgres";
+        builder.Database = DatabaseOptions.DefaultPostgresAdminDatabase;
         using var adminConn = new NpgsqlConnection(builder.ConnectionString);
         await adminConn.OpenAsync();
 

@@ -170,9 +170,9 @@ using (var scope = app.Services.CreateScope())
     // Both providers own their schema through EF Core migrations (issue #100).
     // PostgreSQL is provisioned (created if missing) then migrated; SQLite is
     // migrated in place. Failure to migrate stops startup.
-    var provider = builder.Configuration["Collectify:Database:Provider"]
-        ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider;
-    if (provider.Equals("postgres", StringComparison.OrdinalIgnoreCase))
+    var provider = (builder.Configuration[Collectify.Infrastructure.DatabaseOptions.ProviderKey]
+        ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider).Trim();
+    if (provider.Equals(Collectify.Infrastructure.DatabaseOptions.PostgresProvider, StringComparison.OrdinalIgnoreCase))
     {
         await CollectifyDbContextExtensions.EnsurePostgresDatabaseAsync(builder.Configuration);
     }
