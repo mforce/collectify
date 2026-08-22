@@ -167,21 +167,17 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
 
-    // SQLite: migrations own the schema.
-    // Postgres: shared migrations carry SQLite-specific DDL (BLOB vs bytea),
-    // so we use EnsureCreated() which builds the schema from the current model.
-    // For a self-hosted app this is fine — schema evolution requires a DB reset.
+    // Both providers own their schema through EF Core migrations (issue #100).
+    // PostgreSQL is provisioned (created if missing) then migrated; SQLite is
+    // migrated in place. Failure to migrate stops startup.
     var provider = builder.Configuration["Collectify:Database:Provider"]
         ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider;
     if (provider.Equals("postgres", StringComparison.OrdinalIgnoreCase))
     {
         await CollectifyDbContextExtensions.EnsurePostgresDatabaseAsync(builder.Configuration);
-        await db.Database.EnsureCreatedAsync();
     }
-    else
-    {
-        await db.Database.MigrateAsync();
-    }
+
+    await db.Database.MigrateAsync();
 
     // Record whether the Steam store-import tables exist. On Postgres an upgrade
     // of an existing install leaves them absent (EnsureCreated is a no-op); the

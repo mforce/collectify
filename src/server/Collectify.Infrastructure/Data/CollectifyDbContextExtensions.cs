@@ -69,6 +69,16 @@ public static class CollectifyDbContextExtensions
     }
 
     /// <summary>
+    /// Returns a PostgreSQL-quoted identifier for a database name, doubling any
+    /// embedded double-quote so the name cannot terminate the SQL literal early.
+    /// Used to build a safe <c>CREATE DATABASE</c> statement from an untrusted or
+    /// unusual name without injection. Public so the Postgres test project can
+    /// exercise the injection guard directly (see C8's M-UNQUOTED-ID mutation).
+    /// </summary>
+    public static string QuoteDatabaseIdentifier(string databaseName)
+        => new NpgsqlCommandBuilder().QuoteIdentifier(databaseName);
+
+    /// <summary>
     /// Ensures the target PostgreSQL database exists before migrations run.
     /// Connects to the <c>postgres</c> admin database, checks for the target
     /// database, and creates it if missing. Does not touch the schema —
@@ -76,11 +86,18 @@ public static class CollectifyDbContextExtensions
     /// </summary>
     public static async Task EnsurePostgresDatabaseAsync(IConfiguration configuration)
     {
-        var connectionString = configuration["Collectify:Database:ConnectionString"]
+        var connectionString = configuration[DatabaseOptions.ConnectionStringKey]
             ?? throw new InvalidOperationException("Database connection string is not configured.");
 
         var builder = new NpgsqlConnectionStringBuilder(connectionString);
         var databaseName = builder.Database;
+        if (string.IsNullOrWhiteSpace(databaseName))
+        {
+            throw new InvalidOperationException(
+                "The configured PostgreSQL connection string does not specify a database name.");
+        }
+
+        var quotedDatabase = QuoteDatabaseIdentifier(databaseName);
 
         // Connect to the default "postgres" admin database to check/create.
         builder.Database = "postgres";
@@ -90,13 +107,15 @@ public static class CollectifyDbContextExtensions
         using var cmd = new NpgsqlCommand(
             "SELECT 1 FROM pg_database WHERE datname = @db",
             adminConn);
-        cmd.Parameters.AddWithValue("@db", (object?)databaseName!);
+        cmd.Parameters.AddWithValue("db", databaseName);
 
-        if (await cmd.ExecuteScalarAsync() is not DBNull and not int)
+        var exists = await cmd.ExecuteScalarAsync();
+        if (exists is null || exists is DBNull)
         {
-            await new NpgsqlCommand(
-                $"CREATE DATABASE \"{databaseName}\"",
-                adminConn).ExecuteNonQueryAsync();
+            using var create = new NpgsqlCommand(
+                $"CREATE DATABASE {quotedDatabase}",
+                adminConn);
+            await create.ExecuteNonQueryAsync();
         }
     }
 }
