@@ -393,7 +393,7 @@ same way.
 
 - **C1** composite-FK breaks game delete → `Restrict` + explicit null in the DELETE endpoint (in scope).
 - **C2** `openid.signed` coverage + full echo → §2 steps 7 & 6.
-- **C3** Postgres tables not created → §Migration / §Rollout (reset required).
+- **C3** Postgres tables not created → resolved via EF Core migrations on a fresh-target Postgres (see §Schema-lifecycle reality, §Migration, §Rollout).
 - **S1** browser-bound second-factor cookie → §1, §2.
 - **S2** verification order (local first) + rate limit → §2.
 - **S3** nonce replay already covered by one-time state; drop separate nonce table → §2 step 9.

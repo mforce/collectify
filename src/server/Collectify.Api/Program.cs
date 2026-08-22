@@ -216,7 +216,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         app.Logger.LogWarning(ex,
-            "Skipped SteamAuthRequest sweep (table missing on existing Postgres; a DB reset is required to enable store import).");
+            "Skipped SteamAuthRequest sweep (Steam auth table unavailable; store import may be incomplete).");
     }
 }
 
