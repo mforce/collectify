@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "86500ebd2648793e4be1a80c028bcbffcc6b51ce",
+  "firstPostgresCommit": "0828c4caff5cc6290eff701a7005a7de58902a0f",
+  "modelInputs": [
+    "src/server/Collectify.Infrastructure/Data/CollectifyDbContext.cs",
+    "src/server/Collectify.Domain/Entities",
+    "src/server/Collectify.Domain/Enums",
+    "src/server/Collectify.Infrastructure/Identity/AppUser.cs"
+  ],
+  "packageInput": "src/server/Directory.Packages.props",
+  "signatureAlgorithm": "sha256 of the byte concatenation, in modelInputs order, of `git ls-tree -r <commit> -- <input>` stdout for each model input",
+  "states": [
+    {
+      "commit": "0828c4caff5cc6290eff701a7005a7de58902a0f",
+      "efCoreVersion": "10.0.7",
+      "npgsqlVersion": "10.0.2",
+      "modelInputSignature": "e942bb5ac1969a6446cfcd458f7bccdafef1dba886138290652a6a1d48608a98"
+    },
+    {
+      "commit": "b45d93e4ca3451e18d3bae4a42d7efd94046d257",
+      "efCoreVersion": "10.0.7",
+      "npgsqlVersion": "10.0.2",
+      "modelInputSignature": "d6d582ca5bd24bb0db5b2a2863e5812d6d939922b3a4d11562311265656de89b"
+    },
+    {
+      "commit": "c4e16bda09976420c7b70c54c2121f1a4b05e7a0",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.2",
+      "modelInputSignature": "d6d582ca5bd24bb0db5b2a2863e5812d6d939922b3a4d11562311265656de89b"
+    },
+    {
+      "commit": "028074fb078f91cb40f6c81dfc040f379f9528f1",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "d6d582ca5bd24bb0db5b2a2863e5812d6d939922b3a4d11562311265656de89b"
+    },
+    {
+      "commit": "60455f79dbd041f1712ba4ecae289bebdfe7cc36",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "b14e28274b9233fde3a015e8f764008d2200605b5930530c2a21749764f5e656"
+    },
+    {
+      "commit": "38b75391d0a1eb5d37e62259d94c918c62479443",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "cdb7c9ae4e9f528429d702eab35ad2f0b79817a5fe6e5c9d008d2c908ef6a474"
+    },
+    {
+      "commit": "3daa7ec573283ef3ec7a5d081c6ee1f3d85b04cb",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "8e33abfd0f8d3b93ae38b3d459ac24fa03e803d5c00a1e3fec40565ce95be14d"
+    },
+    {
+      "commit": "bb488a29910276cb8164e0eb1335890f53280c4b",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "cc3512ff1bad8d03d0ff6f7bd746d64f42061d82a4edf0434c8e693d3833d194"
+    },
+    {
+      "commit": "b2579b407162cebead3a2925d041c39daec6cc15",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "79b3696a27b98b2d101cc17b12354d6808e91d55d06d79e4864f7acd7cf0f52d"
+    },
+    {
+      "commit": "0dd36ab813d07cce9c3f4c32ce4e79a9e45b8894",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "f0a3c7317d10a7ac1dd5602fad8d9d79c46f241b97c0067774d1f01e51b414d3"
+    },
+    {
+      "commit": "5881b72a08e3f5a080720bf05c168d29347faf60",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "4b38b32538a712166a818d1811d1a36f416147739d9e1efcc3b14a0bdbe6d286"
+    },
+    {
+      "commit": "86500ebd2648793e4be1a80c028bcbffcc6b51ce",
+      "efCoreVersion": "10.0.11",
+      "npgsqlVersion": "10.0.3",
+      "modelInputSignature": "fc6940c876c11fdaeeeb00cd2936a57332f8b451625e9180c64bb08dd7c7f14a"
+    }
+  ]
+}

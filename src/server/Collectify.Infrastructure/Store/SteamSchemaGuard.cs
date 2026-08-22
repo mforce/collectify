@@ -7,13 +7,16 @@ namespace Collectify.Infrastructure.Store;
 /// Caches whether the Steam store-import tables actually exist in the current
 /// database, determined once at startup.
 ///
-/// Why this exists: SQLite is kept in sync by <c>MigrateAsync()</c>, but the
-/// Postgres path uses <c>EnsureCreatedAsync()</c>, which is a no-op against an
-/// existing database — so an upgraded existing Postgres install never gains the
-/// new <c>GameStoreConnections</c> / <c>GameStoreOwnedTitles</c> /
-/// <c>SteamAuthRequests</c> tables. Instead of letting every Steam endpoint crash
-/// with an unhandled "undefined table" 500, the endpoints consult this flag and
-/// fail soft to the same "Steam import not configured" UX as a missing API key.
+/// Why this exists: both providers are now kept in sync by <c>MigrateAsync()</c>
+/// (issue #100) — SQLite migrates in place, and a Postgres target is provisioned
+/// and then migrated through its provider-native lineage, so a database on that
+/// lineage does gain the <c>GameStoreConnections</c> / <c>GameStoreOwnedTitles</c> /
+/// <c>SteamAuthRequests</c> tables. This guard remains as a defensive check on table
+/// PRESENCE: PostgreSQL is supported as a fresh target only, so a database whose
+/// schema was built outside the migration lineage can still be missing them. Instead
+/// of letting every Steam endpoint crash with an unhandled "undefined table" 500, the
+/// endpoints consult this flag and fail soft to the same "Steam import not configured"
+/// UX as a missing API key.
 /// </summary>
 public sealed class SteamSchemaGuard
 {

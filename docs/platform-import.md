@@ -349,14 +349,16 @@ One EF migration `AddStoreImport`:
 - Alternate key `(Id, OwnerId)` on `Games`; composite FK
   `GameStoreOwnedTitle(GameId, OwnerId) → Games(Id, OwnerId)` with **`Restrict`** delete behavior.
 
-**Schema-lifecycle reality (Claude C3):** the repo runs `MigrateAsync()` on SQLite but
-`EnsureCreatedAsync()` on Postgres (`Program.cs:88-98`), and `EnsureCreated` is a no-op against an
-existing database. So on an **existing Postgres install, the new tables are NOT created** and the
-Steam endpoints would 500 on first query. **This is a pre-existing repo limitation** (the
-`Program.cs:85-87` comment acknowledges "schema evolution requires a DB reset"), but this is the
-first feature to add tables since. **Release note / rollout:** Postgres operators must reset the
-database volume to pick up the new tables. The rollout section must NOT promise "no behavior change
-for existing Postgres installs."
+**Schema-lifecycle reality (issue #100):** the repo now runs `MigrateAsync()` on **both** providers.
+SQLite is migrated in place, and Postgres is provisioned (created if missing) and then migrated
+through its provider-native EF Core lineage at startup (`Program.cs`). `EnsureCreatedAsync()` is no
+longer used on either path, so a Postgres target that is on the migration lineage picks up the Steam
+store-import tables from the migration that adds them — no volume reset is required for a normal
+upgrade. **Scope caveat:** PostgreSQL is supported as a **fresh target only**. Baselining a legacy
+database whose schema was originally built by `EnsureCreated` (and which therefore has no
+`__EFMigrationsHistory`) is deliberately out of scope; there are no such deployments, since shipped
+deployments are SQLite. `SteamSchemaGuard` is retained as a defensive presence check so the Steam
+endpoints fail soft rather than 500 if the tables are absent for any reason.
 
 ### SteamAuthRequest cleanup (Claude S7)
 
@@ -368,9 +370,11 @@ same way.
 
 - Opt-in by config: Steam key absent → `configured=false`, UI degrades to a hint. No behavior
   change for **SQLite** installs until a key is set.
-- **Postgres**: existing installs need a **database reset/volume recreate** to gain the new tables
-  (see Migration). This is the accepted schema-lifecycle trade-off of the repo, now surfaced
-  explicitly.
+- **Postgres**: a **fresh-target-only** deployment. A database on the EF Core migration lineage
+  gains the new tables from the Steam store-import migration (`AddStoreImportAndDlc`), applied
+  automatically at startup — **no database reset or volume recreate is required** (see Migration).
+  A legacy `EnsureCreated`-provisioned database (no `__EFMigrationsHistory`) is out of scope, per
+  the Schema-lifecycle reality note above.
 - Owner scoping rules apply as everywhere (never query across owners), keeping Phase 4 safe.
 
 ## Decisions (confirmed)
@@ -389,7 +393,7 @@ same way.
 
 - **C1** composite-FK breaks game delete → `Restrict` + explicit null in the DELETE endpoint (in scope).
 - **C2** `openid.signed` coverage + full echo → §2 steps 7 & 6.
-- **C3** Postgres tables not created → §Migration / §Rollout (reset required).
+- **C3** Postgres tables not created → resolved via EF Core migrations on a fresh-target Postgres (see §Schema-lifecycle reality, §Migration, §Rollout).
 - **S1** browser-bound second-factor cookie → §1, §2.
 - **S2** verification order (local first) + rate limit → §2.
 - **S3** nonce replay already covered by one-time state; drop separate nonce table → §2 step 9.

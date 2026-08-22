@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "up": {
+    "games": {
+      "oldDigitalStoreValues": [null, 0, 1, 2, 3, 4, 5, 99, 777],
+      "physicalExpected": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "digitalExpected": [64, 1, 2, 4, 8, 16, 32, 64, 64],
+      "rowCount": 18
+    },
+    "ledger": {
+      "oldStoreValues": [0, 1, 2, 3, 4, 5, 99, 777],
+      "expectedStoreValues": [1, 2, 4, 8, 16, 32, 64, 777],
+      "connectionRowCount": 8,
+      "ownedTitleRowCount": 8,
+      "collisionControl": "Use one OwnerId for all connection rows. Use one OwnerId and one ExternalGameId for all owned-title rows so dropping and recreating the unique indexes is exercised."
+    }
+  },
+  "down": {
+    "games": {
+      "digitalStoresValues": [0, 1, 2, 4, 8, 16, 32, 64, 3, 7, 15, 31, 63, 127],
+      "expectedOldDigitalStore": [0, 0, 1, 2, 3, 4, 5, 99, 1, 2, 3, 4, 5, 99],
+      "expectedIsDigital": [false, true, true, true, true, true, true, true, true, true, true, true, true, true],
+      "priority": [64, 32, 16, 8, 4, 2, 1],
+      "rowCount": 14
+    },
+    "ledger": {
+      "currentStoreValues": [1, 2, 4, 8, 16, 32, 64, 777],
+      "expectedOldStoreValues": [0, 1, 2, 3, 4, 5, 99, 777],
+      "connectionRowCount": 8,
+      "ownedTitleRowCount": 8
+    }
+  },
+  "tests": [
+    "Collectify.PostgresTests.PostgresMultiDigitalStoresMigrationTests.MultiDigitalStores_Up_PreservesEveryLegacyValue",
+    "Collectify.PostgresTests.PostgresMultiDigitalStoresMigrationTests.MultiDigitalStores_Down_RestoresEveryRepresentableValue"
+  ],
+  "expectedTestCount": 2
+}
