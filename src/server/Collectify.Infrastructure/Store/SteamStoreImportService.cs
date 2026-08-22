@@ -546,6 +546,10 @@ public sealed class SteamStoreImportService
         Developer = FirstOrNull(meta?.BasicInfo?.Developers?.FirstOrDefault()?.Name, 500),
         Publisher = FirstOrNull(meta?.BasicInfo?.Publishers?.FirstOrDefault()?.Name, 500),
         Year = ToYear(meta?.Release?.SteamReleaseDate ?? 0),
+        // SteamReleaseDate is a unix timestamp with day granularity; land its UTC
+        // calendar date on the full ReleaseDate field (#156), not just the
+        // derived Year above. Null when Steam omits a release date (0 / invalid).
+        ReleaseDate = ToDateOnly(meta?.Release?.SteamReleaseDate ?? 0),
         Description = FirstOrNull(meta?.BasicInfo?.ShortDescription, 2000),
         AcquisitionSource = "Steam Import",
     };

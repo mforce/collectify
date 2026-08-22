@@ -270,6 +270,9 @@ public class SteamEndpointsTests
         Assert.Equal("Supergiant Games", game.Developer);
         Assert.Equal("Supergiant Games", game.Publisher);
         Assert.Equal(2021, game.Year);
+        // Steam's SteamReleaseDate (unix: 1609459200 = 2021-01-01) must land on
+        // the full ReleaseDate, not just the derived Year. Regression for #156.
+        Assert.Equal(new DateOnly(2021, 1, 1), game.ReleaseDate);
         Assert.Equal("Defy the god of the dead.", game.Description);
     }
 
