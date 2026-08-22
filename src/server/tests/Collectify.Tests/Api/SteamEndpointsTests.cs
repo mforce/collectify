@@ -302,6 +302,8 @@ public class SteamEndpointsTests
         Assert.Null(game.Developer);
         Assert.Null(game.Publisher);
         Assert.Null(game.Year);
+        // No browse metadata -> ReleaseDate stays null too, not just Year (#156).
+        Assert.Null(game.ReleaseDate);
         Assert.Null(game.Description);
     }
 
