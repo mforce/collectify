@@ -546,6 +546,7 @@ public sealed class SteamStoreImportService
         Developer = FirstOrNull(meta?.BasicInfo?.Developers?.FirstOrDefault()?.Name, 500),
         Publisher = FirstOrNull(meta?.BasicInfo?.Publishers?.FirstOrDefault()?.Name, 500),
         Year = ToYear(meta?.Release?.SteamReleaseDate ?? 0),
+        ReleaseDate = ToDateOnly(meta?.Release?.SteamReleaseDate ?? 0),
         Description = FirstOrNull(meta?.BasicInfo?.ShortDescription, 2000),
         AcquisitionSource = "Steam Import",
     };

@@ -270,6 +270,7 @@ public class SteamEndpointsTests
         Assert.Equal("Supergiant Games", game.Developer);
         Assert.Equal("Supergiant Games", game.Publisher);
         Assert.Equal(2021, game.Year);
+        Assert.Equal(new DateOnly(2021, 1, 1), game.ReleaseDate);
         Assert.Equal("Defy the god of the dead.", game.Description);
     }
 
@@ -299,6 +300,8 @@ public class SteamEndpointsTests
         Assert.Null(game.Developer);
         Assert.Null(game.Publisher);
         Assert.Null(game.Year);
+        // No browse metadata -> ReleaseDate stays null too, not just Year (#156).
+        Assert.Null(game.ReleaseDate);
         Assert.Null(game.Description);
     }
 
