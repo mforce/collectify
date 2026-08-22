@@ -370,9 +370,11 @@ same way.
 
 - Opt-in by config: Steam key absent → `configured=false`, UI degrades to a hint. No behavior
   change for **SQLite** installs until a key is set.
-- **Postgres**: existing installs need a **database reset/volume recreate** to gain the new tables
-  (see Migration). This is the accepted schema-lifecycle trade-off of the repo, now surfaced
-  explicitly.
+- **Postgres**: a **fresh-target-only** deployment. A database on the EF Core migration lineage
+  gains the new tables from the Steam store-import migration (`AddStoreImportAndDlc`), applied
+  automatically at startup — **no database reset or volume recreate is required** (see Migration).
+  A legacy `EnsureCreated`-provisioned database (no `__EFMigrationsHistory`) is out of scope, per
+  the Schema-lifecycle reality note above.
 - Owner scoping rules apply as everywhere (never query across owners), keeping Phase 4 safe.
 
 ## Decisions (confirmed)
