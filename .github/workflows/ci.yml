@@ -55,6 +55,9 @@ jobs:
           # On a repair dispatch, gate the commit that was asked for. Empty on
           # push/PR, which actions/checkout treats as "use the default ref".
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || '' }}
+          # Full history: PostgresProviderSelectionTests walks first-parent
+          # commits back to the approved base, which a shallow checkout lacks.
+          fetch-depth: 0
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
