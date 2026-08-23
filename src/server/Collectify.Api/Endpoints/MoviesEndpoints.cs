@@ -125,6 +125,21 @@ public static class MoviesEndpoints
             return (q, null);
         },
         OnDelete = null,
+        BulkFields = new Dictionary<string, BulkField<Movie>>
+        {
+            ["status"] = BulkFieldBuilder.Enum<Movie, CollectionStatus>("status", (e, v) => e.Status = v),
+            ["condition"] = BulkFieldBuilder.Enum<Movie, Condition>("condition", (e, v) => e.Condition = v),
+            ["personalRating"] = BulkFieldBuilder.Rating<Movie>("personalRating", (e, v) => e.PersonalRating = v),
+            ["acquiredOn"] = BulkFieldBuilder.Scalar<Movie, DateOnly>("acquiredOn", (e, v) => e.AcquiredOn = v),
+            ["acquisitionPrice"] = BulkFieldBuilder.Price<Movie>("acquisitionPrice", (e, v) => e.AcquisitionPrice = v),
+            ["acquisitionCurrency"] = BulkFieldBuilder.Currency<Movie>("acquisitionCurrency", (e, v) => e.AcquisitionCurrency = v),
+            ["acquisitionSource"] = BulkFieldBuilder.Text<Movie>("acquisitionSource", (e, v) => e.AcquisitionSource = v),
+            ["description"] = BulkFieldBuilder.Text<Movie>("description", (e, v) => e.Description = v),
+            ["notes"] = BulkFieldBuilder.Text<Movie>("notes", (e, v) => e.Notes = v),
+            ["watchStatus"] = BulkFieldBuilder.Enum<Movie, WatchStatus>("watchStatus", (e, v) => e.WatchStatus = v),
+            ["watchCount"] = BulkFieldBuilder.Count<Movie>("watchCount", (e, v) => e.WatchCount = v),
+            ["lastWatchedOn"] = BulkFieldBuilder.Scalar<Movie, DateOnly>("lastWatchedOn", (e, v) => e.LastWatchedOn = v),
+        },
     };
 
     // Bound as a raw string (not the enum) so the filter mirrors the

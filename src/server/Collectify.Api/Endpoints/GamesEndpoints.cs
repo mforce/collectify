@@ -153,6 +153,21 @@ public static class GamesEndpoints
                 child.UpdatedAt = DateTime.UtcNow;
             }
         },
+        BulkFields = new Dictionary<string, BulkField<Game>>
+        {
+            ["status"] = BulkFieldBuilder.Enum<Game, CollectionStatus>("status", (e, v) => e.Status = v),
+            ["condition"] = BulkFieldBuilder.Enum<Game, Condition>("condition", (e, v) => e.Condition = v),
+            ["personalRating"] = BulkFieldBuilder.Rating<Game>("personalRating", (e, v) => e.PersonalRating = v),
+            ["acquiredOn"] = BulkFieldBuilder.Scalar<Game, DateOnly>("acquiredOn", (e, v) => e.AcquiredOn = v),
+            ["acquisitionPrice"] = BulkFieldBuilder.Price<Game>("acquisitionPrice", (e, v) => e.AcquisitionPrice = v),
+            ["acquisitionCurrency"] = BulkFieldBuilder.Currency<Game>("acquisitionCurrency", (e, v) => e.AcquisitionCurrency = v),
+            ["acquisitionSource"] = BulkFieldBuilder.Text<Game>("acquisitionSource", (e, v) => e.AcquisitionSource = v),
+            ["description"] = BulkFieldBuilder.Text<Game>("description", (e, v) => e.Description = v),
+            ["notes"] = BulkFieldBuilder.Text<Game>("notes", (e, v) => e.Notes = v),
+            ["completionStatus"] = BulkFieldBuilder.Enum<Game, CompletionStatus>("completionStatus", (e, v) => e.CompletionStatus = v),
+            ["hoursPlayed"] = BulkFieldBuilder.Scalar<Game, int>("hoursPlayed", (e, v) => e.HoursPlayed = v),
+            ["lastPlayedOn"] = BulkFieldBuilder.Scalar<Game, DateOnly>("lastPlayedOn", (e, v) => e.LastPlayedOn = v),
+        },
     };
 
     // Bound as a raw string (not the enum) so a stale/legacy value
