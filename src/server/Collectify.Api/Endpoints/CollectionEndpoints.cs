@@ -189,9 +189,17 @@ public static class CollectionEndpoints
                 // the single SaveChangesAsync below.
                 if (req.Updates.TryGetValue("tags", out var tagsEl))
                 {
-                    var names = tagsEl.ValueKind == JsonValueKind.Null
-                        ? null
-                        : JsonSerializer.Deserialize<string[]?>(tagsEl.GetRawText());
+                    string[]? names;
+                    try
+                    {
+                        names = tagsEl.ValueKind == JsonValueKind.Null
+                            ? null
+                            : JsonSerializer.Deserialize<string[]?>(tagsEl.GetRawText());
+                    }
+                    catch (JsonException)
+                    {
+                        return Results.BadRequest(new { error = "tags: invalid value for tags." });
+                    }
                     var resolved = await TagResolver.ResolveAsync(db, ownerId, names);
                     foreach (var row in rows) row.Tags = resolved;
                 }

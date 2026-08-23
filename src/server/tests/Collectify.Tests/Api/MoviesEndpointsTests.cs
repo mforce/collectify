@@ -388,4 +388,19 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
         Assert.Null(fetched!.Condition);
     }
+
+    [Fact]
+    public async Task BulkUpdate_NullableCondition_CaseInsensitive()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { condition = "poor" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Equal(Condition.Poor, fetched!.Condition);
+    }
 }

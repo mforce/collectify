@@ -539,6 +539,32 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     }
 
     [Fact]
+    public async Task BulkUpdate_Tags_MalformedValue_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { tags = "not-an-array" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UnknownFieldWithTags_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { tags = new[] { "x" }, bogusField = 1 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains("bogusField", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
     public async Task BulkUpdate_EmptyIds_Returns400()
     {
         var alice = await NewAliceAsync();
