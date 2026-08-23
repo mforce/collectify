@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useBulkUpdate, useList, type BulkUpdates } from '../services/collection';
 import { useFiltersState } from '../services/filters';
 import { ApiError } from '../services/client';
@@ -239,6 +239,23 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
       return next;
     });
   };
+  // Bulk selection / edit — drop selections that leave the current result set.
+  const shownIds = new Set(
+    items.map((item) => (item as BaseItem).id).filter((id): id is number => id != null),
+  );
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev;
+      let changed = false;
+      const next = new Set<number>();
+      for (const id of prev) {
+        if (shownIds.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
   const clearSelection = () => setSelected(new Set());
 
   const allIds = items

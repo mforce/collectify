@@ -87,6 +87,10 @@ public static class BulkFieldBuilder
                 {
                     return $"invalid value for {name}.";
                 }
+                catch (OverflowException)
+                {
+                    return $"invalid value for {name}.";
+                }
                 if (!System.Enum.IsDefined(value))
                     return $"'{value}' is not a defined {typeof(TEnum).Name}.";
                 set(e, value);
@@ -124,6 +128,10 @@ public static class BulkFieldBuilder
                     return $"invalid value for {name}.";
                 }
                 catch (ArgumentException)
+                {
+                    return $"invalid value for {name}.";
+                }
+                catch (OverflowException)
                 {
                     return $"invalid value for {name}.";
                 }

@@ -525,6 +525,18 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     }
 
     [Fact]
+    public async Task BulkUpdate_EnumValue_Overflows_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { status = "999999999999999999999999" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task BulkUpdate_UnknownField_Returns400()
     {
         var alice = await NewAliceAsync();

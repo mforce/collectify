@@ -157,4 +157,65 @@ describe('CollectionList — bulk select + update', () => {
     // Selection (and thus the bulk bar) survives a cancel — only the modal closes.
     expect(screen.getByText('1 selected')).toBeInTheDocument();
   });
+
+  it('drops a selection that falls out of the result set before a bulk edit is confirmed', async () => {
+    // useList is mocked directly (network-driven query-key changes leave
+    // `data` transiently undefined, which would mask what this test checks);
+    // this gives full control over `list.data` with no loading gap.
+    let currentData: Movie[] = FIXTURE_MOVIES;
+    const bulkMutate = vi.fn((_vars: unknown, opts?: { onSuccess?: () => void }) => {
+      opts?.onSuccess?.();
+    });
+
+    vi.doMock('../services/collection', async () => {
+      const actual = await vi.importActual<typeof import('../services/collection')>('../services/collection');
+      return {
+        ...actual,
+        useList: () => ({ data: currentData, isLoading: false, error: null }),
+        useBulkUpdate: () => ({ mutate: bulkMutate, isPending: false, isError: false, error: null }),
+      };
+    });
+    vi.resetModules();
+    const { default: MockedCollectionList } = await import('./CollectionList');
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    const buildElement = () => (
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <MockedCollectionList
+            type="movies"
+            title="Movies"
+            newPath="/movies/new"
+            category="movies"
+            renderItem={(m: Movie) => ({ primary: m.title })}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(buildElement());
+    const user = userEvent.setup();
+
+    await screen.findByText('Inception');
+    const checkboxes = screen.getAllByLabelText('Select item');
+    await user.click(checkboxes[0]); // Inception (id 1)
+    await user.click(checkboxes[1]); // Heat (id 2)
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+
+    // Simulate a search/filter change narrowing the result set: Heat (id 2) drops out.
+    currentData = FIXTURE_MOVIES.filter((m) => m.title === 'Inception');
+    rerender(buildElement());
+
+    await waitFor(() => expect(screen.queryByText('Heat')).not.toBeInTheDocument());
+    // The stale selection (Heat) must have been dropped; Inception stays selected.
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Edit selected' }));
+    await user.click(screen.getByRole('radio', { name: '7 of 10' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    expect(bulkMutate).toHaveBeenCalledWith({ ids: [1], updates: { personalRating: 7 } }, expect.any(Object));
+
+    vi.doUnmock('../services/collection');
+    vi.resetModules();
+  });
 });
