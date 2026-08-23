@@ -206,6 +206,31 @@ public static class BulkFieldBuilder
         };
     }
 
+    /// <summary>Set a non-negative nullable integer counter (null clears it), rejecting negatives.</summary>
+    public static BulkField<TEntity> NonNegativeInt<TEntity>(
+        string name, Action<TEntity, int?> set) where TEntity : class, ICollectionEntry
+    {
+        return new BulkField<TEntity>
+        {
+            Name = name,
+            Apply = (e, el) =>
+            {
+                if (el.ValueKind == JsonValueKind.Null)
+                {
+                    set(e, null);
+                    return null;
+                }
+                if (el.ValueKind != JsonValueKind.Number) return $"invalid value for {name}.";
+                var raw = el.GetRawText();
+                if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var c))
+                    return $"invalid value for {name}.";
+                if (c < 0) return $"{name} must not be negative.";
+                set(e, c);
+                return null;
+            },
+        };
+    }
+
     /// <summary>Set a 3-letter ISO 4217 currency code (null clears it), upper-cased.</summary>
     public static BulkField<TEntity> Currency<TEntity>(
         string name, Action<TEntity, string?> set) where TEntity : class, ICollectionEntry

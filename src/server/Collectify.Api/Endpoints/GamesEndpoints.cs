@@ -165,7 +165,7 @@ public static class GamesEndpoints
             ["description"] = BulkFieldBuilder.Text<Game>("description", (e, v) => e.Description = v),
             ["notes"] = BulkFieldBuilder.Text<Game>("notes", (e, v) => e.Notes = v),
             ["completionStatus"] = BulkFieldBuilder.Enum<Game, CompletionStatus>("completionStatus", (e, v) => e.CompletionStatus = v),
-            ["hoursPlayed"] = BulkFieldBuilder.Scalar<Game, int>("hoursPlayed", (e, v) => e.HoursPlayed = v),
+            ["hoursPlayed"] = BulkFieldBuilder.NonNegativeInt<Game>("hoursPlayed", (e, v) => e.HoursPlayed = v),
             ["lastPlayedOn"] = BulkFieldBuilder.Scalar<Game, DateOnly>("lastPlayedOn", (e, v) => e.LastPlayedOn = v),
         },
     };

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Collectify.Domain.Entities;
 using Collectify.Tests.Infrastructure;
 using Collectify.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
@@ -534,6 +535,40 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
             new { ids = new[] { id }, updates = new { status = "999999999999999999999999" } });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_HoursPlayed_Negative_Returns400()
+    {
+        // hoursPlayed is games-only; kept here (not a games-specific test
+        // class) per the allow-listed file for this fix.
+        if (RoutePrefix != "/api/games/") return;
+
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { hoursPlayed = -1 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var entity = await FindByIdAsync(id);
+        if (entity is Game game) Assert.Null(game.HoursPlayed);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_HoursPlayed_NonNegative_Returns200()
+    {
+        if (RoutePrefix != "/api/games/") return;
+
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { hoursPlayed = 3 } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var entity = await FindByIdAsync(id);
+        if (entity is Game game) Assert.Equal(3, game.HoursPlayed);
     }
 
     [Fact]
