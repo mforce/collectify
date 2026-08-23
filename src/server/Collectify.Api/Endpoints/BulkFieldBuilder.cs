@@ -69,9 +69,21 @@ public static class BulkFieldBuilder
                 TEnum value;
                 try
                 {
-                    value = JsonSerializer.Deserialize<TEnum>(el.GetRawText());
+                    // JsonSerializer.Deserialize<TEnum> with no options only
+                    // accepts numeric JSON tokens (the default converter has
+                    // no string-name support); a JSON string like "Sold"
+                    // needs Enum.Parse instead, matching how every other
+                    // enum-typed field in the app (bound via the configured
+                    // JsonStringEnumConverter) actually accepts values.
+                    value = el.ValueKind == JsonValueKind.String
+                        ? System.Enum.Parse<TEnum>(el.GetString()!)
+                        : JsonSerializer.Deserialize<TEnum>(el.GetRawText());
                 }
                 catch (JsonException)
+                {
+                    return $"invalid value for {name}.";
+                }
+                catch (ArgumentException)
                 {
                     return $"invalid value for {name}.";
                 }
