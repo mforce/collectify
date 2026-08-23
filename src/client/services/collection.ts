@@ -126,6 +126,8 @@ export interface BulkUpdates {
   // games
   completionStatus?: CompletionStatus;
   hoursPlayed?: number | null;
+  // games + music
+  lastPlayedOn?: string | null;
 }
 
 /** Set the SAME fields to the SAME values across many selected ids. The

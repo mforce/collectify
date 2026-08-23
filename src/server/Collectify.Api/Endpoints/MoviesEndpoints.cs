@@ -128,7 +128,7 @@ public static class MoviesEndpoints
         BulkFields = new Dictionary<string, BulkField<Movie>>
         {
             ["status"] = BulkFieldBuilder.Enum<Movie, CollectionStatus>("status", (e, v) => e.Status = v),
-            ["condition"] = BulkFieldBuilder.Enum<Movie, Condition>("condition", (e, v) => e.Condition = v),
+            ["condition"] = BulkFieldBuilder.NullableEnum<Movie, Condition>("condition", (e, v) => e.Condition = v),
             ["personalRating"] = BulkFieldBuilder.Rating<Movie>("personalRating", (e, v) => e.PersonalRating = v),
             ["acquiredOn"] = BulkFieldBuilder.Scalar<Movie, DateOnly>("acquiredOn", (e, v) => e.AcquiredOn = v),
             ["acquisitionPrice"] = BulkFieldBuilder.Price<Movie>("acquisitionPrice", (e, v) => e.AcquisitionPrice = v),

@@ -76,7 +76,47 @@ public static class BulkFieldBuilder
                     // enum-typed field in the app (bound via the configured
                     // JsonStringEnumConverter) actually accepts values.
                     value = el.ValueKind == JsonValueKind.String
-                        ? System.Enum.Parse<TEnum>(el.GetString()!)
+                        ? System.Enum.Parse<TEnum>(el.GetString()!, ignoreCase: true)
+                        : JsonSerializer.Deserialize<TEnum>(el.GetRawText());
+                }
+                catch (JsonException)
+                {
+                    return $"invalid value for {name}.";
+                }
+                catch (ArgumentException)
+                {
+                    return $"invalid value for {name}.";
+                }
+                if (!System.Enum.IsDefined(value))
+                    return $"'{value}' is not a defined {typeof(TEnum).Name}.";
+                set(e, value);
+                return null;
+            },
+        };
+    }
+
+    /// <summary>Set a nullable enum field: accepts a defined member name
+    /// (case-insensitive, matching the single-write boundary) or JSON null to
+    /// clear the value. Rejects undefined member values.</summary>
+    public static BulkField<TEntity> NullableEnum<TEntity, TEnum>(
+        string name, Action<TEntity, TEnum?> set) where TEntity : class, ICollectionEntry
+        where TEnum : struct, System.Enum
+    {
+        return new BulkField<TEntity>
+        {
+            Name = name,
+            Apply = (e, el) =>
+            {
+                if (el.ValueKind == JsonValueKind.Null)
+                {
+                    set(e, null);
+                    return null;
+                }
+                TEnum value;
+                try
+                {
+                    value = el.ValueKind == JsonValueKind.String
+                        ? System.Enum.Parse<TEnum>(el.GetString()!, ignoreCase: true)
                         : JsonSerializer.Deserialize<TEnum>(el.GetRawText());
                 }
                 catch (JsonException)
@@ -107,7 +147,7 @@ public static class BulkFieldBuilder
                 if (el.ValueKind == JsonValueKind.Null) { set(e, null); return null; }
                 if (el.ValueKind != JsonValueKind.Number) return $"invalid value for {name}.";
                 var raw = el.GetRawText();
-                if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var d))
+                if (!decimal.TryParse(raw, NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var d))
                     return $"invalid value for {name}.";
                 if (d < 0) return $"{name} must not be negative.";
                 if (decimal.Round(d, 2) != d) return $"{name} must have at most 2 decimal places.";
@@ -171,7 +211,7 @@ public static class BulkFieldBuilder
                 if (el.ValueKind != JsonValueKind.String) return $"invalid value for {name}.";
                 var s = el.GetString();
                 if (string.IsNullOrWhiteSpace(s)) { set(e, null); return null; }
-                if (s.Trim().Length != 3) return $"{name} must be a 3-letter ISO 4217 code.";
+                if (s.Length != 3) return $"{name} must be 3 characters.";
                 set(e, s.Trim().ToUpperInvariant());
                 return null;
             },

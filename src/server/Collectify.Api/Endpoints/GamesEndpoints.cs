@@ -156,7 +156,7 @@ public static class GamesEndpoints
         BulkFields = new Dictionary<string, BulkField<Game>>
         {
             ["status"] = BulkFieldBuilder.Enum<Game, CollectionStatus>("status", (e, v) => e.Status = v),
-            ["condition"] = BulkFieldBuilder.Enum<Game, Condition>("condition", (e, v) => e.Condition = v),
+            ["condition"] = BulkFieldBuilder.NullableEnum<Game, Condition>("condition", (e, v) => e.Condition = v),
             ["personalRating"] = BulkFieldBuilder.Rating<Game>("personalRating", (e, v) => e.PersonalRating = v),
             ["acquiredOn"] = BulkFieldBuilder.Scalar<Game, DateOnly>("acquiredOn", (e, v) => e.AcquiredOn = v),
             ["acquisitionPrice"] = BulkFieldBuilder.Price<Game>("acquisitionPrice", (e, v) => e.AcquisitionPrice = v),

@@ -169,7 +169,7 @@ public static class CollectionEndpoints
                     return Results.BadRequest(new { error = "updates must not be empty." });
 
                 foreach (var key in req.Updates.Keys)
-                    if (!bulk.ContainsKey(key))
+                    if (key != "tags" && !bulk.ContainsKey(key))
                         return Results.BadRequest(new { error = $"Unknown bulk-update field '{key}'." });
 
                 var ownerId = users.GetUserId(ctx.User)!;

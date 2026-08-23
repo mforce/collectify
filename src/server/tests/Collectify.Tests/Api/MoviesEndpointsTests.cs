@@ -356,4 +356,36 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Unknown bulk-update field 'formats'.", body.GetProperty("error").GetString());
     }
+
+    [Fact]
+    public async Task BulkUpdate_EnumValue_CaseInsensitive()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { status = "sold" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Equal(CollectionStatus.Sold, fetched!.Status);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_NullableCondition_Clears()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix,
+            MovieTestSupport.Sample(condition: Condition.LikeNew)))
+            .ReadJsonAsync<MovieResponse>();
+        Assert.Equal(Condition.LikeNew, created!.Condition);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created.Id }, updates = new { condition = (Condition?)null } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Null(fetched!.Condition);
+    }
 }

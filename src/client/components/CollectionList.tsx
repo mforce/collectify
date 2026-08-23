@@ -266,6 +266,11 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
   };
   const closeBulkEdit = () => setBulkModalOpen(false);
 
+  const hasBulkEdit = Boolean(
+    bulkStatus || bulkRating != null || bulkTags.length > 0 || bulkAcquiredOn
+      || (category === 'movies' && bulkWatchStatus),
+  );
+
   const confirmBulkEdit = () => {
     const updates: BulkUpdates = {};
     if (bulkStatus) updates.status = bulkStatus;
@@ -413,7 +418,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={closeBulkEdit}>Cancel</Button>
-              <Button type="button" onClick={confirmBulkEdit} disabled={bulkUpdate.isPending}>Confirm</Button>
+              <Button type="button" onClick={confirmBulkEdit} disabled={bulkUpdate.isPending || !hasBulkEdit}>Confirm</Button>
             </div>
           </Card>
         </div>

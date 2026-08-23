@@ -120,6 +120,26 @@ describe('CollectionList — bulk select + update', () => {
     });
   });
 
+  it('Confirm is disabled until a field is set, and enables once one is', async () => {
+    const fetchSpy = mockFetch();
+    renderList();
+    const user = userEvent.setup();
+
+    await screen.findByText('Inception');
+    const checkboxes = screen.getAllByLabelText('Select item');
+    await user.click(checkboxes[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit selected' }));
+
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' });
+    expect(confirmButton).toBeDisabled();
+
+    await user.click(confirmButton);
+    expect(fetchSpy.mock.calls.some(([u]) => String(u) === '/api/movies/bulk')).toBe(false);
+
+    await user.click(screen.getByRole('radio', { name: '7 of 10' }));
+    expect(confirmButton).not.toBeDisabled();
+  });
+
   it('Cancel closes the modal and sends nothing', async () => {
     const fetchSpy = mockFetch();
     renderList();

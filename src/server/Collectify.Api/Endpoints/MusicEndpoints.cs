@@ -104,7 +104,7 @@ public static class MusicEndpoints
         BulkFields = new Dictionary<string, BulkField<MusicAlbum>>
         {
             ["status"] = BulkFieldBuilder.Enum<MusicAlbum, CollectionStatus>("status", (e, v) => e.Status = v),
-            ["condition"] = BulkFieldBuilder.Enum<MusicAlbum, Condition>("condition", (e, v) => e.Condition = v),
+            ["condition"] = BulkFieldBuilder.NullableEnum<MusicAlbum, Condition>("condition", (e, v) => e.Condition = v),
             ["personalRating"] = BulkFieldBuilder.Rating<MusicAlbum>("personalRating", (e, v) => e.PersonalRating = v),
             ["acquiredOn"] = BulkFieldBuilder.Scalar<MusicAlbum, DateOnly>("acquiredOn", (e, v) => e.AcquiredOn = v),
             ["acquisitionPrice"] = BulkFieldBuilder.Price<MusicAlbum>("acquisitionPrice", (e, v) => e.AcquisitionPrice = v),
