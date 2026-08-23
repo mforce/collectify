@@ -324,4 +324,96 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         Assert.Contains("Tenet", titles);
         Assert.DoesNotContain("Goodfellas", titles);
     }
+
+    // -------- Bulk update (movie-specific whitelist) --------
+
+    [Fact]
+    public async Task BulkUpdate_MovieWatchStatus_SetsValue()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { watchStatus = "Watched" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Equal(WatchStatus.Watched, fetched!.WatchStatus);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_MovieFormatsNotBulkUpdatable_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { formats = 3 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Unknown bulk-update field 'formats'.", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task BulkUpdate_EnumValue_CaseInsensitive()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { status = "sold" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Equal(CollectionStatus.Sold, fetched!.Status);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_NullableCondition_Clears()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix,
+            MovieTestSupport.Sample(condition: Condition.LikeNew)))
+            .ReadJsonAsync<MovieResponse>();
+        Assert.Equal(Condition.LikeNew, created!.Condition);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created.Id }, updates = new { condition = (Condition?)null } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Null(fetched!.Condition);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_NullableCondition_CaseInsensitive()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { condition = "poor" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Equal(Condition.Poor, fetched!.Condition);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_NullableCondition_Overflows_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { condition = "999999999999999999999999" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

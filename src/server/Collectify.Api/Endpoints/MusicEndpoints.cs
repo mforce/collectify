@@ -101,6 +101,21 @@ public static class MusicEndpoints
             return (q, null);
         },
         OnDelete = null,
+        BulkFields = new Dictionary<string, BulkField<MusicAlbum>>
+        {
+            ["status"] = BulkFieldBuilder.Enum<MusicAlbum, CollectionStatus>("status", (e, v) => e.Status = v),
+            ["condition"] = BulkFieldBuilder.NullableEnum<MusicAlbum, Condition>("condition", (e, v) => e.Condition = v),
+            ["personalRating"] = BulkFieldBuilder.Rating<MusicAlbum>("personalRating", (e, v) => e.PersonalRating = v),
+            ["acquiredOn"] = BulkFieldBuilder.Scalar<MusicAlbum, DateOnly>("acquiredOn", (e, v) => e.AcquiredOn = v),
+            ["acquisitionPrice"] = BulkFieldBuilder.Price<MusicAlbum>("acquisitionPrice", (e, v) => e.AcquisitionPrice = v),
+            ["acquisitionCurrency"] = BulkFieldBuilder.Currency<MusicAlbum>("acquisitionCurrency", (e, v) => e.AcquisitionCurrency = v),
+            ["acquisitionSource"] = BulkFieldBuilder.Text<MusicAlbum>("acquisitionSource", (e, v) => e.AcquisitionSource = v),
+            ["description"] = BulkFieldBuilder.Text<MusicAlbum>("description", (e, v) => e.Description = v),
+            ["notes"] = BulkFieldBuilder.Text<MusicAlbum>("notes", (e, v) => e.Notes = v),
+            ["format"] = BulkFieldBuilder.Enum<MusicAlbum, MusicFormat>("format", (e, v) => e.Format = v),
+            ["listenCount"] = BulkFieldBuilder.Count<MusicAlbum>("listenCount", (e, v) => e.ListenCount = v),
+            ["lastPlayedOn"] = BulkFieldBuilder.Scalar<MusicAlbum, DateOnly>("lastPlayedOn", (e, v) => e.LastPlayedOn = v),
+        },
     };
 
     public static IEndpointRouteBuilder MapMusicEndpoints(this IEndpointRouteBuilder app) =>

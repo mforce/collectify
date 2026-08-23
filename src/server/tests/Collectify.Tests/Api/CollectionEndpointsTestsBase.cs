@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using Collectify.Domain.Entities;
 using Collectify.Tests.Infrastructure;
 using Collectify.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
@@ -423,5 +425,235 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
             db.Tags.CountAsync(t => t.OwnerId == bob.Id));
         Assert.Equal(1, aliceTags);
         Assert.Equal(1, bobTags);
+    }
+
+    // -------- Bulk update --------
+
+    private async Task<int> CreateAndGetIdAsync(HttpClient client, string? title = null, int? rating = null)
+    {
+        var response = await client.PostAsJsonAsync(RoutePrefix, Sample(title: title, rating: rating));
+        var body = await response.ReadJsonAsync<TResponse>();
+        return body!.Id;
+    }
+
+    [Fact]
+    public async Task BulkUpdate_AsOwner_SetsOnlyNamedFields()
+    {
+        var alice = await NewAliceAsync();
+        var id1 = await CreateAndGetIdAsync(alice.Client, "Alpha", rating: 7);
+        var id2 = await CreateAndGetIdAsync(alice.Client, "Beta", rating: 7);
+        var id3 = await CreateAndGetIdAsync(alice.Client, "Gamma", rating: 7);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id1, id2, id3 }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(3, body.GetArrayLength());
+        foreach (var item in body.EnumerateArray())
+        {
+            Assert.Equal("Sold", item.GetProperty("status").GetString());
+            // Pins the partial-update guarantee: a status-only update must
+            // not disturb an unrelated field already set on the row.
+            Assert.Equal(7, item.GetProperty("personalRating").GetInt32());
+        }
+
+        Assert.Equal("Alpha", TitleOf(await FindByIdAsync(id1)));
+        Assert.Equal("Beta", TitleOf(await FindByIdAsync(id2)));
+        Assert.Equal("Gamma", TitleOf(await FindByIdAsync(id3)));
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Tags_ViaBulkEndpoint()
+    {
+        var alice = await NewAliceAsync();
+        var id1 = await CreateAndGetIdAsync(alice.Client, "Alpha");
+        var id2 = await CreateAndGetIdAsync(alice.Client, "Beta");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id1, id2 }, updates = new { tags = new[] { "classic" } } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, body.GetArrayLength());
+        foreach (var item in body.EnumerateArray())
+        {
+            var tags = item.GetProperty("tags").EnumerateArray().Select(t => t.GetString()).ToArray();
+            Assert.Contains("classic", tags);
+        }
+    }
+
+    [Fact]
+    public async Task BulkUpdate_IncludesForeignOrUnknownId_Returns404()
+    {
+        var alice = await NewAliceAsync();
+        var bob = await NewBobAsync();
+        var aliceId1 = await CreateAndGetIdAsync(alice.Client, "Alice One");
+        var aliceId2 = await CreateAndGetIdAsync(alice.Client, "Alice Two");
+        var bobId = await CreateAndGetIdAsync(bob.Client, "Bob One");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { aliceId1, aliceId2, bobId }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("Alice One", TitleOf(await FindByIdAsync(aliceId1)));
+        Assert.Equal("Alice Two", TitleOf(await FindByIdAsync(aliceId2)));
+        Assert.Equal("Bob One", TitleOf(await FindByIdAsync(bobId)));
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UndefinedEnumValue_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { status = "NotARealStatus" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UndefinedEnumNumeric_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { status = 99 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_EnumValue_Overflows_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { status = "999999999999999999999999" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_HoursPlayed_Negative_Returns400()
+    {
+        // hoursPlayed is games-only; kept here (not a games-specific test
+        // class) per the allow-listed file for this fix.
+        if (RoutePrefix != "/api/games/") return;
+
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { hoursPlayed = -1 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var entity = await FindByIdAsync(id);
+        if (entity is Game game) Assert.Null(game.HoursPlayed);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_HoursPlayed_NonNegative_Returns200()
+    {
+        if (RoutePrefix != "/api/games/") return;
+
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { hoursPlayed = 3 } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var entity = await FindByIdAsync(id);
+        if (entity is Game game) Assert.Equal(3, game.HoursPlayed);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UnknownField_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { nonexistentField = 1 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains("nonexistentField", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Tags_MalformedValue_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { tags = "not-an-array" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UnknownFieldWithTags_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { tags = new[] { "x" }, bogusField = 1 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains("bogusField", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task BulkUpdate_EmptyIds_Returns400()
+    {
+        var alice = await NewAliceAsync();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = Array.Empty<int>(), updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_DuplicateIds_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id, id }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_EmptyUpdates_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Unauthenticated_ReturnsUnauthorized()
+    {
+        var client = Factory.CreateClient();
+
+        var response = await client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { 1 }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
