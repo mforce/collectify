@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Collectify.Tests.Infrastructure;
 using Collectify.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
@@ -423,5 +424,138 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
             db.Tags.CountAsync(t => t.OwnerId == bob.Id));
         Assert.Equal(1, aliceTags);
         Assert.Equal(1, bobTags);
+    }
+
+    // -------- Bulk update --------
+
+    private async Task<int> CreateAndGetIdAsync(HttpClient client, string? title = null)
+    {
+        var response = await client.PostAsJsonAsync(RoutePrefix, Sample(title: title));
+        var body = await response.ReadJsonAsync<TResponse>();
+        return body!.Id;
+    }
+
+    [Fact]
+    public async Task BulkUpdate_AsOwner_SetsOnlyNamedFields()
+    {
+        var alice = await NewAliceAsync();
+        var id1 = await CreateAndGetIdAsync(alice.Client, "Alpha");
+        var id2 = await CreateAndGetIdAsync(alice.Client, "Beta");
+        var id3 = await CreateAndGetIdAsync(alice.Client, "Gamma");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id1, id2, id3 }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(3, body.GetArrayLength());
+        foreach (var item in body.EnumerateArray())
+            Assert.Equal("Sold", item.GetProperty("status").GetString());
+
+        Assert.Equal("Alpha", TitleOf(await FindByIdAsync(id1)));
+        Assert.Equal("Beta", TitleOf(await FindByIdAsync(id2)));
+        Assert.Equal("Gamma", TitleOf(await FindByIdAsync(id3)));
+    }
+
+    [Fact]
+    public async Task BulkUpdate_IncludesForeignOrUnknownId_Returns404()
+    {
+        var alice = await NewAliceAsync();
+        var bob = await NewBobAsync();
+        var aliceId1 = await CreateAndGetIdAsync(alice.Client, "Alice One");
+        var aliceId2 = await CreateAndGetIdAsync(alice.Client, "Alice Two");
+        var bobId = await CreateAndGetIdAsync(bob.Client, "Bob One");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { aliceId1, aliceId2, bobId }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("Alice One", TitleOf(await FindByIdAsync(aliceId1)));
+        Assert.Equal("Alice Two", TitleOf(await FindByIdAsync(aliceId2)));
+        Assert.Equal("Bob One", TitleOf(await FindByIdAsync(bobId)));
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UndefinedEnumValue_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { status = "NotARealStatus" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UndefinedEnumNumeric_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { status = 99 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_UnknownField_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { nonexistentField = 1 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains("nonexistentField", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task BulkUpdate_EmptyIds_Returns400()
+    {
+        var alice = await NewAliceAsync();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = Array.Empty<int>(), updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_DuplicateIds_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id, id }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_EmptyUpdates_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Unauthenticated_ReturnsUnauthorized()
+    {
+        var client = Factory.CreateClient();
+
+        var response = await client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { 1 }, updates = new { status = "Sold" } });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

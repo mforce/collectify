@@ -324,4 +324,36 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         Assert.Contains("Tenet", titles);
         Assert.DoesNotContain("Goodfellas", titles);
     }
+
+    // -------- Bulk update (movie-specific whitelist) --------
+
+    [Fact]
+    public async Task BulkUpdate_MovieWatchStatus_SetsValue()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { watchStatus = "Watched" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var fetched = await alice.Client.GetJsonAsync<MovieResponse>($"{RoutePrefix}{created.Id}");
+        Assert.Equal(WatchStatus.Watched, fetched!.WatchStatus);
+    }
+
+    [Fact]
+    public async Task BulkUpdate_MovieFormatsNotBulkUpdatable_Returns400()
+    {
+        var alice = await NewAliceAsync();
+        var created = await (await alice.Client.PostAsJsonAsync(RoutePrefix, Sample()))
+            .ReadJsonAsync<MovieResponse>();
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { created!.Id }, updates = new { formats = 3 } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Unknown bulk-update field 'formats'.", body.GetProperty("error").GetString());
+    }
 }
