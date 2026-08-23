@@ -1,7 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import { filtersToParams, type Filters } from './filters';
-import type { Album, Game, MediaType, Movie } from './types';
+import type {
+  Album,
+  CollectionStatus,
+  CompletionStatus,
+  Condition,
+  Game,
+  MediaType,
+  Movie,
+  MusicFormat,
+  WatchStatus,
+} from './types';
 
 type ItemMap = { movies: Movie; music: Album; games: Game };
 
@@ -87,6 +97,45 @@ export function useDelete<T extends MediaType>(type: T) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => api(`/api/${type}/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [type] }),
+  });
+}
+
+/** Fields the bulk-update endpoint accepts per media type (a partial map).
+ * Only keys present are set on every selected row; absent keys are untouched.
+ * The union reflects the shared collection fields plus the per-type extras;
+ * the server rejects any key a given type does not support. */
+export interface BulkUpdates {
+  status?: CollectionStatus;
+  condition?: Condition | null;
+  personalRating?: number | null;
+  acquiredOn?: string | null;
+  acquisitionPrice?: number | null;
+  acquisitionCurrency?: string | null;
+  acquisitionSource?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  tags?: string[];
+  // movies
+  watchStatus?: WatchStatus;
+  watchCount?: number;
+  lastWatchedOn?: string | null;
+  // music
+  format?: MusicFormat;
+  listenCount?: number;
+  // games
+  completionStatus?: CompletionStatus;
+  hoursPlayed?: number | null;
+}
+
+/** Set the SAME fields to the SAME values across many selected ids. The
+ * payload is `{ ids, updates }` where `updates` is a partial map. Invalidates
+ * the type's list query cache so the grid/table refetches. */
+export function useBulkUpdate<T extends MediaType>(type: T) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, updates }: { ids: number[]; updates: BulkUpdates }) =>
+      api(`/api/${type}/bulk`, { method: 'PATCH', body: JSON.stringify({ ids, updates }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: [type] }),
   });
 }
