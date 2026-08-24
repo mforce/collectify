@@ -276,3 +276,25 @@ describe('MovieForm — Fetch metadata by TMDB ID', () => {
     expect(mockLookupMovieById).toHaveBeenCalledWith('27205');
   });
 });
+
+describe('MovieForm — Genres', () => {
+  it('typing a genre renders it as a chip and submits it as an array', async () => {
+    const { onSubmit } = renderForm();
+    const user = userEvent.setup();
+
+    const genreInput = screen.getByPlaceholderText('Add genre…');
+    await user.type(genreInput, 'Sci-Fi');
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByText('sci-fi')).toBeInTheDocument();
+
+    const titleLabel = screen.getByText('Title');
+    const titleInput = titleLabel.parentElement?.querySelector('input') as HTMLInputElement;
+    await user.type(titleInput, 'Test');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ genres: ['sci-fi'] }),
+    );
+  });
+});

@@ -11,7 +11,13 @@ export default function GameDetail({ item }: { item: Game }) {
     <ThemedCard type="games" className="p-4"><h3>Platform</h3><p>{gamePlatformLabel(item.platform)} · {item.digitalStores ? 'Digital' : 'Physical'}</p></ThemedCard>
     {(item.releaseDate || item.year) && <ThemedCard type="games" className="p-4"><h3>Release</h3><InfoRow label="Release date" value={formatDate(item.releaseDate)} /><InfoRow label="Year" value={item.year?.toString()} /></ThemedCard>}
     {(item.developer || item.publisher) && <ThemedCard type="games" className="p-4"><h3>Credits</h3><InfoRow label="Developer" value={item.developer} /><InfoRow label="Publisher" value={item.publisher} /></ThemedCard>}
-    {item.ageRating && <ThemedCard type="games" className="p-4"><h3>Metadata</h3><InfoRow label="Age rating" value={item.ageRating} /></ThemedCard>}
+    {(item.ageRating || !!item.genres?.length) && (
+      <ThemedCard type="games" className="p-4">
+        <h3>Metadata</h3>
+        <InfoRow label="Age rating" value={item.ageRating} />
+        {!!item.genres?.length && <div>{item.genres.map((genre) => <TagChip key={genre} name={genre} category="games" />)}</div>}
+      </ThemedCard>
+    )}
     {(item.barcode || item.igdbId) && (
       <ThemedCard type="games" className="p-4">
         <h3>IDs</h3>

@@ -49,6 +49,7 @@ export interface CollectionItemBase {
   acquisitionCurrency?: string | null;   // 3-letter ISO 4217
   acquisitionSource?: string | null;
   tags?: string[];
+  genres?: string[];
 }
 
 // ---------- Movies ----------
@@ -75,7 +76,6 @@ export interface Movie extends CollectionItemBase {
   director?: string | null;
   runtimeMinutes?: number | null;
   studio?: string | null;
-  genres?: string | null;
   barcode?: string | null;
   tmdbId?: string | null;
   imdbId?: string | null;
@@ -105,7 +105,6 @@ export interface Album extends CollectionItemBase {
   releaseDate?: string | null;
   format: MusicFormat;
   label?: string | null;
-  genres?: string | null;
   barcode?: string | null;
   musicBrainzReleaseId?: string | null;
   discogsId?: string | null;

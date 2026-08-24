@@ -67,13 +67,19 @@ export default function MovieDetail({ item }: { item: Movie }) {
           </dl>
         </ThemedCard>
       )}
-      {(item.studio || item.genres || fs.length > 0) && (
+      {(item.studio || item.genres?.length || fs.length > 0) && (
         <ThemedCard type="movies" className="p-4">
           <h3>Metadata</h3>
           <dl>
             <InfoRow label="Studio" value={item.studio} />
-            <InfoRow label="Genres" value={item.genres} />
           </dl>
+          {!!item.genres?.length && (
+            <div>
+              {item.genres.map((genre) => (
+                <TagChip key={genre} name={genre} category="movies" />
+              ))}
+            </div>
+          )}
         </ThemedCard>
       )}
       {(item.barcode || item.tmdbId || item.imdbId) && (

@@ -49,6 +49,7 @@ export interface GameFilters {
   /** Comma-joined store names, e.g. "Steam,Epic"; the server any-of matches
    * the bits and accepts a legacy single name like "Steam". */
   digitalStore?: string;
+  genre?: string;
   status?: CollectionStatus;
   completionStatus?: CompletionStatus;
   ratingMin?: number;
@@ -140,6 +141,7 @@ const SCHEMA: Record<MediaType, Record<string, ParamShape>> = {
     yearFrom: 'number', yearTo: 'number',
     publisher: 'string', developer: 'string',
     platform: 'string', digital: 'boolean', digitalStore: 'string',
+    genre: 'string',
     status: 'string', completionStatus: 'string',
     ratingMin: 'number',
     tag: 'string[]',

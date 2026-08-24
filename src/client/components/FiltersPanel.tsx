@@ -100,7 +100,7 @@ function MovieFields({ value, onChange }: { value: Filters<'movies'>; onChange: 
         <Input value={value.studio ?? ''} onChange={(e) => set('studio', e.target.value || undefined)} />
       </Field>
       <Field label="Genre">
-        <Input value={value.genre ?? ''} onChange={(e) => set('genre', e.target.value || undefined)} placeholder="substring match" />
+        <Input value={value.genre ?? ''} onChange={(e) => set('genre', e.target.value || undefined)} placeholder="exact match" />
       </Field>
       <Field label="Format">
         <Select value={value.format ?? ''} onChange={(e) => set('format', (e.target.value || undefined) as Filters<'movies'>['format'])}>
@@ -140,7 +140,7 @@ function AlbumFields({ value, onChange }: { value: Filters<'music'>; onChange: (
         <Input value={value.label ?? ''} onChange={(e) => set('label', e.target.value || undefined)} />
       </Field>
       <Field label="Genre">
-        <Input value={value.genre ?? ''} onChange={(e) => set('genre', e.target.value || undefined)} placeholder="substring match" />
+        <Input value={value.genre ?? ''} onChange={(e) => set('genre', e.target.value || undefined)} placeholder="exact match" />
       </Field>
       <Field label="Format">
         <Select value={value.format ?? ''} onChange={(e) => set('format', (e.target.value || undefined) as Filters<'music'>['format'])}>
@@ -202,6 +202,9 @@ function GameFields({ value, onChange }: { value: Filters<'games'>; onChange: (n
       </Field>
       <Field label="Developer">
         <Input value={value.developer ?? ''} onChange={(e) => set('developer', e.target.value || undefined)} />
+      </Field>
+      <Field label="Genre">
+        <Input value={value.genre ?? ''} onChange={(e) => set('genre', e.target.value || undefined)} placeholder="exact match" />
       </Field>
       <Field label="Status">
         <Select value={value.status ?? ''} onChange={(e) => set('status', (e.target.value || undefined) as Filters<'games'>['status'])}>

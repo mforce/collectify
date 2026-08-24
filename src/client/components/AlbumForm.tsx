@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, TagInput, Textarea } from './ui';
 import CoverEditor from './CoverEditor';
 import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
@@ -37,6 +37,7 @@ const empty: Album = {
   status: 'Owned',
   listenCount: 0,
   tags: [],
+  genres: [],
 };
 
 export default function AlbumForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
@@ -133,7 +134,7 @@ export default function AlbumForm({ initial, prefillLookup, prefillBarcode, subm
               <Input value={a.label ?? ''} onChange={(e) => set('label', e.target.value || null)} />
             </Field>
             <Field label="Genres">
-              <Input value={a.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
+              <TagInput value={a.genres ?? []} onChange={(next) => set('genres', next)} placeholder="Add genre…" />
             </Field>
             <Field label="Barcode">
               <Input value={a.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />

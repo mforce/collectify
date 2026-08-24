@@ -268,6 +268,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
   const [bulkStatus, setBulkStatus] = useState<CollectionStatus | ''>('');
   const [bulkRating, setBulkRating] = useState<number | null>(null);
   const [bulkTags, setBulkTags] = useState<string[]>([]);
+  const [bulkGenres, setBulkGenres] = useState<string[]>([]);
   const [bulkAcquiredOn, setBulkAcquiredOn] = useState('');
   const [bulkWatchStatus, setBulkWatchStatus] = useState<WatchStatus | ''>('');
 
@@ -277,6 +278,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
     setBulkStatus('');
     setBulkRating(null);
     setBulkTags([]);
+    setBulkGenres([]);
     setBulkAcquiredOn('');
     setBulkWatchStatus('');
     setBulkModalOpen(true);
@@ -284,7 +286,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
   const closeBulkEdit = () => setBulkModalOpen(false);
 
   const hasBulkEdit = Boolean(
-    bulkStatus || bulkRating != null || bulkTags.length > 0 || bulkAcquiredOn
+    bulkStatus || bulkRating != null || bulkTags.length > 0 || bulkGenres.length > 0 || bulkAcquiredOn
       || (category === 'movies' && bulkWatchStatus),
   );
 
@@ -293,6 +295,7 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
     if (bulkStatus) updates.status = bulkStatus;
     if (bulkRating != null) updates.personalRating = bulkRating;
     if (bulkTags.length > 0) updates.tags = bulkTags;
+    if (bulkGenres.length > 0) updates.genres = bulkGenres;
     if (bulkAcquiredOn) updates.acquiredOn = bulkAcquiredOn;
     if (category === 'movies' && bulkWatchStatus) updates.watchStatus = bulkWatchStatus;
 
@@ -421,6 +424,10 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
 
             <Field label="Tags">
               <TagInput value={bulkTags} onChange={setBulkTags} category={category} />
+            </Field>
+
+            <Field label="Genres">
+              <TagInput value={bulkGenres} onChange={setBulkGenres} category={category} placeholder="Add genre…" />
             </Field>
 
             <Field label="Acquired on">

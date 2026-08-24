@@ -120,6 +120,28 @@ describe('CollectionList — bulk select + update', () => {
     });
   });
 
+  it('exposes a Genres field in the bulk modal, mapped to updates.genres', async () => {
+    const fetchSpy = mockFetch();
+    renderList();
+    const user = userEvent.setup();
+
+    await screen.findByText('Inception');
+    const checkboxes = screen.getAllByLabelText('Select item');
+    await user.click(checkboxes[0]);
+    await user.click(screen.getByRole('button', { name: 'Edit selected' }));
+
+    expect(screen.getByText('Genres')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('Add genre…'), 'Sci-Fi{Enter}');
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      const bulkCall = fetchSpy.mock.calls.find(([u]) => String(u) === '/api/movies/bulk');
+      expect(bulkCall).toBeDefined();
+    });
+    const [, init] = fetchSpy.mock.calls.find(([u]) => String(u) === '/api/movies/bulk')!;
+    expect(JSON.parse(init!.body as string)).toEqual({ ids: [1], updates: { genres: ['sci-fi'] } });
+  });
+
   it('Confirm is disabled until a field is set, and enables once one is', async () => {
     const fetchSpy = mockFetch();
     renderList();
