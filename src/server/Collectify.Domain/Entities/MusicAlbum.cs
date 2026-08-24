@@ -12,7 +12,6 @@ public class MusicAlbum : ICollectionEntry
     public int? Year { get; set; }
     public MusicFormat Format { get; set; } = MusicFormat.Cd;
     public string? Label { get; set; }
-    public string? Genres { get; set; }
     public string? Barcode { get; set; }
 
     public string? MusicBrainzReleaseId { get; set; }
@@ -35,6 +34,7 @@ public class MusicAlbum : ICollectionEntry
     public DateOnly? LastPlayedOn { get; set; }
 
     public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+    public ICollection<Genre> Genres { get; set; } = new List<Genre>();
 
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

@@ -17,6 +17,7 @@ namespace Collectify.Api.Endpoints;
 public interface ICollectionEntryDto
 {
     string[]? Tags { get; }
+    string[]? Genres { get; }
 }
 
 /// <summary>A bulk-updatable field. Authoring the value to a strongly-typed
@@ -80,7 +81,7 @@ public static class CollectionEndpoints
             HttpContext ctx) =>
         {
             var ownerId = users.GetUserId(ctx.User)!;
-            var q = cfg.Set(db).AsNoTracking().Include(e => e.Tags).Where(e => e.OwnerId == ownerId);
+            var q = cfg.Set(db).AsNoTracking().Include(e => e.Tags).Include(e => e.Genres).Where(e => e.OwnerId == ownerId);
 
             if (!string.IsNullOrWhiteSpace(query))
                 q = cfg.SearchFilter!(q, query);
@@ -111,7 +112,7 @@ public static class CollectionEndpoints
         group.MapGet("/{id:int}", async (int id, CollectifyDbContext db, UserManager<AppUser> users, HttpContext ctx) =>
         {
             var ownerId = users.GetUserId(ctx.User)!;
-            var e = await cfg.Set(db).AsNoTracking().Include(x => x.Tags)
+            var e = await cfg.Set(db).AsNoTracking().Include(x => x.Tags).Include(x => x.Genres)
                 .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId);
             return e is null ? Results.NotFound() : Results.Ok(cfg.ToDto(e));
         });
@@ -124,6 +125,7 @@ public static class CollectionEndpoints
             cfg.Apply(e, dto);
             e.ImagePath = await covers.EnsureLocalAsync(e.ImagePath, ct);
             e.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
+            e.Genres = await GenreResolver.ResolveAsync(db, ownerId, dto.Genres);
             cfg.Set(db).Add(e);
             await db.SaveChangesAsync(ct);
             return Results.Created($"{cfg.RoutePrefix}/{e.Id}", cfg.ToDto(e));
@@ -133,12 +135,13 @@ public static class CollectionEndpoints
         {
             if (cfg.Validate(dto) is { } error) return error;
             var ownerId = users.GetUserId(ctx.User)!;
-            var e = await cfg.Set(db).Include(x => x.Tags)
+            var e = await cfg.Set(db).Include(x => x.Tags).Include(x => x.Genres)
                 .FirstOrDefaultAsync(x => x.Id == id && x.OwnerId == ownerId, ct);
             if (e is null) return Results.NotFound();
             cfg.Apply(e, dto);
             e.ImagePath = await covers.EnsureLocalAsync(e.ImagePath, ct);
             e.Tags = await TagResolver.ResolveAsync(db, ownerId, dto.Tags);
+            e.Genres = await GenreResolver.ResolveAsync(db, ownerId, dto.Genres);
             e.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
             return Results.Ok(cfg.ToDto(e));
@@ -175,6 +178,7 @@ public static class CollectionEndpoints
                 var ownerId = users.GetUserId(ctx.User)!;
                 var rows = await cfg.Set(db)
                     .Include(e => e.Tags)
+                    .Include(e => e.Genres)
                     .Where(e => req.Ids.Contains(e.Id) && e.OwnerId == ownerId)
                     .ToListAsync(ct);
 

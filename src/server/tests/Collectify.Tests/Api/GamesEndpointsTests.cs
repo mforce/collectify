@@ -19,8 +19,8 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
 
     protected override string RoutePrefix => "/api/games/";
 
-    protected override object Sample(string? title = null, string[]? tags = null, string? currency = null, int? rating = null) =>
-        GameTestSupport.Sample(title: title ?? "Hades", tags: tags, currency: currency ?? "USD", rating: rating);
+    protected override object Sample(string? title = null, string[]? tags = null, string[]? genres = null, string? currency = null, int? rating = null) =>
+        GameTestSupport.Sample(title: title ?? "Hades", tags: tags, genres: genres, currency: currency ?? "USD", rating: rating);
 
     protected override object MinimalWithImage(string? imagePath) => new
     {

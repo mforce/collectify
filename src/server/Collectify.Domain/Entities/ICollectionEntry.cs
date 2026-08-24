@@ -19,4 +19,5 @@ public interface ICollectionEntry
     DateTime AddedAt { get; }
     DateTime UpdatedAt { get; set; }
     ICollection<Tag> Tags { get; set; }
+    ICollection<Genre> Genres { get; set; }
 }

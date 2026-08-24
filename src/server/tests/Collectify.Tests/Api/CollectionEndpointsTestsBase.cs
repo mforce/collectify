@@ -33,7 +33,7 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     protected abstract string RoutePrefix { get; }
 
     protected abstract object Sample(
-        string? title = null, string[]? tags = null, string? currency = null, int? rating = null);
+        string? title = null, string[]? tags = null, string[]? genres = null, string? currency = null, int? rating = null);
 
     protected abstract object MinimalWithImage(string? imagePath);
 
