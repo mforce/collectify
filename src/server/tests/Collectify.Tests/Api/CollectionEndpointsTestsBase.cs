@@ -484,6 +484,72 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     }
 
     [Fact]
+    public async Task BulkUpdate_Genres_SetsLowercasedDistinct_SetAcrossAll()
+    {
+        var alice = await NewAliceAsync();
+        var id1 = await CreateAndGetIdAsync(alice.Client, "Alpha");
+        var id2 = await CreateAndGetIdAsync(alice.Client, "Beta");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id1, id2 }, updates = new { genres = new[] { "Action", "drama", "DRAMA" } } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, body.GetArrayLength());
+        foreach (var item in body.EnumerateArray())
+        {
+            var genres = item.GetProperty("genres").EnumerateArray().Select(g => g.GetString()).ToArray();
+            Assert.Equal(new[] { "action", "drama" }, genres.OrderBy(g => g).ToArray());
+        }
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Genres_Null_Clears()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client, "Alpha");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { genres = new[] { "action" } } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var cleared = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { genres = (string[]?)null } });
+        Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+        var body = await cleared.Content.ReadFromJsonAsync<JsonElement>();
+        var item = body.EnumerateArray().Single();
+        Assert.Equal(0, item.GetProperty("genres").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Genres_MalformedValue_Returns400_PinsMessage()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client, "Alpha");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { genres = new { not = "an array" } } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("genres: invalid value for genres.", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Genres_ForeignOwnerId_Returns404_IsAtomic()
+    {
+        var alice = await NewAliceAsync();
+        var bob = await NewBobAsync();
+        var aliceId = await CreateAndGetIdAsync(alice.Client, "Alice One");
+        var bobId = await CreateAndGetIdAsync(bob.Client, "Bob One");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { aliceId, bobId }, updates = new { genres = new[] { "changed" } } });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task BulkUpdate_IncludesForeignOrUnknownId_Returns404()
     {
         var alice = await NewAliceAsync();

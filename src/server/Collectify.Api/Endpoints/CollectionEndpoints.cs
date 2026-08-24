@@ -172,7 +172,7 @@ public static class CollectionEndpoints
                     return Results.BadRequest(new { error = "updates must not be empty." });
 
                 foreach (var key in req.Updates.Keys)
-                    if (key != "tags" && !bulk.ContainsKey(key))
+                    if (key != "tags" && key != "genres" && !bulk.ContainsKey(key))
                         return Results.BadRequest(new { error = $"Unknown bulk-update field '{key}'." });
 
                 var ownerId = users.GetUserId(ctx.User)!;
@@ -208,9 +208,26 @@ public static class CollectionEndpoints
                     foreach (var row in rows) row.Tags = resolved;
                 }
 
+                if (req.Updates.TryGetValue("genres", out var genresEl))
+                {
+                    string[]? names;
+                    try
+                    {
+                        names = genresEl.ValueKind == JsonValueKind.Null
+                            ? null
+                            : JsonSerializer.Deserialize<string[]?>(genresEl.GetRawText());
+                    }
+                    catch (JsonException)
+                    {
+                        return Results.BadRequest(new { error = "genres: invalid value for genres." });
+                    }
+                    var resolved = await GenreResolver.ResolveAsync(db, ownerId, names);
+                    foreach (var row in rows) row.Genres = resolved;
+                }
+
                 foreach (var (key, value) in req.Updates)
                 {
-                    if (key == "tags") continue;
+                    if (key == "tags" || key == "genres") continue;
                     var field = bulk[key];
                     foreach (var row in rows)
                     {
