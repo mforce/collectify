@@ -429,9 +429,9 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
 
     // -------- Bulk update --------
 
-    private async Task<int> CreateAndGetIdAsync(HttpClient client, string? title = null, int? rating = null)
+    private async Task<int> CreateAndGetIdAsync(HttpClient client, string? title = null, int? rating = null, string[]? genres = null)
     {
-        var response = await client.PostAsJsonAsync(RoutePrefix, Sample(title: title, rating: rating));
+        var response = await client.PostAsJsonAsync(RoutePrefix, Sample(title: title, rating: rating, genres: genres));
         var body = await response.ReadJsonAsync<TResponse>();
         return body!.Id;
     }
@@ -487,8 +487,11 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     public async Task BulkUpdate_Genres_SetsLowercasedDistinct_SetAcrossAll()
     {
         var alice = await NewAliceAsync();
-        var id1 = await CreateAndGetIdAsync(alice.Client, "Alpha");
-        var id2 = await CreateAndGetIdAsync(alice.Client, "Beta");
+        // Seed a distinct initial genre so replace-vs-merge is discriminated
+        // independent of each subtype's Sample() defaults: a merge bug would
+        // leave "seed" behind after the bulk-replace below.
+        var id1 = await CreateAndGetIdAsync(alice.Client, "Alpha", genres: new[] { "seed" });
+        var id2 = await CreateAndGetIdAsync(alice.Client, "Beta", genres: new[] { "seed" });
 
         var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
             new { ids = new[] { id1, id2 }, updates = new { genres = new[] { "Action", "drama", "DRAMA" } } });
@@ -509,9 +512,13 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
         var alice = await NewAliceAsync();
         var id = await CreateAndGetIdAsync(alice.Client, "Alpha");
 
-        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+        var setResponse = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
             new { ids = new[] { id }, updates = new { genres = new[] { "action" } } });
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, setResponse.StatusCode);
+        var setBody = await setResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var setGenres = setBody.EnumerateArray().Single()
+            .GetProperty("genres").EnumerateArray().Select(g => g.GetString()).ToArray();
+        Assert.Equal(new[] { "action" }, setGenres.OrderBy(g => g).ToArray());
 
         var cleared = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
             new { ids = new[] { id }, updates = new { genres = (string[]?)null } });
@@ -547,6 +554,10 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
             new { ids = new[] { aliceId, bobId }, updates = new { genres = new[] { "changed" } } });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        // The whole request is refused: Alice's item must not have had genres written either.
+        var aliceStored = await FindByIdAsync(aliceId);
+        Assert.Empty(((ICollectionEntry)aliceStored).Genres);
     }
 
     [Fact]

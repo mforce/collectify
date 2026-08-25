@@ -160,6 +160,25 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
     }
 
     [Fact]
+    public async Task List_FiltersByGenre_ExactMembership()
+    {
+        var alice = await NewAliceAsync();
+
+        await alice.Client.PostAsJsonAsync("/api/games/",
+            new { Title = "Hades", Platform = GamePlatform.Pc, Status = CollectionStatus.Owned, Genres = new[] { "sci-fi", "action" } });
+        await alice.Client.PostAsJsonAsync("/api/games/",
+            new { Title = "Mass Effect", Platform = GamePlatform.Pc, Status = CollectionStatus.Owned, Genres = new[] { "sci-fi" } });
+        await alice.Client.PostAsJsonAsync("/api/games/",
+            new { Title = "Tetris", Platform = GamePlatform.GameBoy, Status = CollectionStatus.Owned, Genres = new[] { "puzzle" } });
+
+        var byGenre = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?genre=sci-fi");
+        Assert.Equal(2, byGenre!.Length);
+
+        var byPartial = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?genre=sci");
+        Assert.Empty(byPartial!);
+    }
+
+    [Fact]
     public async Task List_FiltersByDigital_ReturnsMatchingRows()
     {
         var alice = await NewAliceAsync();
