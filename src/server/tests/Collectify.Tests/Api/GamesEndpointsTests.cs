@@ -179,6 +179,10 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
 
         var byPartial = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?genre=sci");
         Assert.Empty(byPartial!);
+
+        // Mixed-case query must go through the normalization/trim path and still match exactly.
+        var byMixedCase = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?genre=SCI-FI");
+        Assert.Equal(2, byMixedCase!.Length);
     }
 
     [Fact]

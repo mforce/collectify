@@ -517,20 +517,18 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
         var alice = await NewAliceAsync();
         var id = await CreateAndGetIdAsync(alice.Client, "Alpha");
 
+        // Set: the bulk write replaces the item's genre links with exactly ["action"],
+        // and this must have PERSISTED (GenreLinkCountAsync reads the DB, not the response).
         var setResponse = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
             new { ids = new[] { id }, updates = new { genres = new[] { "action" } } });
         Assert.Equal(HttpStatusCode.OK, setResponse.StatusCode);
-        var setBody = await setResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var setGenres = setBody.EnumerateArray().Single()
-            .GetProperty("genres").EnumerateArray().Select(g => g.GetString()).ToArray();
-        Assert.Equal(new[] { "action" }, setGenres.OrderBy(g => g).ToArray());
+        Assert.Equal(1, await GenreLinkCountAsync(id)); // 1 link: "action" (replaced any seeded defaults)
 
+        // Clear with null: removes all genre links, and this must have PERSISTED too.
         var cleared = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
             new { ids = new[] { id }, updates = new { genres = (string[]?)null } });
         Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
-        var body = await cleared.Content.ReadFromJsonAsync<JsonElement>();
-        var item = body.EnumerateArray().Single();
-        Assert.Equal(0, item.GetProperty("genres").GetArrayLength());
+        Assert.Equal(0, await GenreLinkCountAsync(id));
     }
 
     [Fact]
