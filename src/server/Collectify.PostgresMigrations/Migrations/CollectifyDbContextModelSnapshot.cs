@@ -246,6 +246,31 @@ namespace Collectify.PostgresMigrations.Migrations
                     b.ToTable("GameStoreOwnedTitles");
                 });
 
+            modelBuilder.Entity("Collectify.Domain.Entities.Genre", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Genres");
+                });
+
             modelBuilder.Entity("Collectify.Domain.Entities.Movie", b =>
                 {
                     b.Property<int>("Id")
@@ -287,9 +312,6 @@ namespace Collectify.PostgresMigrations.Migrations
 
                     b.Property<int>("Formats")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Genres")
-                        .HasColumnType("text");
 
                     b.Property<string>("ImagePath")
                         .HasColumnType("text");
@@ -402,9 +424,6 @@ namespace Collectify.PostgresMigrations.Migrations
 
                     b.Property<int>("Format")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Genres")
-                        .HasColumnType("text");
 
                     b.Property<string>("ImagePath")
                         .HasColumnType("text");
@@ -576,6 +595,21 @@ namespace Collectify.PostgresMigrations.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("GameGenre", b =>
+                {
+                    b.Property<int>("GamesId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GenresId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("GamesId", "GenresId");
+
+                    b.HasIndex("GenresId");
+
+                    b.ToTable("GameGenre");
+                });
+
             modelBuilder.Entity("GameTag", b =>
                 {
                     b.Property<int>("GamesId")
@@ -589,6 +623,36 @@ namespace Collectify.PostgresMigrations.Migrations
                     b.HasIndex("TagsId");
 
                     b.ToTable("GameTag");
+                });
+
+            modelBuilder.Entity("GenreMovie", b =>
+                {
+                    b.Property<int>("GenresId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MoviesId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("GenresId", "MoviesId");
+
+                    b.HasIndex("MoviesId");
+
+                    b.ToTable("GenreMovie");
+                });
+
+            modelBuilder.Entity("GenreMusicAlbum", b =>
+                {
+                    b.Property<int>("GenresId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MusicAlbumsId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("GenresId", "MusicAlbumsId");
+
+                    b.HasIndex("MusicAlbumsId");
+
+                    b.ToTable("GenreMusicAlbum");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -773,6 +837,21 @@ namespace Collectify.PostgresMigrations.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("GameGenre", b =>
+                {
+                    b.HasOne("Collectify.Domain.Entities.Game", null)
+                        .WithMany()
+                        .HasForeignKey("GamesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Collectify.Domain.Entities.Genre", null)
+                        .WithMany()
+                        .HasForeignKey("GenresId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("GameTag", b =>
                 {
                     b.HasOne("Collectify.Domain.Entities.Game", null)
@@ -784,6 +863,36 @@ namespace Collectify.PostgresMigrations.Migrations
                     b.HasOne("Collectify.Domain.Entities.Tag", null)
                         .WithMany()
                         .HasForeignKey("TagsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GenreMovie", b =>
+                {
+                    b.HasOne("Collectify.Domain.Entities.Genre", null)
+                        .WithMany()
+                        .HasForeignKey("GenresId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Collectify.Domain.Entities.Movie", null)
+                        .WithMany()
+                        .HasForeignKey("MoviesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GenreMusicAlbum", b =>
+                {
+                    b.HasOne("Collectify.Domain.Entities.Genre", null)
+                        .WithMany()
+                        .HasForeignKey("GenresId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Collectify.Domain.Entities.MusicAlbum", null)
+                        .WithMany()
+                        .HasForeignKey("MusicAlbumsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
