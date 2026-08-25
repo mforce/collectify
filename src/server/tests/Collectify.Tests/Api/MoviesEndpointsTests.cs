@@ -43,6 +43,9 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
     protected override string TitleOf(Movie entity) => entity.Title;
     protected override DateTime UpdatedAtOf(Movie entity) => entity.UpdatedAt;
 
+    protected override Task<int> GenreLinkCountAsync(int itemId) =>
+        Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.Movies.Any(m => m.Id == itemId)));
+
     // -------- Formats (flags enum as integer) --------
 
     [Fact]

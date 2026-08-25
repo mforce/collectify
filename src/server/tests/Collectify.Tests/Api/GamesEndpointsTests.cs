@@ -45,6 +45,9 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
     protected override string TitleOf(Game entity) => entity.Title;
     protected override DateTime UpdatedAtOf(Game entity) => entity.UpdatedAt;
 
+    protected override Task<int> GenreLinkCountAsync(int itemId) =>
+        Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.Games.Any(x => x.Id == itemId)));
+
     [Fact]
     public async Task CreateAndGet_RoundTripsRichDetailFields()
     {

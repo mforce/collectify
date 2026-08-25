@@ -43,6 +43,9 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
     protected override string TitleOf(MusicAlbum entity) => entity.Title;
     protected override DateTime UpdatedAtOf(MusicAlbum entity) => entity.UpdatedAt;
 
+    protected override Task<int> GenreLinkCountAsync(int itemId) =>
+        Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.MusicAlbums.Any(a => a.Id == itemId)));
+
     [Fact]
     public async Task CreateAndGet_RoundTripsReleaseDate()
     {

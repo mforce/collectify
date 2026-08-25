@@ -44,6 +44,11 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     protected abstract string TitleOf(TEntity entity);
     protected abstract DateTime UpdatedAtOf(TEntity entity);
 
+    /// <summary>Counts how many genre-link rows exist for the item with the given id, reading the
+    /// persistence layer directly (the <see cref="Genres"/> navigation is not loaded on entities
+    /// read via AsNoTracking without Include). Used to assert atomic non-writes.</summary>
+    protected abstract Task<int> GenreLinkCountAsync(int itemId);
+
     private static string UniqueUser(string prefix) => $"{prefix}-{Guid.NewGuid():N}";
 
     protected Task<TestExtensions.TestUser> NewAliceAsync() =>
@@ -549,15 +554,17 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
         var bob = await NewBobAsync();
         var aliceId = await CreateAndGetIdAsync(alice.Client, "Alice One");
         var bobId = await CreateAndGetIdAsync(bob.Client, "Bob One");
+        var aliceGenreCountBefore = await GenreLinkCountAsync(aliceId);
 
         var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
             new { ids = new[] { aliceId, bobId }, updates = new { genres = new[] { "changed" } } });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
-        // The whole request is refused: Alice's item must not have had genres written either.
-        var aliceStored = await FindByIdAsync(aliceId);
-        Assert.Empty(((ICollectionEntry)aliceStored).Genres);
+        // The whole request is refused: Alice's item's genre links must be untouched.
+        // Count the actual genre-link rows (the Genres nav is not loaded on AsNoTracking reads);
+        // a corrupted write would replace them with the single "changed" genre (count -> 1).
+        Assert.Equal(aliceGenreCountBefore, await GenreLinkCountAsync(aliceId));
     }
 
     [Fact]
