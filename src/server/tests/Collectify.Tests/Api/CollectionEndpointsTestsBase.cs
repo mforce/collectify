@@ -509,6 +509,11 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
             var genres = item.GetProperty("genres").EnumerateArray().Select(g => g.GetString()).ToArray();
             Assert.Equal(new[] { "action", "drama" }, genres.OrderBy(g => g).ToArray());
         }
+
+        // The replace also must have PERSISTED (GenreLinkCountAsync reads the DB, not the response).
+        // Exactly 2 links ("action"+"drama") per item — "seed" was replaced, and the set wrote through.
+        Assert.Equal(2, await GenreLinkCountAsync(id1));
+        Assert.Equal(2, await GenreLinkCountAsync(id2));
     }
 
     [Fact]
