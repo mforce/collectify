@@ -616,11 +616,14 @@ public class SteamEndpointsTests
         Assert.Equal("4", page2.Titles[1].ExternalGameId);
         Assert.False(page2.Truncated); // end of set
 
-        // Search composes with paging: "Game" matches all 4; search within page.
-        var searchPage = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=beta&offset=0&limit=2");
+        // Search composes with paging across the FULL library BEFORE paging.
+        // "delta" is the 4th title — outside page 0 of size 2 — so this proves
+        // search is applied to the whole library first: a search-after-paging
+        // bug would find nothing here because "delta" is not on this page.
+        var searchPage = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=delta&offset=0&limit=2");
         Assert.Equal(1, searchPage!.Total); // only 1 matches the search
         Assert.Single(searchPage.Titles);
-        Assert.Equal("2", searchPage.Titles[0].ExternalGameId);
+        Assert.Equal("4", searchPage.Titles[0].ExternalGameId);
         Assert.False(searchPage.Truncated);
 
         // Default (no offset/limit): unchanged, full preview set, Total = library size.
