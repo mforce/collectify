@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button, Card, SectionHeading } from '../components/ui';
 import { toast } from '../components/toaster';
 import {
+  fetchSteamOwnedGames,
   useSteamConnect,
   useSteamConnection,
   useSteamDisconnect,
@@ -142,11 +143,28 @@ export default function ImportSteam() {
   // duplicates the game. Disabled when every imported title already has a local
   // cover (the preview doesn't report that, so it's always available; the server
   // simply no-ops on titles that need no healing).
+  // Enumerate every imported external game id across the whole library (paging
+  // /games by the server's 1000 MaxPageSize until offset >= total) so "Repair
+  // covers" heals all imported titles, not only the current 100-page.
+  const getAllImportedIds = async (): Promise<string[]> => {
+    const PAGE = 1000;
+    const ids: string[] = [];
+    let offset = 0;
+    for (;;) {
+      const page = await fetchSteamOwnedGames('', offset, PAGE);
+      if ((page.titles ?? []).length === 0) break;
+      for (const g of page.titles) {
+        if (g.state === 'imported') ids.push(g.externalGameId);
+      }
+      if (page.total <= offset + page.titles.length) break;
+      offset += PAGE;
+    }
+    return ids;
+  };
+
   const handleRepairCovers = async () => {
     if (doImport.isPending) return;
-    const importedIds = (games.data?.titles ?? [])
-      .filter((g) => g.state === 'imported')
-      .map((g) => g.externalGameId);
+    const importedIds = await getAllImportedIds();
     if (importedIds.length === 0) {
       toast.info('Nothing to repair — no games imported yet.');
       return;

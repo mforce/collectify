@@ -68,6 +68,22 @@ export function useSteamGames(enabled: boolean, search = '', offset = 0, limit =
   });
 }
 
+/** Imperative counterpart to useSteamGames for one /games page. Used by
+ *  "Repair covers" to enumerate imported ids across the whole library. */
+export async function fetchSteamOwnedGames(
+  search: string,
+  offset: number,
+  limit: number,
+): Promise<SteamPreview> {
+  const params = new URLSearchParams();
+  const q = search.trim();
+  if (q) params.set('q', q);
+  if (offset > 0) params.set('offset', String(offset));
+  params.set('limit', String(limit));
+  const qs = params.toString();
+  return api<SteamPreview>(`/api/accounts/steam/games${qs ? `?${qs}` : ''}`);
+}
+
 export function useSteamImport(onSuccess: () => void) {
   const qc = useQueryClient();
   return useMutation({
