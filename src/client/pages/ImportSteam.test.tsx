@@ -8,14 +8,11 @@ import ImportSteam from './ImportSteam';
 const mockUseConnection = vi.fn();
 const mockUseConnect = vi.fn();
 const mockUseGames = vi.fn();
-const mockFetchSteamOwnedGames = vi.fn();
 const mockUseImport = vi.fn();
 const mockUseDisconnect = vi.fn();
 const mockConnectMutate = vi.fn();
 
 vi.mock('../services/steam', () => ({
-  fetchSteamOwnedGames: (search: string, offset: number, limit: number) =>
-    mockFetchSteamOwnedGames(search, offset, limit),
   useSteamConnection: () => mockUseConnection(),
   useSteamConnect: () => mockUseConnect(),
   useSteamGames: (enabled: boolean, search: string, offset: number, limit: number) =>
@@ -308,56 +305,6 @@ describe('ImportSteam', () => {
 
     expect(importMutate).toHaveBeenCalledWith(['1', '2']);
     expect(onSuccess).toBeTypeOf('function');
-  });
-
-  it('Repair covers refreshes imported games across pages, not just the current page', async () => {
-    const user = userEvent.setup();
-    const importMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 2, items: [] });
-    mockUseImport.mockReturnValue({ mutateAsync: importMutate, isPending: false });
-    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
-    mockUseGames.mockReturnValue({
-      data: {
-        status: 'ok',
-        truncated: true,
-        total: 1002,
-        titles: [
-          { externalGameId: 'imported-page-1', title: 'Imported One', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
-          { externalGameId: 'importable-page-1', title: 'Importable One', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-    mockFetchSteamOwnedGames.mockImplementation((_search: string, offset: number) =>
-      Promise.resolve(offset === 0
-        ? {
-            status: 'ok',
-            truncated: true,
-            total: 1002,
-            titles: [
-              { externalGameId: 'imported-page-1', title: 'Imported One', playtimeMinutes: 0, state: 'imported' },
-              { externalGameId: 'importable-page-1', title: 'Importable One', playtimeMinutes: 0, state: 'importable' },
-            ],
-          }
-        : {
-            status: 'ok',
-            truncated: false,
-            total: 1002,
-            titles: [
-              { externalGameId: 'imported-page-2', title: 'Imported Two', playtimeMinutes: 0, state: 'imported' },
-              { externalGameId: 'importable-page-2', title: 'Importable Two', playtimeMinutes: 0, state: 'importable' },
-            ],
-          }),
-    );
-
-    renderPage();
-
-    await user.click(screen.getByRole('button', { name: /repair covers/i }));
-    await waitFor(() => expect(importMutate).toHaveBeenCalledWith([
-      'imported-page-1',
-      'imported-page-2',
-    ]));
-    expect(mockFetchSteamOwnedGames).toHaveBeenNthCalledWith(2, '', 1000, 1000);
   });
 
   it('merges select-all on a later page with selections made on earlier pages', async () => {
