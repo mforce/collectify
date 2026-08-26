@@ -201,6 +201,17 @@ describe('ImportSteam', () => {
 
     await user.click(next);
     expect(callOffset).toBe(100);
+    // Changing the search term must reset the page offset back to 0 even while
+    // paged forward (the filter effect fires immediately, not gated on the
+    // 300ms debounce). This must be an IMMEDIATE assertion, not waitFor: a
+    // waitFor would allow the delayed [debouncedFilter] reset (300ms) to also
+    // satisfy it, so the mutant (regressing to [debouncedFilter]) would stay
+    // green and the test proves nothing about immediacy.
+    const filterInput = screen.getByLabelText(/filter owned games/i);
+    await user.clear(filterInput);
+    await user.type(filterInput, 'aha');
+    expect(callOffset).toBe(0);
+    expect(screen.getByRole('button', { name: /prev/i })).toBeDisabled();
   });
 
   it('shows a qualified public-profile hint when Steam is unavailable', () => {
