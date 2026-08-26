@@ -345,6 +345,61 @@ describe('ImportSteam', () => {
     expect(importSelectedMutate).toHaveBeenLastCalledWith(['101']);
   });
 
+  it('disables Repair covers while the import-selected mutation is pending', () => {
+    let hookCall = 0;
+    mockUseImport.mockImplementation(() => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      return { mutateAsync: vi.fn(), isPending: instance === 0 };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: 1,
+        titles: [
+          { externalGameId: '1', title: 'Imported 1', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByRole('button', { name: /repair covers/i })).toBeDisabled();
+  });
+
+  it('disables Import selected while the repair mutation is pending', async () => {
+    const user = userEvent.setup();
+    let hookCall = 0;
+    mockUseImport.mockImplementation(() => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      return { mutateAsync: vi.fn(), isPending: instance === 1 };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: 2,
+        titles: [
+          { externalGameId: '1', title: 'Importable 1', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Imported 2', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByRole('checkbox', { name: /Importable 1/ }));
+
+    expect(screen.getByRole('button', { name: /import selected \(1\)/i })).toBeDisabled();
+  });
+
   it('repairs only imported ids from the currently fetched page', async () => {
     const user = userEvent.setup();
     const importMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 2, items: [] });

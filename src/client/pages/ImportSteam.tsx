@@ -47,6 +47,7 @@ export default function ImportSteam() {
   );
   const importSelected = useSteamImport(() => setSelected(new Set()));
   const repairCovers = useSteamImport(() => {});
+  const steamMutationPending = importSelected.isPending || repairCovers.isPending;
   const disconnect = useSteamDisconnect(() => setSelected(new Set()));
 
   // Surface the OpenID callback outcome once, then clear it from the URL so
@@ -133,6 +134,7 @@ export default function ImportSteam() {
   };
 
   const handleImport = async () => {
+    if (steamMutationPending) return;
     try {
       const res = await importSelected.mutateAsync([...selected]);
       if (res.imported > 0) toast.success(`Imported ${res.imported} game${res.imported === 1 ? '' : 's'}`);
@@ -151,7 +153,7 @@ export default function ImportSteam() {
   // cover (the preview doesn't report that, so it's always available; the server
   // simply no-ops on titles that need no healing).
   const handleRepairCovers = async () => {
-    if (repairCovers.isPending) return;
+    if (steamMutationPending) return;
     const importedIds = (games.data?.titles ?? [])
       .filter((g) => g.state === 'imported')
       .map((g) => g.externalGameId);
@@ -305,7 +307,7 @@ export default function ImportSteam() {
                 <Button
                   variant="primary"
                   onClick={handleImport}
-                  disabled={selected.size === 0 || importSelected.isPending}
+                  disabled={selected.size === 0 || steamMutationPending}
                 >
                   {importSelected.isPending
                     ? 'Importing…'
@@ -315,7 +317,7 @@ export default function ImportSteam() {
                   <Button
                     variant="secondary"
                     onClick={handleRepairCovers}
-                    disabled={repairCovers.isPending}
+                    disabled={steamMutationPending}
                     title="Re-derive missing or stale covers for games imported before the cover fix"
                   >
                     Repair covers
