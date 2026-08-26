@@ -12,7 +12,7 @@ public static class SteamStoreEndpoints
 {
     private const string SpaImportPath = "/import/steam";
     private const string SteamAuthCookie = "collectify.steam.state";
-    private const int MaxPageSize = 1000;
+    private const int MaxPageSize = 100;
     private static readonly TimeSpan AuthRequestLifetime = TimeSpan.FromMinutes(10);
 
     public record SteamConnectDto(bool Configured, string? RedirectUrl);
@@ -137,6 +137,7 @@ public static class SteamStoreEndpoints
             string? q,
             int? offset,
             int? limit,
+            bool? hideImported,
             UserManager<AppUser> users,
             SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
@@ -146,7 +147,7 @@ public static class SteamStoreEndpoints
             if (!schemaGuard.IsSchemaReady)
                 return Results.Ok(new SteamPreviewDto("notconnected", [], false, 0));
             var effOffset = offset ?? 0;
-            var effLimit = limit ?? options.Value.Steam.PreviewCap;
+            var effLimit = limit ?? MaxPageSize;
             if (effOffset < 0 || effLimit < 1 || effLimit > MaxPageSize)
                 return Results.BadRequest(new
                 {
@@ -156,7 +157,13 @@ public static class SteamStoreEndpoints
                     maxLimit = MaxPageSize,
                 });
             var ownerId = users.GetUserId(ctx.User)!;
-            var preview = await service.GetOwnedTitlesAsync(ownerId, q, effOffset, effLimit, ct);
+            var preview = await service.GetOwnedTitlesAsync(
+                ownerId,
+                search: q,
+                offset: effOffset,
+                limit: effLimit,
+                hideImported: hideImported ?? false,
+                ct: ct);
             return Results.Ok(new SteamPreviewDto(
                 preview.Status.ToString().ToLowerInvariant(),
                 preview.Titles

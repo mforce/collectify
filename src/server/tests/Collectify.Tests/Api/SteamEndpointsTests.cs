@@ -559,7 +559,7 @@ public class SteamEndpointsTests
     [Theory]
     [InlineData("-1", null)]
     [InlineData(null, "0")]
-    [InlineData(null, "1001")]
+    [InlineData(null, "101")]
     public async Task Games_InvalidPagination_Returns400(string? offset, string? limit)
     {
         await using var factory = new CollectifyApiFactory
@@ -631,6 +631,42 @@ public class SteamEndpointsTests
         Assert.Equal(4, def!.Total);
         Assert.Equal(4, def.Titles.Length);
         Assert.False(def.Truncated);
+    }
+
+    [Fact]
+    public async Task Games_HideImported_FiltersBeforePaginationAndTotal()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = Enumerable.Range(1, 120)
+                    .Select(id => new SteamOwnedGame { AppId = (uint)id, Name = $"Game {id:D3}" })
+                    .ToArray(),
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+        await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new
+        {
+            ExternalGameIds = Enumerable.Range(1, 20).Select(id => id.ToString()).ToArray(),
+        });
+
+        var hidden = await alice.Client.GetJsonAsync<SteamPreviewDto>(
+            "/api/accounts/steam/games?hideImported=true&offset=0&limit=100");
+
+        Assert.Equal(100, hidden!.Titles.Length);
+        Assert.All(hidden.Titles, title => Assert.Equal("importable", title.State));
+        Assert.Equal(100, hidden.Total);
+        Assert.False(hidden.Truncated);
+
+        var all = await alice.Client.GetJsonAsync<SteamPreviewDto>(
+            "/api/accounts/steam/games?offset=0&limit=100");
+
+        Assert.Equal(120, all!.Total);
+        Assert.Equal(100, all.Titles.Length);
+        Assert.Contains(all.Titles, title => title.State == "imported");
     }
 
     [Fact]

@@ -187,7 +187,13 @@ public sealed class SteamStoreImportService
     /// users with more than <see cref="SteamOptions.SteamSubOptions.PreviewCap"/>
     /// games can still find, import, or repair lower-playtime titles.
     /// </summary>
-    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(string ownerId, string? search = null, int offset = 0, int? limit = null, CancellationToken ct = default)
+    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(
+        string ownerId,
+        string? search = null,
+        int offset = 0,
+        int? limit = null,
+        bool hideImported = false,
+        CancellationToken ct = default)
     {
         var connection = await GetConnectionAsync(ownerId, ct);
         if (connection is null)
@@ -230,6 +236,9 @@ public sealed class SteamStoreImportService
         // matching lower-playtime title outside the capped preview is reachable.
         if (!string.IsNullOrEmpty(searchTerm))
             all = all.Where(t => t.Title.ToLowerInvariant().Contains(searchTerm)).ToList();
+
+        if (hideImported)
+            all = all.Where(t => t.State != SteamTitleImportState.Imported).ToList();
 
         // Paginate within the searched set. Total is the searched-library count
         // (before paging); Truncated means "more results after this page".
