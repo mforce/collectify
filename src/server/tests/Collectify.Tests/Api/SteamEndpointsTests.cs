@@ -718,7 +718,7 @@ public class SteamEndpointsTests
     }
 
     [Fact]
-    public async Task Import_OverCap_ReturnsBadRequest()
+    public async Task Import_OverBatchCap_ReturnsBadRequest()
     {
         await using var factory = new CollectifyApiFactory
         {
@@ -728,10 +728,35 @@ public class SteamEndpointsTests
         var alice = await factory.CreateAuthenticatedUserAsync("alice");
         await LinkSteamAsync(factory, alice);
 
-        // ImportCap defaults to 500; build a 501-element selection.
-        var ids = Enumerable.Range(0, 501).Select(i => i.ToString()).ToArray();
+        // MaxImportBatch defaults to 5000; build a 5001-element selection.
+        var ids = Enumerable.Range(0, 5001).Select(i => i.ToString()).ToArray();
         var response = await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new { ExternalGameIds = ids });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Import_OverSingleChunkCap_IsChunkedAndSucceeds()
+    {
+        var owned = Enumerable.Range(1, 501)
+            .Select(i => new SteamOwnedGame { AppId = (uint)i, Name = $"Game {i}" })
+            .ToArray();
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient { OwnedGames = owned },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        var ids = Enumerable.Range(1, 501).Select(i => i.ToString()).ToArray();
+        var body = await (await alice.Client.PostAsJsonAsync("/api/accounts/steam/import",
+            new { ExternalGameIds = ids })).ReadJsonAsync<SteamImportResultDto>();
+
+        // All 501 are owned, so both chunks fully import: nothing is silently
+        // truncated by the per-call .Take(ImportCap) floor.
+        Assert.Equal(501, body!.Imported);
+        Assert.Equal(0, body.AlreadyImported);
+        Assert.Equal(501, body.Items.Length);
     }
 
     [Fact]

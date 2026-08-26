@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using Collectify.Domain.Entities;
 using Collectify.Infrastructure.Identity;
 using Collectify.Infrastructure.Lookup.Igdb;
 using Collectify.Infrastructure.Store;
@@ -183,26 +184,35 @@ public static class SteamStoreEndpoints
             if (!schemaGuard.IsSchemaReady)
                 return Results.Ok(new SteamImportResultDto(0, 0, []));
 
-            // Reject oversized selections up front (400) rather than quietly
-            // processing a capped prefix — "you picked too many to import".
-            var distinct = req?.ExternalGameIds?
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Distinct().Count() ?? 0;
-            if (distinct == 0)
+            // Accept selections larger than the single-request cap. Pagination
+            // (#181) lets a user select across pages, so tens of hundreds is a
+            // legitimate total, not an error. The import runs in ImportCap-sized
+            // server-side chunks (ImportAsync is idempotent and self-bounds each
+            // call at ImportCap), and results are aggregated across chunks.
+            // A hard ceiling still guards against runaway/bot-sized requests.
+            var distinct = req?.ExternalGameIds
+                ?.Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct().ToList() ?? [];
+            if (distinct.Count == 0)
                 return Results.BadRequest(new { error = "No games selected to import." });
-            if (distinct > options.Value.Steam.ImportCap)
+            if (distinct.Count > options.Value.Steam.MaxImportBatch)
                 return Results.BadRequest(new
                 {
                     error = "Too many games selected.",
-                    cap = options.Value.Steam.ImportCap,
-                    submitted = distinct,
+                    cap = options.Value.Steam.MaxImportBatch,
+                    submitted = distinct.Count,
                 });
 
             var ownerId = users.GetUserId(ctx.User)!;
-            // req is guaranteed non-null here: the guards above returned a 400
-            // unless ExternalGameIds had at least one non-whitespace item.
-            var gameIds = req?.ExternalGameIds ?? [];
-            var (results, createdGames) = await service.ImportAsync(ownerId, gameIds, ct);
+            // req guaranteed non-null past the guards above.
+            var results = new List<SteamImportResultItem>();
+            var createdGames = new List<Game>();
+            foreach (var chunk in distinct.Chunk(options.Value.Steam.ImportCap))
+            {
+                var (cr, cg) = await service.ImportAsync(ownerId, chunk, ct);
+                results.AddRange(cr);
+                createdGames.AddRange(cg);
+            }
 
             // Imported games show up empty until the backfill sweep runs (which,
             // even with the startup sweep, is only on the NEXT boot or a timer
