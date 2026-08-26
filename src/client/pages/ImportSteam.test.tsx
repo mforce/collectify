@@ -11,6 +11,15 @@ const mockUseGames = vi.fn();
 const mockUseImport = vi.fn();
 const mockUseDisconnect = vi.fn();
 const mockConnectMutate = vi.fn();
+const { mockToastInfo } = vi.hoisted(() => ({ mockToastInfo: vi.fn() }));
+
+vi.mock('../components/toaster', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: mockToastInfo,
+  },
+}));
 
 vi.mock('../services/steam', () => ({
   useSteamConnection: () => mockUseConnection(),
@@ -389,5 +398,60 @@ describe('ImportSteam', () => {
     await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
 
     expect(screen.getByRole('button', { name: /import selected \(2\)/i })).toBeInTheDocument();
+  });
+
+  it('caps cross-page selections at 500 while allowing deselection and replacement', async () => {
+    const user = userEvent.setup();
+    const importMutate = vi.fn().mockImplementation((ids: string[]) =>
+      Promise.resolve({ imported: ids.length, alreadyImported: 0, items: [] }));
+    mockUseImport.mockReturnValue({ mutateAsync: importMutate, isPending: false });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_enabled, _search, offset: number) => ({
+      data: {
+        status: 'ok',
+        truncated: offset < 500,
+        total: 600,
+        titles: Array.from({ length: 100 }, (_, index) => {
+          const id = offset + index + 1;
+          return {
+            externalGameId: String(id),
+            title: `Game ${id}`,
+            playtimeMinutes: 0,
+            iconUrl: null,
+            state: 'importable' as const,
+          };
+        }),
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage();
+
+    for (let page = 1; page <= 5; page += 1) {
+      await user.click(screen.getByLabelText(/select all not-imported \(100\)/i));
+      if (page < 5) await user.click(screen.getByRole('button', { name: /next/i }));
+    }
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByLabelText(/select all not-imported \(100\)/i));
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+    expect(mockToastInfo).toHaveBeenCalledWith('You can select up to 500 games at a time.');
+
+    await user.click(screen.getByRole('checkbox', { name: /Game 501/ }));
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /import selected \(500\)/i }));
+    const submitted = importMutate.mock.calls.at(-1)?.[0] as string[];
+    expect(submitted).toHaveLength(500);
+    expect(new Set(submitted).size).toBe(500);
+
+    await user.click(screen.getByRole('button', { name: /prev/i }));
+    await user.click(screen.getByRole('checkbox', { name: /Game 401/ }));
+    expect(screen.getByRole('button', { name: /import selected \(499\)/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByRole('checkbox', { name: /Game 501/ }));
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
   });
 });
