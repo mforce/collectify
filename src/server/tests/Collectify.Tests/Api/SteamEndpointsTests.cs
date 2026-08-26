@@ -475,6 +475,25 @@ public class SteamEndpointsTests
     }
 
     [Fact]
+    public async Task Games_ExposesConfiguredImportCap()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamImportCap = 2,
+            SteamClient = new ScriptedSteamClient(),
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        var response = await alice.Client.GetAsync("/api/accounts/steam/games");
+        var preview = await response.ReadJsonAsync<SteamPreviewDto>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, preview!.ImportCap);
+    }
+
+    [Fact]
     public async Task Games_SearchFiltersAcrossFullLibrary()
     {
         await using var factory = new CollectifyApiFactory

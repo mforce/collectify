@@ -41,6 +41,9 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
     /// <summary>Optional override for tests that want a scripted Steam OpenID verifier.</summary>
     public ISteamOpenIdVerifier? SteamOpenIdVerifier { get; init; }
 
+    /// <summary>Optional override for the configured Steam import cap.</summary>
+    public int? SteamImportCap { get; init; }
+
     /// <summary>
     /// Toggles the <c>Collectify:Auth:AllowRegistration</c> flag. Defaults
     /// to <c>false</c> so the registration endpoint stays 404 unless a
@@ -60,7 +63,7 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            var values = new Dictionary<string, string?>
             {
                 ["Collectify:Auth:AllowRegistration"] = AllowRegistration ? "true" : "false",
                 // Background IGDB backfill must never run in tests: it would
@@ -68,7 +71,10 @@ public sealed class CollectifyApiFactory : WebApplicationFactory<Program>
                 // when a test injects a configured GameProvider). The hosted
                 // service is still registered but no-ops on exit.
                 ["Collectify:IgdbBackfill:Enabled"] = "false",
-            });
+            };
+            if (SteamImportCap.HasValue)
+                values["Collectify:Platforms:Steam:ImportCap"] = SteamImportCap.Value.ToString();
+            config.AddInMemoryCollection(values);
         });
 
         builder.ConfigureServices(services =>
