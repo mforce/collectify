@@ -4,6 +4,7 @@ using Collectify.Infrastructure.Lookup.Igdb;
 using Collectify.Infrastructure.Store;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Collectify.Api.Endpoints;
 
@@ -11,12 +12,13 @@ public static class SteamStoreEndpoints
 {
     private const string SpaImportPath = "/import/steam";
     private const string SteamAuthCookie = "collectify.steam.state";
+    private const int MaxPageSize = 1000;
     private static readonly TimeSpan AuthRequestLifetime = TimeSpan.FromMinutes(10);
 
     public record SteamConnectDto(bool Configured, string? RedirectUrl);
     public record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
     public record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string? LogoUrl, string State);
-    public record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated);
+    public record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated, int Total);
     public record SteamImportRequest(string[]? ExternalGameIds);
     public record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);
     public record SteamImportResultDto(int Imported, int AlreadyImported, SteamImportItemDto[] Items);
@@ -133,15 +135,29 @@ public static class SteamStoreEndpoints
         group.MapGet("/games", async (
             HttpContext ctx,
             string? q,
+            int? offset,
+            int? limit,
             UserManager<AppUser> users,
             SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
+            Microsoft.Extensions.Configuration.IConfiguration config,
+            IOptions<SteamOptions> options,
             CancellationToken ct) =>
         {
             if (!schemaGuard.IsSchemaReady)
-                return Results.Ok(new SteamPreviewDto("notconnected", [], false));
+                return Results.Ok(new SteamPreviewDto("notconnected", [], false, 0));
+            var effOffset = offset ?? 0;
+            var effLimit = limit ?? options.Value.Steam.PreviewCap;
+            if (effOffset < 0 || effLimit < 1 || effLimit > MaxPageSize)
+                return Results.BadRequest(new
+                {
+                    error = "Invalid pagination.",
+                    offset = effOffset,
+                    limit = effLimit,
+                    maxLimit = MaxPageSize,
+                });
             var ownerId = users.GetUserId(ctx.User)!;
-            var preview = await service.GetOwnedTitlesAsync(ownerId, q, ct);
+            var preview = await service.GetOwnedTitlesAsync(ownerId, q, effOffset, effLimit, ct);
             return Results.Ok(new SteamPreviewDto(
                 preview.Status.ToString().ToLowerInvariant(),
                 preview.Titles
@@ -149,7 +165,8 @@ public static class SteamStoreEndpoints
                         t.ExternalGameId, t.Title, t.PlaytimeMinutes, t.IconUrl, t.LogoUrl,
                         t.State == SteamTitleImportState.Imported ? "imported" : "importable"))
                     .ToArray(),
-                preview.Truncated));
+                preview.Truncated,
+                preview.Total));
         });
 
         group.MapPost("/import", async (

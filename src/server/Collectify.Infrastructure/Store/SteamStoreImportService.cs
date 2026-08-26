@@ -187,15 +187,15 @@ public sealed class SteamStoreImportService
     /// users with more than <see cref="SteamOptions.SteamSubOptions.PreviewCap"/>
     /// games can still find, import, or repair lower-playtime titles.
     /// </summary>
-    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(string ownerId, string? search = null, CancellationToken ct = default)
+    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(string ownerId, string? search = null, int offset = 0, int? limit = null, CancellationToken ct = default)
     {
         var connection = await GetConnectionAsync(ownerId, ct);
         if (connection is null)
-            return new SteamPreviewResult(SteamPreviewStatus.NotConnected, [], false);
+            return new SteamPreviewResult(SteamPreviewStatus.NotConnected, [], false, 0);
 
         var fetch = await _steam.GetOwnedGamesAsync(connection.ExternalAccountId, ct);
         if (fetch.Status == SteamFetchStatus.Unavailable)
-            return new SteamPreviewResult(SteamPreviewStatus.Unavailable, [], false);
+            return new SteamPreviewResult(SteamPreviewStatus.Unavailable, [], false, 0);
 
         // Successful fetch: bump LastSyncedAt so we don't keep re-pulling a
         // private/empty library as though nothing had synced.
@@ -231,12 +231,14 @@ public sealed class SteamStoreImportService
         if (!string.IsNullOrEmpty(searchTerm))
             all = all.Where(t => t.Title.ToLowerInvariant().Contains(searchTerm)).ToList();
 
-        // Bound the preview so a huge library stays navigable server-side; the
-        // client gets a "truncated" flag to show "show more"/search, and can
-        // request the rest later. PreviewCap covers the common self-hosted case.
-        var truncated = all.Count > _options.PreviewCap;
-        var titles = truncated ? all.Take(_options.PreviewCap).ToList() : all;
-        return new SteamPreviewResult(SteamPreviewStatus.Ok, titles, truncated);
+        // Paginate within the searched set. Total is the searched-library count
+        // (before paging); Truncated means "more results after this page".
+        var total = all.Count;
+        var effOffset = Math.Max(0, offset);
+        var effLimit = limit ?? _options.PreviewCap;
+        var page = all.Skip(effOffset).Take(effLimit).ToList();
+        var truncated = effOffset + page.Count < total;
+        return new SteamPreviewResult(SteamPreviewStatus.Ok, page, truncated, total);
     }
 
     private static string? IconUrl(uint appId, string? iconHash)

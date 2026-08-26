@@ -14,7 +14,7 @@ public class SteamEndpointsTests
     private record SteamConnectDto(bool Configured, string? RedirectUrl);
     private record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
     private record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string? LogoUrl, string State);
-    private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated);
+    private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated, int Total);
     private record SteamImportResultDto(int Imported, int AlreadyImported, SteamImportItemDto[] Items);
     private record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);
 
@@ -543,6 +543,80 @@ public class SteamEndpointsTests
         // qualified private/offline message), NOT a blank "you own nothing".
         Assert.Equal("unavailable", preview!.Status);
         Assert.Empty(preview.Titles);
+    }
+
+    [Theory]
+    [InlineData("-1", null)]
+    [InlineData(null, "0")]
+    [InlineData(null, "1001")]
+    public async Task Games_InvalidPagination_Returns400(string? offset, string? limit)
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient { OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades" }] },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        var query = string.Join("&", new[]
+        {
+            offset is null ? null : $"offset={offset}",
+            limit is null ? null : $"limit={limit}",
+        }.Where(s => s is not null));
+        var res = await alice.Client.GetAsync($"/api/accounts/steam/games{(query.Length > 0 ? "?" + query : "")}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task Games_PaginatesWithinSearchedLibrary_WithTotal()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames =
+                [
+                    new SteamOwnedGame { AppId = 1, Name = "Game Alpha" },
+                    new SteamOwnedGame { AppId = 2, Name = "Game Beta" },
+                    new SteamOwnedGame { AppId = 3, Name = "Game Gamma" },
+                    new SteamOwnedGame { AppId = 4, Name = "Game Delta" },
+                ],
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        // Page 0 of size 2: first 2 of the full, searched library.
+        var page1 = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?offset=0&limit=2");
+        Assert.Equal(4, page1!.Total);
+        Assert.Equal(2, page1.Titles.Length);
+        Assert.Equal("1", page1.Titles[0].ExternalGameId);
+        Assert.Equal("2", page1.Titles[1].ExternalGameId);
+        Assert.True(page1.Truncated); // more after this page
+
+        // Page 1 of size 2: the remaining slice.
+        var page2 = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?offset=2&limit=2");
+        Assert.Equal(4, page2!.Total);
+        Assert.Equal(2, page2.Titles.Length);
+        Assert.Equal("3", page2.Titles[0].ExternalGameId);
+        Assert.Equal("4", page2.Titles[1].ExternalGameId);
+        Assert.False(page2.Truncated); // end of set
+
+        // Search composes with paging: "Game" matches all 4; search within page.
+        var searchPage = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=beta&offset=0&limit=2");
+        Assert.Equal(1, searchPage!.Total); // only 1 matches the search
+        Assert.Single(searchPage.Titles);
+        Assert.Equal("2", searchPage.Titles[0].ExternalGameId);
+        Assert.False(searchPage.Truncated);
+
+        // Default (no offset/limit): unchanged, full preview set, Total = library size.
+        var def = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
+        Assert.Equal(4, def!.Total);
+        Assert.Equal(4, def.Titles.Length);
+        Assert.False(def.Truncated);
     }
 
     [Fact]
