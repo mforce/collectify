@@ -545,6 +545,17 @@ public class SteamEndpointsTests
         Assert.Empty(preview.Titles);
     }
 
+    [Fact]
+    public async Task Games_Unauthenticated_ReturnsUnauthorized()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/accounts/steam/games");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("-1", null)]
     [InlineData(null, "0")]
