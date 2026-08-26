@@ -15,7 +15,8 @@ const mockConnectMutate = vi.fn();
 vi.mock('../services/steam', () => ({
   useSteamConnection: () => mockUseConnection(),
   useSteamConnect: () => mockUseConnect(),
-  useSteamGames: (enabled: boolean, search: string) => mockUseGames(enabled, search),
+  useSteamGames: (enabled: boolean, search: string, offset: number, limit: number) =>
+    mockUseGames(enabled, search, offset, limit),
   useSteamImport: (onSuccess: () => void) => mockUseImport(onSuccess),
   useSteamDisconnect: (onSuccess: () => void) => mockUseDisconnect(onSuccess),
 }));
@@ -50,7 +51,7 @@ describe('ImportSteam', () => {
 
   it('does not fetch games until connected', () => {
     renderPage();
-    expect(mockUseGames).toHaveBeenCalledWith(false, '');
+    expect(mockUseGames).toHaveBeenCalledWith(false, '', 0, 100);
   });
 
   it('disconnects and keeps a message that games stay', async () => {
@@ -85,6 +86,92 @@ describe('ImportSteam', () => {
     expect(screen.getByText('Hades')).toBeInTheDocument();
     expect(screen.getByText('Celeste')).toBeInTheDocument();
     expect(screen.getAllByText(/in collection/i).length).toBe(1);
+  });
+
+  it('hides already-imported titles when the Hide imported toggle is on', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: 2,
+        titles: [
+          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByText('Hades')).toBeInTheDocument();
+    expect(screen.getByText('Celeste')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText(/hide imported/i));
+    expect(screen.queryByText('Celeste')).not.toBeInTheDocument();
+    expect(screen.getByText('Hades')).toBeInTheDocument();
+  });
+
+  it('keeps the Select all not-imported count derived from the full page, not the hidden subset', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: 2,
+        titles: [
+          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    // Before hiding, count shows the importable subset of the full page.
+    expect(screen.getByLabelText(/select all not-imported \(1\)/i)).toBeInTheDocument();
+    await user.click(screen.getByLabelText(/hide imported/i));
+    // Count is unchanged by the hide toggle (still 1 importable on this page).
+    expect(screen.getByLabelText(/select all not-imported \(1\)/i)).toBeInTheDocument();
+  });
+
+  it('pages with Next and shows Prev only after the first page', async () => {
+    const user = userEvent.setup();
+    let callOffset = 0;
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_e, _s, offset: number) => {
+      callOffset = offset;
+      return {
+        data: {
+          status: 'ok',
+          truncated: true, // more pages after this one
+          total: 3,
+          titles: [
+            { externalGameId: String(offset + 1), title: `Game ${offset + 1}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+            { externalGameId: String(offset + 2), title: `Game ${offset + 2}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          ],
+        },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    renderPage();
+
+    // Next is enabled (truncated), Prev disabled (offset 0).
+    const next = screen.getByRole('button', { name: /next/i });
+    const prev = screen.getByRole('button', { name: /prev/i });
+    expect(next).toBeEnabled();
+    expect(prev).toBeDisabled();
+
+    await user.click(next);
+    expect(callOffset).toBe(100);
   });
 
   it('shows a qualified public-profile hint when Steam is unavailable', () => {

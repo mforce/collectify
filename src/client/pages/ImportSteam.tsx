@@ -21,6 +21,9 @@ export default function ImportSteam() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('');
+  const PAGE_SIZE = 100;
+  const [offset, setOffset] = useState(0);
+  const [hideImported, setHideImported] = useState(false);
 
   const connection = useSteamConnection();
   const connect = useSteamConnect();
@@ -29,12 +32,15 @@ export default function ImportSteam() {
     const t = setTimeout(() => setDebouncedFilter(filter), 300);
     return () => clearTimeout(t);
   }, [filter]);
+  useEffect(() => setOffset(0), [debouncedFilter]);
   // Search is sent to the server so it filters across the FULL owned library,
   // not just the capped preview slice — reaching lower-playtime titles a user
   // might search for (Codex: paginate/search large libraries).
   const games = useSteamGames(
     connection.data?.connected === true,
     filter.trim() ? debouncedFilter : '',
+    offset,
+    PAGE_SIZE,
   );
   const doImport = useSteamImport(() => setSelected(new Set()));
   const disconnect = useSteamDisconnect(() => setSelected(new Set()));
@@ -62,8 +68,14 @@ export default function ImportSteam() {
   );
 
   // The server already applies the search filter across the full library, so
-  // what we render is exactly the filtered result (no client-side re-filter).
-  const filtered = games.data?.titles ?? [];
+  // what we render is exactly the filtered page (no client-side re-filter).
+  // "Hide imported" additionally drops imported rows from the RENDERED list so
+  // the remaining importable set is immediately visible; it never changes the
+  // selectable count (which stays derived from the un-hidden page via
+  // `importable` above).
+  const rendered = hideImported
+    ? (games.data?.titles ?? []).filter((g) => g.state === 'importable')
+    : (games.data?.titles ?? []);
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -225,6 +237,31 @@ export default function ImportSteam() {
                 className="w-full rounded-md border border-border px-3 py-2 text-sm"
                 aria-label="Filter owned games"
               />
+              <div className="flex items-center gap-4 pt-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={hideImported}
+                    onChange={(e) => setHideImported(e.target.checked)}
+                  />
+                  Hide imported
+                </label>
+                <div className="ml-auto flex items-center gap-2">
+                  <Button variant="secondary" onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))} disabled={offset === 0}>
+                    Prev
+                  </Button>
+                  <span className="text-xs text-text-tertiary">
+                    {games.data.total > 0 ? `${offset + 1}–${Math.min(offset + rendered.length, games.data.total)} of ${games.data.total}` : ''}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setOffset((o) => o + PAGE_SIZE)}
+                    disabled={!games.data.truncated}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
               <div className="flex items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
                   <input type="checkbox" checked={allImportableSelected} onChange={toggleAll} disabled={games.data.titles.length === 0} />
@@ -257,14 +294,16 @@ export default function ImportSteam() {
               </div>
 
               <Card className="divide-y divide-border">
-                {filtered.length === 0 ? (
+                {rendered.length === 0 ? (
                   <p className="px-3 py-2.5 text-sm text-text-tertiary">
-                    {filter.trim()
-                      ? `No matches for “${filter}”.`
-                      : <>No owned games returned. Make sure your Steam profile's game details are set to <strong className="text-text-secondary">Public</strong> in Privacy Settings, then try again.</>}
+                    {hideImported && (games.data?.titles ?? []).length > 0
+                      ? 'All titles on this page are already in your collection.'
+                      : filter.trim()
+                        ? `No matches for “${filter}”.`
+                        : <>No owned games returned. Make sure your Steam profile's game details are set to <strong className="text-text-secondary">Public</strong> in Privacy Settings, then try again.</>}
                   </p>
                 ) : (
-                  filtered.map((g) => {
+                  rendered.map((g) => {
                     const isImported = g.state === 'imported';
                     const checked = selected.has(g.externalGameId);
                     return (
