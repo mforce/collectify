@@ -115,6 +115,35 @@ describe('ImportSteam', () => {
     expect(screen.getByText('Hades')).toBeInTheDocument();
   });
 
+  it('shows the fetched page range even when Hide imported filters the visible list', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: 3,
+        titles: [
+          { externalGameId: '1', title: 'ImportedA', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '2', title: 'ImportableB', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '3', title: 'ImportableC', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    // Full page visible first: range reflects 3 fetched titles.
+    expect(screen.getByText(/1–3 of 3/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: /hide imported/i }));
+    // Hide removes the imported row from the LIST but the RANGE still reflects
+    // the fetched page (3), and the select-all count still derives from the
+    // UN-HIDDEN page (2 importable).
+    expect(screen.queryByText('ImportedA')).not.toBeInTheDocument();
+    expect(screen.getByText(/1–3 of 3/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/select all not-imported \(2\)/i)).toBeInTheDocument();
+  });
+
   it('keeps the Select all not-imported count derived from the full page, not the hidden subset', async () => {
     const user = userEvent.setup();
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });

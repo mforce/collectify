@@ -264,7 +264,7 @@ export default function ImportSteam() {
                     Prev
                   </Button>
                   <span className="text-xs text-text-tertiary">
-                    {games.data.total > 0 ? `${offset + 1}–${Math.min(offset + rendered.length, games.data.total)} of ${games.data.total}` : ''}
+                    {games.data.total > 0 ? `${offset + 1}–${Math.min(offset + games.data.titles.length, games.data.total)} of ${games.data.total}` : ''}
                   </span>
                   <Button
                     variant="secondary"
