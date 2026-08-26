@@ -256,8 +256,8 @@ export default function ImportSteam() {
                 className="w-full rounded-md border border-border px-3 py-2 text-sm"
                 aria-label="Filter owned games"
               />
-              <div className="flex items-center gap-4 pt-2">
-                <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
+              <div className="flex flex-col items-stretch gap-3 pt-2 sm:flex-row sm:items-center sm:gap-4">
+                <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-text-secondary">
                   <input
                     type="checkbox"
                     checked={hideImported}
@@ -268,7 +268,7 @@ export default function ImportSteam() {
                   />
                   Hide imported
                 </label>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap sm:justify-end">
                   <label className="flex items-center gap-2 text-xs text-text-tertiary">
                     Games per page
                     <select
@@ -328,7 +328,11 @@ export default function ImportSteam() {
               <Card className="divide-y divide-border">
                 {rendered.length === 0 ? (
                   <p className="px-3 py-2.5 text-sm text-text-tertiary">
-                    {filter.trim()
+                    {hideImported
+                      ? filter.trim()
+                        ? `No unimported games match “${filter}”.`
+                        : 'All owned games are already in your collection.'
+                      : filter.trim()
                         ? `No matches for “${filter}”.`
                         : <>No owned games returned. Make sure your Steam profile's game details are set to <strong className="text-text-secondary">Public</strong> in Privacy Settings, then try again.</>}
                   </p>

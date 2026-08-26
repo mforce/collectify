@@ -233,6 +233,39 @@ describe('ImportSteam', () => {
     expect(screen.getByText(/no owned games returned/i)).toBeInTheDocument();
   });
 
+  it('explains when hiding imported games leaves no owned games', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: { status: 'ok', titles: [], truncated: false, total: 0 },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByLabelText(/hide imported/i));
+
+    expect(screen.getByText('All owned games are already in your collection.')).toBeInTheDocument();
+    expect(screen.queryByText(/privacy settings/i)).not.toBeInTheDocument();
+  });
+
+  it('explains when no unimported games match the filter', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: { status: 'ok', titles: [], truncated: false, total: 0 },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByLabelText(/hide imported/i));
+    await user.type(screen.getByLabelText(/filter owned games/i), 'Hades');
+
+    expect(screen.getByText('No unimported games match “Hades”.')).toBeInTheDocument();
+    expect(screen.queryByText(/no matches for/i)).not.toBeInTheDocument();
+  });
+
   it('filters the owned-games list by title (server-side search)', async () => {
     const user = userEvent.setup();
     const allTitles = [
