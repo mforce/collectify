@@ -32,7 +32,7 @@ export default function ImportSteam() {
     const t = setTimeout(() => setDebouncedFilter(filter), 300);
     return () => clearTimeout(t);
   }, [filter]);
-  useEffect(() => setOffset(0), [debouncedFilter]);
+  useEffect(() => setOffset(0), [filter]);
   // Search is sent to the server so it filters across the FULL owned library,
   // not just the capped preview slice — reaching lower-playtime titles a user
   // might search for (Codex: paginate/search large libraries).
