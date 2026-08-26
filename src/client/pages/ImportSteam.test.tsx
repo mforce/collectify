@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ImportSteam from './ImportSteam';
@@ -269,9 +269,11 @@ describe('ImportSteam', () => {
   it('imports the selected games when the user clicks Import selected', async () => {
     const user = userEvent.setup();
     let onSuccess: (() => void) | null = null;
+    let hookCall = 0;
     const importMutate = vi.fn().mockResolvedValue({ imported: 1, alreadyImported: 0, items: [] });
     mockUseImport.mockImplementation((cb: () => void) => {
-      onSuccess = cb;
+      if (hookCall % 2 === 0) onSuccess = cb;
+      hookCall += 1;
       return { mutateAsync: importMutate, isPending: false };
     });
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
@@ -296,6 +298,51 @@ describe('ImportSteam', () => {
 
     expect(importMutate).toHaveBeenCalledWith(['1', '2']);
     expect(onSuccess).toBeTypeOf('function');
+    act(() => onSuccess?.());
+    expect(screen.getByRole('button', { name: /^import selected$/i })).toBeDisabled();
+  });
+
+  it('repair covers preserves the pending cross-page import selection', async () => {
+    const user = userEvent.setup();
+    const successCallbacks: Array<() => void> = [];
+    let hookCall = 0;
+    const importSelectedMutate = vi.fn().mockResolvedValue({ imported: 1, alreadyImported: 0, items: [] });
+    const repairCoversMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 1, items: [] });
+    mockUseImport.mockImplementation((onSuccess: () => void) => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      successCallbacks[instance] = onSuccess;
+      return {
+        mutateAsync: instance === 0 ? importSelectedMutate : repairCoversMutate,
+        isPending: false,
+      };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 200,
+        titles: [
+          { externalGameId: '101', title: 'Importable 101', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '102', title: 'Imported 102', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    await user.click(screen.getByRole('checkbox', { name: /Importable 101/ }));
+    expect(screen.getByRole('button', { name: /import selected \(1\)/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /repair covers/i }));
+    expect(repairCoversMutate).toHaveBeenCalledWith(['102']);
+    act(() => successCallbacks[1]?.());
+
+    await user.click(screen.getByRole('button', { name: /import selected \(1\)/i }));
+    expect(importSelectedMutate).toHaveBeenLastCalledWith(['101']);
   });
 
   it('repairs only imported ids from the currently fetched page', async () => {

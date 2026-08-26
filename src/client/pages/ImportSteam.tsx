@@ -45,7 +45,8 @@ export default function ImportSteam() {
     pageSize,
     hideImported,
   );
-  const doImport = useSteamImport(() => setSelected(new Set()));
+  const importSelected = useSteamImport(() => setSelected(new Set()));
+  const repairCovers = useSteamImport(() => {});
   const disconnect = useSteamDisconnect(() => setSelected(new Set()));
 
   // Surface the OpenID callback outcome once, then clear it from the URL so
@@ -133,7 +134,7 @@ export default function ImportSteam() {
 
   const handleImport = async () => {
     try {
-      const res = await doImport.mutateAsync([...selected]);
+      const res = await importSelected.mutateAsync([...selected]);
       if (res.imported > 0) toast.success(`Imported ${res.imported} game${res.imported === 1 ? '' : 's'}`);
       if (res.alreadyImported > 0) toast.info(`${res.alreadyImported} were already in your collection`);
       // Show the imported games in the collection (spec: import → toast → /games).
@@ -150,7 +151,7 @@ export default function ImportSteam() {
   // cover (the preview doesn't report that, so it's always available; the server
   // simply no-ops on titles that need no healing).
   const handleRepairCovers = async () => {
-    if (doImport.isPending) return;
+    if (repairCovers.isPending) return;
     const importedIds = (games.data?.titles ?? [])
       .filter((g) => g.state === 'imported')
       .map((g) => g.externalGameId);
@@ -159,7 +160,7 @@ export default function ImportSteam() {
       return;
     }
     try {
-      const res = await doImport.mutateAsync(importedIds);
+      const res = await repairCovers.mutateAsync(importedIds);
       toast.success(
         res.imported > 0
           ? `Re-imported ${res.imported} game${res.imported === 1 ? '' : 's'} and refreshed covers`
@@ -304,9 +305,9 @@ export default function ImportSteam() {
                 <Button
                   variant="primary"
                   onClick={handleImport}
-                  disabled={selected.size === 0 || doImport.isPending}
+                  disabled={selected.size === 0 || importSelected.isPending}
                 >
-                  {doImport.isPending
+                  {importSelected.isPending
                     ? 'Importing…'
                     : `Import selected${selected.size ? ` (${selected.size})` : ''}`}
                 </Button>
@@ -314,7 +315,7 @@ export default function ImportSteam() {
                   <Button
                     variant="secondary"
                     onClick={handleRepairCovers}
-                    disabled={doImport.isPending}
+                    disabled={repairCovers.isPending}
                     title="Re-derive missing or stale covers for games imported before the cover fix"
                   >
                     Repair covers
