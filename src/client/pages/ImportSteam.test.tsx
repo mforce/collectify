@@ -336,4 +336,38 @@ describe('ImportSteam', () => {
     await user.click(screen.getByRole('button', { name: /import selected \(3\)/i }));
     expect(importArg ? [...importArg].sort() : []).toEqual(['1', '101', '102'].sort());
   });
+
+  it('deselecting all on a later page keeps earlier-page selections', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_e, _s, offset: number) => ({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 4,
+        titles: [
+          { externalGameId: String(offset + 1), title: `Game ${offset + 1}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: String(offset + 2), title: `Game ${offset + 2}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage();
+
+    // Page 1: select-all (selects Games 1 and 2), then advance to page 2.
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    // Page 2 shows Games 101/102. First select-all click SELECTS them (else
+    // branch: adds {101,102} to the existing {1,2}, because allImportableSelected
+    // is false on page 2 on this click).
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+    // Now all importable on page 2 are selected, so the same button is a
+    // DISMISS. A second click removes ONLY this page's ids (101,102), keeping
+    // the earlier-page picks (1,2). Result: {1,2} -> "Import selected (2)".
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+
+    expect(screen.getByRole('button', { name: /import selected \(2\)/i })).toBeInTheDocument();
+  });
 });
