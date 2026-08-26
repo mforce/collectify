@@ -140,7 +140,6 @@ public static class SteamStoreEndpoints
             UserManager<AppUser> users,
             SteamSchemaGuard schemaGuard,
             SteamStoreImportService service,
-            Microsoft.Extensions.Configuration.IConfiguration config,
             IOptions<SteamOptions> options,
             CancellationToken ct) =>
         {
