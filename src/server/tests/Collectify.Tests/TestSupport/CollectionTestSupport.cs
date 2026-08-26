@@ -15,13 +15,14 @@ public interface ICollectionResponse
     string? AcquisitionCurrency { get; }
     string? ImagePath { get; }
     string[] Tags { get; }
+    string[] Genres { get; }
     DateTime UpdatedAt { get; }
 }
 
 public record MovieResponse(
     int Id, string Title, string? OriginalTitle, int? Year,
     int Formats, string? Director, int? RuntimeMinutes,
-    string? Studio, string? Genres, string? Barcode,
+    string? Studio, string[] Genres, string? Barcode,
     string? TmdbId, string? ImdbId, string? ImagePath, string? Description, string? Notes,
     int? PersonalRating, CollectionStatus Status, Condition? Condition,
     DateOnly? AcquiredOn, decimal? AcquisitionPrice, string? AcquisitionCurrency, string? AcquisitionSource,
@@ -32,7 +33,7 @@ public record MovieResponse(
 
 public record AlbumResponse(
     int Id, string Title, string ArtistName, int? Year,
-    MusicFormat Format, string? Label, string? Genres, string? Barcode,
+    MusicFormat Format, string? Label, string[] Genres, string? Barcode,
     string? MusicBrainzReleaseId, string? DiscogsId, string? ImagePath, string? Description, string? Notes,
     int? PersonalRating, CollectionStatus Status, Condition? Condition,
     DateOnly? AcquiredOn, decimal? AcquisitionPrice, string? AcquisitionCurrency, string? AcquisitionSource,
@@ -44,6 +45,7 @@ public record AlbumResponse(
 public record GameResponse(
     int Id, string Title, GamePlatform Platform, string? PlatformLegacy, int? Year,
     string? Publisher, string? Developer, int DigitalStores,
+    string[] Genres,
     string? Barcode, string? IgdbId, string? ImagePath, string? Description, string? Notes,
     int? PersonalRating, CollectionStatus Status, Condition? Condition,
     DateOnly? AcquiredOn, decimal? AcquisitionPrice, string? AcquisitionCurrency, string? AcquisitionSource,
@@ -66,7 +68,8 @@ public static class MovieTestSupport
         string? currency = null,
         WatchStatus watchStatus = WatchStatus.Unwatched,
         int watchCount = 0,
-        string[]? tags = null) => new
+        string[]? tags = null,
+        string[]? genres = null) => new
         {
             Title = title,
             OriginalTitle = (string?)null,
@@ -75,7 +78,7 @@ public static class MovieTestSupport
             Director = "Christopher Nolan",
             RuntimeMinutes = 148,
             Studio = "Warner Bros.",
-            Genres = "Sci-Fi, Thriller",
+            Genres = genres ?? new[] { "Sci-Fi", "Thriller" },
             Barcode = (string?)null,
             TmdbId = (string?)null,
             ImdbId = (string?)null,
@@ -106,14 +109,15 @@ public static class MusicTestSupport
         int? rating = null,
         string? currency = "GBP",
         string[]? tags = null,
-        int listenCount = 0) => new
+        int listenCount = 0,
+        string[]? genres = null) => new
         {
             Title = title,
             ArtistName = artist,
             Year = year,
             Format = format,
             Label = (string?)null,
-            Genres = (string?)null,
+            Genres = genres,
             Barcode = (string?)null,
             MusicBrainzReleaseId = (string?)null,
             DiscogsId = (string?)null,
@@ -144,7 +148,8 @@ public static class GameTestSupport
         string? currency = "USD",
         CompletionStatus completion = CompletionStatus.NotStarted,
         int? hours = null,
-        string[]? tags = null) => new
+        string[]? tags = null,
+        string[]? genres = null) => new
         {
             Title = title,
             Platform = platform,
@@ -152,6 +157,7 @@ public static class GameTestSupport
             Publisher = "Supergiant Games",
             Developer = "Supergiant Games",
             DigitalStores = isDigital ? (store is { } s ? (int)s : (int)DigitalStore.Other) : 0,
+            Genres = genres,
             Barcode = (string?)null,
             IgdbId = (string?)null,
             ImagePath = (string?)null,

@@ -12,6 +12,7 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<MusicAlbum> MusicAlbums => Set<MusicAlbum>();
     public DbSet<Game> Games => Set<Game>();
+    public DbSet<Genre> Genres => Set<Genre>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<CoverImage> CoverImages => Set<CoverImage>();
     public DbSet<GameStoreConnection> GameStoreConnections => Set<GameStoreConnection>();
@@ -78,6 +79,12 @@ public class CollectifyDbContext : IdentityDbContext<AppUser>
         {
             e.Property(t => t.Name).HasMaxLength(100).IsRequired();
             e.HasIndex(t => new { t.OwnerId, t.Name }).IsUnique();
+        });
+
+        builder.Entity<Genre>(e =>
+        {
+            e.Property(g => g.Name).HasMaxLength(100).IsRequired();
+            e.HasIndex(g => new { g.OwnerId, g.Name }).IsUnique();
         });
 
         builder.Entity<CoverImage>(e =>

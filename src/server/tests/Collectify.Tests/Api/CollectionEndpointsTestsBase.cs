@@ -33,7 +33,7 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     protected abstract string RoutePrefix { get; }
 
     protected abstract object Sample(
-        string? title = null, string[]? tags = null, string? currency = null, int? rating = null);
+        string? title = null, string[]? tags = null, string[]? genres = null, string? currency = null, int? rating = null);
 
     protected abstract object MinimalWithImage(string? imagePath);
 
@@ -43,6 +43,11 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
     protected abstract string OwnerIdOf(TEntity entity);
     protected abstract string TitleOf(TEntity entity);
     protected abstract DateTime UpdatedAtOf(TEntity entity);
+
+    /// <summary>Counts how many genre-link rows exist for the item with the given id, reading the
+    /// persistence layer directly (the <see cref="Genres"/> navigation is not loaded on entities
+    /// read via AsNoTracking without Include). Used to assert atomic non-writes.</summary>
+    protected abstract Task<int> GenreLinkCountAsync(int itemId);
 
     private static string UniqueUser(string prefix) => $"{prefix}-{Guid.NewGuid():N}";
 
@@ -429,9 +434,9 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
 
     // -------- Bulk update --------
 
-    private async Task<int> CreateAndGetIdAsync(HttpClient client, string? title = null, int? rating = null)
+    private async Task<int> CreateAndGetIdAsync(HttpClient client, string? title = null, int? rating = null, string[]? genres = null)
     {
-        var response = await client.PostAsJsonAsync(RoutePrefix, Sample(title: title, rating: rating));
+        var response = await client.PostAsJsonAsync(RoutePrefix, Sample(title: title, rating: rating, genres: genres));
         var body = await response.ReadJsonAsync<TResponse>();
         return body!.Id;
     }
@@ -481,6 +486,88 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
             var tags = item.GetProperty("tags").EnumerateArray().Select(t => t.GetString()).ToArray();
             Assert.Contains("classic", tags);
         }
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Genres_SetsLowercasedDistinct_SetAcrossAll()
+    {
+        var alice = await NewAliceAsync();
+        // Seed a distinct initial genre so replace-vs-merge is discriminated
+        // independent of each subtype's Sample() defaults: a merge bug would
+        // leave "seed" behind after the bulk-replace below.
+        var id1 = await CreateAndGetIdAsync(alice.Client, "Alpha", genres: new[] { "seed" });
+        var id2 = await CreateAndGetIdAsync(alice.Client, "Beta", genres: new[] { "seed" });
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id1, id2 }, updates = new { genres = new[] { "Action", "drama", "DRAMA" } } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, body.GetArrayLength());
+        foreach (var item in body.EnumerateArray())
+        {
+            var genres = item.GetProperty("genres").EnumerateArray().Select(g => g.GetString()).ToArray();
+            Assert.Equal(new[] { "action", "drama" }, genres.OrderBy(g => g).ToArray());
+        }
+
+        // The replace also must have PERSISTED (GenreLinkCountAsync reads the DB, not the response).
+        // Exactly 2 links ("action"+"drama") per item — "seed" was replaced, and the set wrote through.
+        Assert.Equal(2, await GenreLinkCountAsync(id1));
+        Assert.Equal(2, await GenreLinkCountAsync(id2));
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Genres_Null_Clears()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client, "Alpha");
+
+        // Set: the bulk write replaces the item's genre links with exactly ["action"],
+        // and this must have PERSISTED (GenreLinkCountAsync reads the DB, not the response).
+        var setResponse = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { genres = new[] { "action" } } });
+        Assert.Equal(HttpStatusCode.OK, setResponse.StatusCode);
+        Assert.Equal(1, await GenreLinkCountAsync(id)); // 1 link: "action" (replaced any seeded defaults)
+
+        // Clear with null: removes all genre links, and this must have PERSISTED too.
+        var cleared = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { genres = (string[]?)null } });
+        Assert.Equal(HttpStatusCode.OK, cleared.StatusCode);
+        Assert.Equal(0, await GenreLinkCountAsync(id));
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Genres_MalformedValue_Returns400_PinsMessage()
+    {
+        var alice = await NewAliceAsync();
+        var id = await CreateAndGetIdAsync(alice.Client, "Alpha");
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { id }, updates = new { genres = new { not = "an array" } } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("genres: invalid value for genres.", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task BulkUpdate_Genres_ForeignOwnerId_Returns404_IsAtomic()
+    {
+        var alice = await NewAliceAsync();
+        var bob = await NewBobAsync();
+        var aliceId = await CreateAndGetIdAsync(alice.Client, "Alice One");
+        var bobId = await CreateAndGetIdAsync(bob.Client, "Bob One");
+        var aliceGenreCountBefore = await GenreLinkCountAsync(aliceId);
+
+        var response = await alice.Client.PatchAsJsonAsync($"{RoutePrefix}bulk",
+            new { ids = new[] { aliceId, bobId }, updates = new { genres = new[] { "changed" } } });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        // The whole request is refused: Alice's item's genre links must be untouched.
+        // Count the actual genre-link rows (the Genres nav is not loaded on AsNoTracking reads);
+        // a corrupted write would replace them with the single "changed" genre (count -> 1).
+        Assert.Equal(aliceGenreCountBefore, await GenreLinkCountAsync(aliceId));
     }
 
     [Fact]

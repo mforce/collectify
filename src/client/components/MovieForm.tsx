@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, Textarea } from './ui';
+import { Button, CoverPreview, ExternalIdField, Field, Input, SectionHeading, Select, TagInput, Textarea } from './ui';
 import CoverEditor from './CoverEditor';
 import CoverFormLayout from './CoverFormLayout';
 import PersonalAcquisitionSection from './PersonalAcquisitionSection';
@@ -40,6 +40,7 @@ const empty: Movie = {
   watchStatus: 'Unwatched',
   watchCount: 0,
   tags: [],
+  genres: [],
 };
 
 export default function MovieForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
@@ -137,8 +138,8 @@ export default function MovieForm({ initial, prefillLookup, prefillBarcode, subm
             <Field label="Studio">
               <Input value={m.studio ?? ''} onChange={(e) => set('studio', e.target.value || null)} />
             </Field>
-            <Field label="Genres (comma separated)">
-              <Input value={m.genres ?? ''} onChange={(e) => set('genres', e.target.value || null)} />
+            <Field label="Genres">
+              <TagInput value={m.genres ?? []} onChange={(next) => set('genres', next)} placeholder="Add genre…" />
             </Field>
             <Field label="Barcode">
               <Input value={m.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />

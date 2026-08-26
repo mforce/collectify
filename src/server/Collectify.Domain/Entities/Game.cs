@@ -57,6 +57,7 @@ public class Game : ICollectionEntry
     public DateOnly? LastPlayedOn { get; set; }
 
     public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+    public ICollection<Genre> Genres { get; set; } = new List<Genre>();
 
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

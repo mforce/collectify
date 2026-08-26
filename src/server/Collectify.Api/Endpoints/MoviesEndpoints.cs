@@ -22,7 +22,7 @@ public static class MoviesEndpoints
         string? Director,
         int? RuntimeMinutes,
         string? Studio,
-        string? Genres,
+        string[]? Genres,
         string? Barcode,
         string? TmdbId,
         string? ImdbId,
@@ -101,13 +101,11 @@ public static class MoviesEndpoints
             {
                 if (genreValues.Count > 1)
                     return (q, Results.BadRequest(new { error = "Query parameter 'genre' must have a single value." }));
-                // Genres is stored as a comma-separated string; substring
-                // match is good enough for the volume here.
                 var genre = genreValues.ToString();
                 if (!string.IsNullOrWhiteSpace(genre))
                 {
-                    var like = $"%{genre}%";
-                    q = q.Where(m => m.Genres != null && EF.Functions.Like(m.Genres, like));
+                    var normalized = new[] { genre.Trim().ToLowerInvariant() };
+                    q = q.Where(m => m.Genres.Any(g => normalized.Contains(g.Name)));
                 }
             }
 
@@ -196,7 +194,7 @@ public static class MoviesEndpoints
 
     private static MovieDto ToDto(Movie m) => new(
         m.Id, m.Title, m.OriginalTitle, m.Year, (int)m.Formats, m.Director, m.RuntimeMinutes,
-        m.Studio, m.Genres, m.Barcode, m.TmdbId, m.ImdbId, m.ImagePath, m.Description, m.Notes,
+        m.Studio, GenreResolver.ToNameArray(m.Genres), m.Barcode, m.TmdbId, m.ImdbId, m.ImagePath, m.Description, m.Notes,
         m.PersonalRating, m.Status, m.Condition,
         m.AcquiredOn, m.AcquisitionPrice, m.AcquisitionCurrency, m.AcquisitionSource,
         m.WatchStatus, m.LastWatchedOn, m.WatchCount,
@@ -213,7 +211,6 @@ public static class MoviesEndpoints
         m.Director = dto.Director;
         m.RuntimeMinutes = dto.RuntimeMinutes;
         m.Studio = dto.Studio;
-        m.Genres = dto.Genres;
         m.Barcode = dto.Barcode;
         m.TmdbId = dto.TmdbId;
         m.ImdbId = dto.ImdbId;

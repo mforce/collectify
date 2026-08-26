@@ -22,6 +22,7 @@ public static class GamesEndpoints
         string? Publisher,
         string? Developer,
         int DigitalStores,
+        string[]? Genres,
         string? Barcode,
         string? IgdbId,
         string? ImagePath,
@@ -125,6 +126,18 @@ public static class GamesEndpoints
                     return (q, Results.BadRequest(new { error = "Invalid value for query parameter 'digitalStore'." }));
                 if (stores.Value != DigitalStore.None)
                     q = q.Where(g => (g.DigitalStores & stores.Value) != 0);
+            }
+
+            if (request.Query.TryGetValue("genre", out var genreValues))
+            {
+                if (genreValues.Count > 1)
+                    return (q, Results.BadRequest(new { error = "Query parameter 'genre' must have a single value." }));
+                var genre = genreValues.ToString();
+                if (!string.IsNullOrWhiteSpace(genre))
+                {
+                    var normalized = new[] { genre.Trim().ToLowerInvariant() };
+                    q = q.Where(g => g.Genres.Any(x => normalized.Contains(x.Name)));
+                }
             }
 
             return (q, null);
@@ -243,6 +256,7 @@ public static class GamesEndpoints
 
     private static GameDto ToDto(Game g) => new(
         g.Id, g.Title, g.Platform, g.PlatformLegacy, g.Year, g.Publisher, g.Developer, (int)g.DigitalStores,
+        GenreResolver.ToNameArray(g.Genres),
         g.Barcode, g.IgdbId, g.ImagePath, g.Description, g.Notes,
         g.PersonalRating, g.Status, g.Condition,
         g.AcquiredOn, g.AcquisitionPrice, g.AcquisitionCurrency, g.AcquisitionSource,

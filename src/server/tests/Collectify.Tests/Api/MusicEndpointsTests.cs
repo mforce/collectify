@@ -16,8 +16,8 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
 
     protected override string RoutePrefix => "/api/music/";
 
-    protected override object Sample(string? title = null, string[]? tags = null, string? currency = null, int? rating = null) =>
-        MusicTestSupport.Sample(title: title ?? "OK Computer", tags: tags, currency: currency ?? "GBP", rating: rating);
+    protected override object Sample(string? title = null, string[]? tags = null, string[]? genres = null, string? currency = null, int? rating = null) =>
+        MusicTestSupport.Sample(title: title ?? "OK Computer", tags: tags, genres: genres, currency: currency ?? "GBP", rating: rating);
 
     protected override object MinimalWithImage(string? imagePath) => new
     {
@@ -42,6 +42,9 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
     protected override string OwnerIdOf(MusicAlbum entity) => entity.OwnerId;
     protected override string TitleOf(MusicAlbum entity) => entity.Title;
     protected override DateTime UpdatedAtOf(MusicAlbum entity) => entity.UpdatedAt;
+
+    protected override Task<int> GenreLinkCountAsync(int itemId) =>
+        Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.MusicAlbums.Any(a => a.Id == itemId)));
 
     [Fact]
     public async Task CreateAndGet_RoundTripsReleaseDate()
@@ -94,9 +97,13 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
     public async Task List_FiltersByYearRange_ArtistLabelGenreStatusRating()
     {
         var alice = await NewAliceAsync();
-        await Factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "OK Computer", ArtistName = "Radiohead",   Year = 1997, Label = "Parlophone", Genres = "rock", PersonalRating = 9, Status = CollectionStatus.Owned });
-        await Factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "Funeral",     ArtistName = "Arcade Fire", Year = 2004, Label = "Merge",      Genres = "indie", PersonalRating = 7, Status = CollectionStatus.Owned });
-        await Factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "Pet Sounds",  ArtistName = "Beach Boys",  Year = 1966, Label = "Capitol",    Genres = "pop", PersonalRating = 10, Status = CollectionStatus.Wishlist });
+
+        await alice.Client.PostAsJsonAsync("/api/music/",
+            new { Title = "OK Computer", ArtistName = "Radiohead", Year = 1997, Format = (int)MusicFormat.Cd, Label = "Parlophone", Genres = new[] { "rock" }, PersonalRating = 9, Status = CollectionStatus.Owned });
+        await alice.Client.PostAsJsonAsync("/api/music/",
+            new { Title = "Funeral", ArtistName = "Arcade Fire", Year = 2004, Format = (int)MusicFormat.Cd, Label = "Merge", Genres = new[] { "indie" }, PersonalRating = 7, Status = CollectionStatus.Owned });
+        await alice.Client.PostAsJsonAsync("/api/music/",
+            new { Title = "Pet Sounds", ArtistName = "Beach Boys", Year = 1966, Format = (int)MusicFormat.Cd, Label = "Capitol", Genres = new[] { "pop" }, PersonalRating = 10, Status = CollectionStatus.Wishlist });
 
         var byYear = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?yearFrom=1990&yearTo=2000");
         var only = Assert.Single(byYear!);
@@ -110,6 +117,9 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
 
         var byGenre = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?genre=indie");
         Assert.Single(byGenre!);
+
+        var byPartial = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?genre=ind");
+        Assert.Empty(byPartial!);
 
         var byStatus = await alice.Client.GetJsonAsync<AlbumResponse[]>("/api/music/?status=Wishlist");
         Assert.Single(byStatus!);

@@ -18,7 +18,7 @@ The fields tracked per collection category. Decided in the Phase 1 spec discussi
 | `OwnerId` | string (FK → AspNetUsers) | in code | Indexed; required filter on every read/write |
 | `Title` | string (req, 500) | in code | Indexed |
 | `Year` | int? | in code | Release / publication year |
-| `Genres` | string? | in code | Comma-separated; future: normalize to a Genre table |
+| `Genres` | many-to-many → `Genre` | in code | Relational, like Tags — see **Genres** below |
 | `Barcode` | string? | in code | Indexed; key for Phase 3 scan |
 | `ImagePath` | string? | in code | Local cover/poster path (downloaded in Phase 2) |
 | `Notes` | string? | in code | Free-form |
@@ -102,6 +102,31 @@ Three EF-Core-managed join tables (auto-created via `HasMany(x => x.Tags).WithMa
 `Tag.Name` is normalized lowercase on save and presented case-preserved via a separate `DisplayName` column **only if** we need case-preserving display — for now lowercase normalization on save is enough; display the same lowercase string. Decide later if this becomes annoying.
 
 API: `GET/POST/DELETE /api/tags`, plus `tags: string[]` on each item DTO that resolves on save (create-or-find by name).
+
+## Genres
+
+Many-to-many, scoped per owner — same shape as **Tags** above.
+
+```csharp
+public class Genre
+{
+    public int Id { get; set; }
+    public string OwnerId { get; set; } = string.Empty; // indexed; genres are user-scoped
+    public string Name { get; set; } = string.Empty;    // unique per (OwnerId, Name)
+}
+```
+
+Three EF-Core-managed join tables (auto-created via `HasMany(x => x.Genres).WithMany()`):
+
+- `GenreMovie(GenresId, MoviesId)`
+- `GenreMusicAlbum(GenresId, MusicAlbumsId)`
+- `GameGenre(GamesId, GenresId)`
+
+`Genre.Name` is normalized lowercase on save (trim → lowercase → drop whitespace-only → distinct), mirroring `Tag.Name`.
+
+API: `genres: string[]` on each item DTO, resolved on save (create-or-find by name), plus a bulk-update `genres` replace-set (`null` clears, malformed → 400). The list endpoints' `?genre=` filter is **exact membership**, not substring.
+
+The migration that introduced this (`AddGenres`, owner decision 2026-08-24) was **schema-only**: the legacy comma-separated `Movies.Genres` / `MusicAlbums.Genres` string columns were dropped with no data backfill — existing genre values were discarded, not migrated.
 
 ## Store imports / provenance (in code — Steam first)
 
@@ -217,4 +242,3 @@ Tracked separately from Phase 1 in its own GitHub issue (filed as a follow-up to
 - **Goldmine media + sleeve grading for music** — sticking with one generic `Condition` field.
 - **Region / Edition / Packaging / DiscCount / HasManual / HasBox / vinyl color / RPM / weight** — collector-tier fields, deferred.
 - **Cast list for movies, tracklist for music, full company-roles for games** — providers expose these. Full provider payloads are not persisted in the application database. The memory cache is restart-ephemeral; opted-in Redis stores TTL-bounded payloads at rest and must be secured. A full re-fetch after cache expiry re-queries the provider.
-- **Many-to-many `Genre`** — staying with CSV until a filter UI demands it.

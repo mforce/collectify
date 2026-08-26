@@ -136,3 +136,28 @@ describe('AlbumForm — Fetch metadata by MusicBrainz Release ID', () => {
     expect(screen.getByDisplayValue('f4e51c80-99e2-39e1-8062-c9b8e2685bdf')).toBeInTheDocument();
   });
 });
+
+describe('AlbumForm — Genres', () => {
+  it('typing a genre renders it as a chip and submits it as an array', async () => {
+    const { onSubmit } = renderForm();
+    const user = userEvent.setup();
+
+    const genreInput = screen.getByPlaceholderText('Add genre…');
+    await user.type(genreInput, 'Rock');
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByText('rock')).toBeInTheDocument();
+
+    const titleLabel = screen.getByText('Title');
+    const titleInput = titleLabel.parentElement?.querySelector('input') as HTMLInputElement;
+    await user.type(titleInput, 'Test Album');
+    const artistLabel = screen.getByText('Artist');
+    const artistInput = artistLabel.parentElement?.querySelector('input') as HTMLInputElement;
+    await user.type(artistInput, 'Test Artist');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ genres: ['rock'] }),
+    );
+  });
+});

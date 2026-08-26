@@ -17,8 +17,8 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
 
     protected override string RoutePrefix => "/api/movies/";
 
-    protected override object Sample(string? title = null, string[]? tags = null, string? currency = null, int? rating = null) =>
-        MovieTestSupport.Sample(title: title ?? "Inception", tags: tags, currency: currency, rating: rating);
+    protected override object Sample(string? title = null, string[]? tags = null, string[]? genres = null, string? currency = null, int? rating = null) =>
+        MovieTestSupport.Sample(title: title ?? "Inception", tags: tags, genres: genres, currency: currency, rating: rating);
 
     protected override object MinimalWithImage(string? imagePath) => new
     {
@@ -42,6 +42,9 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
     protected override string OwnerIdOf(Movie entity) => entity.OwnerId;
     protected override string TitleOf(Movie entity) => entity.Title;
     protected override DateTime UpdatedAtOf(Movie entity) => entity.UpdatedAt;
+
+    protected override Task<int> GenreLinkCountAsync(int itemId) =>
+        Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.Movies.Any(m => m.Id == itemId)));
 
     // -------- Formats (flags enum as integer) --------
 
@@ -228,12 +231,16 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
     }
 
     [Fact]
-    public async Task List_FiltersByDirector_StudioGenre_MatchSubstring()
+    public async Task List_FiltersByDirector_StudioGenre_ExactMembership()
     {
         var alice = await NewAliceAsync();
-        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Inception", Director = "Christopher Nolan", Studio = "Warner Bros", Genres = "sci-fi, action" });
-        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Tenet",    Director = "Christopher Nolan", Studio = "Warner Bros", Genres = "sci-fi" });
-        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "Goodfellas", Director = "Martin Scorsese", Studio = "Warner Bros", Genres = "crime" });
+
+        await alice.Client.PostAsJsonAsync("/api/movies/",
+            new { Title = "Inception", Director = "Christopher Nolan", Studio = "Warner Bros", Formats = (int)MovieFormat.BluRay, Status = CollectionStatus.Owned, Genres = new[] { "sci-fi", "action" } });
+        await alice.Client.PostAsJsonAsync("/api/movies/",
+            new { Title = "Tenet", Director = "Christopher Nolan", Studio = "Warner Bros", Formats = (int)MovieFormat.BluRay, Status = CollectionStatus.Owned, Genres = new[] { "sci-fi" } });
+        await alice.Client.PostAsJsonAsync("/api/movies/",
+            new { Title = "Goodfellas", Director = "Martin Scorsese", Studio = "Warner Bros", Formats = (int)MovieFormat.BluRay, Status = CollectionStatus.Owned, Genres = new[] { "crime" } });
 
         var byDirector = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?director=Nolan");
         Assert.Equal(2, byDirector!.Length);
@@ -241,9 +248,11 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         var byStudio = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?studio=Warner");
         Assert.Equal(3, byStudio!.Length);
 
-        // Substring against the comma-joined Genres column.
         var byGenre = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?genre=sci-fi");
         Assert.Equal(2, byGenre!.Length);
+
+        var byPartial = await alice.Client.GetJsonAsync<MovieResponse[]>("/api/movies/?genre=sci");
+        Assert.Empty(byPartial!);
     }
 
     [Fact]

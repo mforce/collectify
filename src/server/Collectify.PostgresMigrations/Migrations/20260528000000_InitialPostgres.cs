@@ -133,7 +133,6 @@ namespace Collectify.PostgresMigrations.Migrations
                     Director = table.Column<string>(type: "text", nullable: true),
                     RuntimeMinutes = table.Column<int>(type: "integer", nullable: true),
                     Studio = table.Column<string>(type: "text", nullable: true),
-                    Genres = table.Column<string>(type: "text", nullable: true),
                     Barcode = table.Column<string>(type: "text", nullable: true),
                     TmdbId = table.Column<string>(type: "text", nullable: true),
                     ImdbId = table.Column<string>(type: "text", nullable: true),
@@ -170,7 +169,6 @@ namespace Collectify.PostgresMigrations.Migrations
                     Year = table.Column<int>(type: "integer", nullable: true),
                     Format = table.Column<int>(type: "integer", nullable: false),
                     Label = table.Column<string>(type: "text", nullable: true),
-                    Genres = table.Column<string>(type: "text", nullable: true),
                     Barcode = table.Column<string>(type: "text", nullable: true),
                     MusicBrainzReleaseId = table.Column<string>(type: "text", nullable: true),
                     DiscogsId = table.Column<string>(type: "text", nullable: true),
@@ -206,6 +204,20 @@ namespace Collectify.PostgresMigrations.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Tags", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Genres",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OwnerId = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Genres", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -386,6 +398,78 @@ namespace Collectify.PostgresMigrations.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "GameGenre",
+                columns: table => new
+                {
+                    GamesId = table.Column<int>(type: "integer", nullable: false),
+                    GenresId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GameGenre", x => new { x.GamesId, x.GenresId });
+                    table.ForeignKey(
+                        name: "FK_GameGenre_Games_GamesId",
+                        column: x => x.GamesId,
+                        principalTable: "Games",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GameGenre_Genres_GenresId",
+                        column: x => x.GenresId,
+                        principalTable: "Genres",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GenreMovie",
+                columns: table => new
+                {
+                    GenresId = table.Column<int>(type: "integer", nullable: false),
+                    MoviesId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GenreMovie", x => new { x.GenresId, x.MoviesId });
+                    table.ForeignKey(
+                        name: "FK_GenreMovie_Genres_GenresId",
+                        column: x => x.GenresId,
+                        principalTable: "Genres",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GenreMovie_Movies_MoviesId",
+                        column: x => x.MoviesId,
+                        principalTable: "Movies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GenreMusicAlbum",
+                columns: table => new
+                {
+                    GenresId = table.Column<int>(type: "integer", nullable: false),
+                    MusicAlbumsId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GenreMusicAlbum", x => new { x.GenresId, x.MusicAlbumsId });
+                    table.ForeignKey(
+                        name: "FK_GenreMusicAlbum_Genres_GenresId",
+                        column: x => x.GenresId,
+                        principalTable: "Genres",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GenreMusicAlbum_MusicAlbums_MusicAlbumsId",
+                        column: x => x.MusicAlbumsId,
+                        principalTable: "MusicAlbums",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -401,6 +485,27 @@ namespace Collectify.PostgresMigrations.Migrations
                 name: "IX_AspNetUserClaims_UserId",
                 table: "AspNetUserClaims",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GameGenre_GenresId",
+                table: "GameGenre",
+                column: "GenresId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GenreMovie_MoviesId",
+                table: "GenreMovie",
+                column: "MoviesId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GenreMusicAlbum_MusicAlbumsId",
+                table: "GenreMusicAlbum",
+                column: "MusicAlbumsId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Genres_OwnerId_Name",
+                table: "Genres",
+                columns: new[] { "OwnerId", "Name" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserLogins_UserId",
@@ -523,7 +628,16 @@ namespace Collectify.PostgresMigrations.Migrations
                 name: "CoverImages");
 
             migrationBuilder.DropTable(
+                name: "GameGenre");
+
+            migrationBuilder.DropTable(
                 name: "GameTag");
+
+            migrationBuilder.DropTable(
+                name: "GenreMovie");
+
+            migrationBuilder.DropTable(
+                name: "GenreMusicAlbum");
 
             migrationBuilder.DropTable(
                 name: "LookupCache");
@@ -542,6 +656,9 @@ namespace Collectify.PostgresMigrations.Migrations
 
             migrationBuilder.DropTable(
                 name: "Games");
+
+            migrationBuilder.DropTable(
+                name: "Genres");
 
             migrationBuilder.DropTable(
                 name: "Movies");

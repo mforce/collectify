@@ -37,11 +37,17 @@ export default function MusicDetail({ item }: { item: Album }) {
           </p>
         )}
       </ThemedCard>
-      {(item.genres || item.label) && (
+      {(item.genres?.length || item.label) && (
         <ThemedCard type="music" className="p-4">
           <h3>Metadata</h3>
-          <InfoRow label="Genre" value={item.genres} />
           <InfoRow label="Label" value={item.label} />
+          {!!item.genres?.length && (
+            <div>
+              {item.genres.map((genre) => (
+                <TagChip key={genre} name={genre} category="music" />
+              ))}
+            </div>
+          )}
         </ThemedCard>
       )}
       {(item.barcode || item.musicBrainzReleaseId || item.discogsId) && (

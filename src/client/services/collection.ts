@@ -116,6 +116,7 @@ export interface BulkUpdates {
   description?: string | null;
   notes?: string | null;
   tags?: string[];
+  genres?: string[];
   // movies
   watchStatus?: WatchStatus;
   watchCount?: number;

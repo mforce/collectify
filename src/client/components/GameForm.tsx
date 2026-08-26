@@ -8,6 +8,7 @@ import {
   SearchableSelect,
   SectionHeading,
   Select,
+  TagInput,
   Textarea,
 } from './ui';
 import { PlatformIcon } from './FormatIcons';
@@ -56,6 +57,7 @@ const empty: Game = {
   status: 'Owned',
   completionStatus: 'NotStarted',
   tags: [],
+  genres: [],
 };
 
 export default function GameForm({ initial, prefillLookup, prefillBarcode, submitting, submitLabel = 'Save', onSubmit, onDelete }: Props) {
@@ -196,6 +198,9 @@ export default function GameForm({ initial, prefillLookup, prefillBarcode, submi
             </Field>
             <Field label="Developer">
               <Input value={g.developer ?? ''} onChange={(e) => set('developer', e.target.value || null)} />
+            </Field>
+            <Field label="Genres">
+              <TagInput value={g.genres ?? []} onChange={(next) => set('genres', next)} placeholder="Add genre…" />
             </Field>
             <Field label="Barcode">
               <Input value={g.barcode ?? ''} onChange={(e) => set('barcode', e.target.value || null)} />

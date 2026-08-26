@@ -19,8 +19,8 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
 
     protected override string RoutePrefix => "/api/games/";
 
-    protected override object Sample(string? title = null, string[]? tags = null, string? currency = null, int? rating = null) =>
-        GameTestSupport.Sample(title: title ?? "Hades", tags: tags, currency: currency ?? "USD", rating: rating);
+    protected override object Sample(string? title = null, string[]? tags = null, string[]? genres = null, string? currency = null, int? rating = null) =>
+        GameTestSupport.Sample(title: title ?? "Hades", tags: tags, genres: genres, currency: currency ?? "USD", rating: rating);
 
     protected override object MinimalWithImage(string? imagePath) => new
     {
@@ -44,6 +44,9 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
     protected override string OwnerIdOf(Game entity) => entity.OwnerId;
     protected override string TitleOf(Game entity) => entity.Title;
     protected override DateTime UpdatedAtOf(Game entity) => entity.UpdatedAt;
+
+    protected override Task<int> GenreLinkCountAsync(int itemId) =>
+        Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.Games.Any(x => x.Id == itemId)));
 
     [Fact]
     public async Task CreateAndGet_RoundTripsRichDetailFields()
@@ -157,6 +160,29 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
 
         var byUndefined = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?platform=999");
         Assert.Equal(2, byUndefined!.Length); // not filtered, not a 400
+    }
+
+    [Fact]
+    public async Task List_FiltersByGenre_ExactMembership()
+    {
+        var alice = await NewAliceAsync();
+
+        await alice.Client.PostAsJsonAsync("/api/games/",
+            new { Title = "Hades", Platform = GamePlatform.Pc, Status = CollectionStatus.Owned, Genres = new[] { "sci-fi", "action" } });
+        await alice.Client.PostAsJsonAsync("/api/games/",
+            new { Title = "Mass Effect", Platform = GamePlatform.Pc, Status = CollectionStatus.Owned, Genres = new[] { "sci-fi" } });
+        await alice.Client.PostAsJsonAsync("/api/games/",
+            new { Title = "Tetris", Platform = GamePlatform.GameBoy, Status = CollectionStatus.Owned, Genres = new[] { "puzzle" } });
+
+        var byGenre = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?genre=sci-fi");
+        Assert.Equal(2, byGenre!.Length);
+
+        var byPartial = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?genre=sci");
+        Assert.Empty(byPartial!);
+
+        // Mixed-case query must go through the normalization/trim path and still match exactly.
+        var byMixedCase = await alice.Client.GetJsonAsync<GameResponse[]>("/api/games/?genre=SCI-FI");
+        Assert.Equal(2, byMixedCase!.Length);
     }
 
     [Fact]

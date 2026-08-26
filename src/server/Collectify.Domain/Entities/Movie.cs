@@ -14,7 +14,6 @@ public class Movie : ICollectionEntry
     public string? Director { get; set; }
     public int? RuntimeMinutes { get; set; }
     public string? Studio { get; set; }
-    public string? Genres { get; set; }
     public string? Barcode { get; set; }
 
     public string? TmdbId { get; set; }
@@ -42,6 +41,7 @@ public class Movie : ICollectionEntry
     public int WatchCount { get; set; }
 
     public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+    public ICollection<Genre> Genres { get; set; } = new List<Genre>();
 
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Filters } from '../services/filters';
@@ -24,6 +24,14 @@ describe('FiltersPanel', () => {
     await userEvent.type(screen.getByLabelText('Add tag'), 'Sci-Fi{Enter}');
 
     expect(onChange).toHaveBeenCalledWith({ director: 'Nolan', tag: ['imax', 'sci-fi'] });
+  });
+
+  it('sends the exact genre value entered, not a partial token', async () => {
+    const onChange = renderPanel('movies', { director: 'Nolan' });
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    fireEvent.change(screen.getByPlaceholderText('exact match'), { target: { value: 'sci-fi' } });
+
+    expect(onChange).toHaveBeenLastCalledWith({ director: 'Nolan', genre: 'sci-fi' });
   });
 
   it('counts one rendered year-range chip as one active filter', () => {

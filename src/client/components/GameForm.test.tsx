@@ -132,3 +132,20 @@ describe('GameForm — digital store buttons', () => {
     expect(screen.getByRole('button', { name: 'GOG' })).toHaveAttribute('aria-pressed', 'false');
   });
 });
+
+describe('GameForm — Genres', () => {
+  it('typing a genre renders it as a chip and submits it as an array', () => {
+    const onSubmit = vi.fn();
+    renderForm(onSubmit, pcGame);
+
+    const genreInput = screen.getByPlaceholderText('Add genre…');
+    fireEvent.change(genreInput, { target: { value: 'Action' } });
+    fireEvent.keyDown(genreInput, { key: 'Enter' });
+
+    expect(screen.getByText('action')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    const s = onSubmit.mock.calls[0][0] as Game;
+    expect(s.genres).toEqual(['action']);
+  });
+});

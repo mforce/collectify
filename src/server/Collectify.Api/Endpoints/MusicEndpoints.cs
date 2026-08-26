@@ -14,7 +14,7 @@ public static class MusicEndpoints
         int? Year,
         MusicFormat Format,
         string? Label,
-        string? Genres,
+        string[]? Genres,
         string? Barcode,
         string? MusicBrainzReleaseId,
         string? DiscogsId,
@@ -93,8 +93,8 @@ public static class MusicEndpoints
                 var genre = genreValues.ToString();
                 if (!string.IsNullOrWhiteSpace(genre))
                 {
-                    var like = $"%{genre}%";
-                    q = q.Where(a => a.Genres != null && EF.Functions.Like(a.Genres, like));
+                    var normalized = new[] { genre.Trim().ToLowerInvariant() };
+                    q = q.Where(a => a.Genres.Any(g => normalized.Contains(g.Name)));
                 }
             }
 
@@ -135,7 +135,7 @@ public static class MusicEndpoints
     }
 
     private static AlbumDto ToDto(MusicAlbum a) => new(
-        a.Id, a.Title, a.ArtistName, a.Year, a.Format, a.Label, a.Genres, a.Barcode,
+        a.Id, a.Title, a.ArtistName, a.Year, a.Format, a.Label, GenreResolver.ToNameArray(a.Genres), a.Barcode,
         a.MusicBrainzReleaseId, a.DiscogsId, a.ImagePath, a.Description, a.Notes,
         a.PersonalRating, a.Status, a.Condition,
         a.AcquiredOn, a.AcquisitionPrice, a.AcquisitionCurrency, a.AcquisitionSource,
@@ -151,7 +151,6 @@ public static class MusicEndpoints
         a.Year = dto.Year;
         a.Format = dto.Format;
         a.Label = dto.Label;
-        a.Genres = dto.Genres;
         a.Barcode = dto.Barcode;
         a.MusicBrainzReleaseId = dto.MusicBrainzReleaseId;
         a.DiscogsId = dto.DiscogsId;
