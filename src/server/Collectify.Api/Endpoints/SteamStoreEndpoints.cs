@@ -18,7 +18,7 @@ public static class SteamStoreEndpoints
     public record SteamConnectDto(bool Configured, string? RedirectUrl);
     public record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
     public record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string? LogoUrl, string State);
-    public record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated, int Total);
+    public record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated, int Total, int ImportCap);
     public record SteamImportRequest(string[]? ExternalGameIds);
     public record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);
     public record SteamImportResultDto(int Imported, int AlreadyImported, SteamImportItemDto[] Items);
@@ -145,7 +145,7 @@ public static class SteamStoreEndpoints
             CancellationToken ct) =>
         {
             if (!schemaGuard.IsSchemaReady)
-                return Results.Ok(new SteamPreviewDto("notconnected", [], false, 0));
+                return Results.Ok(new SteamPreviewDto("notconnected", [], false, 0, options.Value.Steam.ImportCap));
             var effOffset = offset ?? 0;
             var effLimit = limit ?? MaxPageSize;
             if (effOffset < 0 || effLimit < 1 || effLimit > MaxPageSize)
@@ -172,7 +172,8 @@ public static class SteamStoreEndpoints
                         t.State == SteamTitleImportState.Imported ? "imported" : "importable"))
                     .ToArray(),
                 preview.Truncated,
-                preview.Total));
+                preview.Total,
+                options.Value.Steam.ImportCap));
         });
 
         group.MapPost("/import", async (

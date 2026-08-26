@@ -544,6 +544,7 @@ describe('ImportSteam', () => {
     mockUseGames.mockImplementation((_enabled, _search, offset: number) => ({
       data: {
         status: 'ok',
+        importCap: 500,
         truncated: offset < 500,
         total: 600,
         titles: Array.from({ length: 100 }, (_, index) => {
@@ -588,5 +589,40 @@ describe('ImportSteam', () => {
     await user.click(screen.getByRole('button', { name: /next/i }));
     await user.click(screen.getByRole('checkbox', { name: /Game 501/ }));
     expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+  });
+
+  it('uses the configured import cap for select-all, its toast, and submission', async () => {
+    const user = userEvent.setup();
+    const importMutate = vi.fn().mockImplementation((ids: string[]) =>
+      Promise.resolve({ imported: ids.length, alreadyImported: 0, items: [] }));
+    mockUseImport.mockReturnValue({ mutateAsync: importMutate, isPending: false });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        importCap: 2,
+        truncated: false,
+        total: 3,
+        titles: [
+          { externalGameId: '1', title: 'One', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Two', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '3', title: 'Three', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByLabelText(/select all not-imported \(3\)/i));
+
+    const submit = screen.getByRole('button', { name: /import selected \(2\)/i });
+    expect(submit).toBeInTheDocument();
+    expect(mockToastInfo).toHaveBeenCalledWith('You can select up to 2 games at a time.');
+
+    await user.click(submit);
+    const submitted = importMutate.mock.calls.at(-1)?.[0] as string[];
+    expect(submitted).toHaveLength(2);
+    expect(new Set(submitted).size).toBe(2);
   });
 });

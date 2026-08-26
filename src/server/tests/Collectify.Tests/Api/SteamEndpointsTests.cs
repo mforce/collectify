@@ -14,7 +14,7 @@ public class SteamEndpointsTests
     private record SteamConnectDto(bool Configured, string? RedirectUrl);
     private record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
     private record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string? LogoUrl, string State);
-    private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated, int Total);
+    private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated, int Total, int ImportCap);
     private record SteamImportResultDto(int Imported, int AlreadyImported, SteamImportItemDto[] Items);
     private record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);
 
@@ -469,6 +469,7 @@ public class SteamEndpointsTests
         var hades = preview!.Titles.Single(t => t.ExternalGameId == "1");
         var celeste = preview.Titles.Single(t => t.ExternalGameId == "2");
         Assert.Equal("ok", preview.Status);
+        Assert.Equal(500, preview.ImportCap);
         Assert.Equal("imported", hades.State);
         Assert.Equal("importable", celeste.State);
     }

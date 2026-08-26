@@ -10,8 +10,6 @@ import {
   useSteamImport,
 } from '../services/steam';
 
-const MAX_SELECTIONS = 500;
-
 function formatPlaytime(minutes: number): string {
   if (!minutes) return '';
   const h = Math.floor(minutes / 60);
@@ -73,6 +71,7 @@ export default function ImportSteam() {
   );
 
   const rendered = games.data?.titles ?? [];
+  const importCap = games.data?.importCap ?? 500;
 
   const toggle = (id: string) => {
     const next = new Set(selected);
@@ -81,8 +80,8 @@ export default function ImportSteam() {
       setSelected(next);
       return;
     }
-    if (next.size >= MAX_SELECTIONS) {
-      toast.info('You can select up to 500 games at a time.');
+    if (next.size >= importCap) {
+      toast.info(`You can select up to ${importCap} games at a time.`);
       return;
     }
     next.add(id);
@@ -102,11 +101,11 @@ export default function ImportSteam() {
     }
 
     const additions = pageIds.filter((id) => !next.has(id));
-    const remaining = MAX_SELECTIONS - next.size;
+    const remaining = importCap - next.size;
     additions.slice(0, remaining).forEach((id) => next.add(id));
     setSelected(next);
     if (additions.length > remaining)
-      toast.info('You can select up to 500 games at a time.');
+      toast.info(`You can select up to ${importCap} games at a time.`);
   };
 
   const handleConnect = async () => {

@@ -31,6 +31,8 @@ export interface SteamPreview {
   truncated: boolean;
   /** Total searched-library titles (before paging) — enables paging controls. */
   total: number;
+  /** Server-configured maximum number of distinct games accepted per import. */
+  importCap: number;
 }
 
 export interface SteamImportResult {
