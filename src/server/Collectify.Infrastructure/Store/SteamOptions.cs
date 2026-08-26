@@ -25,10 +25,6 @@ public sealed class SteamOptions
         public TimeSpan CacheTtl { get; set; } = TimeSpan.FromMinutes(5);
         /// <summary>Max titles a single import may create/select (payload bound).</summary>
         public int ImportCap { get; set; } = 500;
-        /// <summary>Hard ceiling on one /import request's distinct ids, above
-        /// which the endpoint rejects rather than processing tens of thousands of
-        /// ids in server-side chunks. Guard against runaway/bot requests.</summary>
-        public int MaxImportBatch { get; set; } = 5000;
         /// <summary>Max selections a preview may return.</summary>
         public int PreviewCap { get; set; } = 500;
 
