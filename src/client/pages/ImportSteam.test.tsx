@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import ImportSteam from './ImportSteam';
@@ -11,11 +11,24 @@ const mockUseGames = vi.fn();
 const mockUseImport = vi.fn();
 const mockUseDisconnect = vi.fn();
 const mockConnectMutate = vi.fn();
+const { mockToastInfo, mockToastSuccess } = vi.hoisted(() => ({
+  mockToastInfo: vi.fn(),
+  mockToastSuccess: vi.fn(),
+}));
+
+vi.mock('../components/toaster', () => ({
+  toast: {
+    success: mockToastSuccess,
+    error: vi.fn(),
+    info: mockToastInfo,
+  },
+}));
 
 vi.mock('../services/steam', () => ({
   useSteamConnection: () => mockUseConnection(),
   useSteamConnect: () => mockUseConnect(),
-  useSteamGames: (enabled: boolean, search: string) => mockUseGames(enabled, search),
+  useSteamGames: (enabled: boolean, search: string, offset: number, limit: number, hideImported: boolean) =>
+    mockUseGames(enabled, search, offset, limit, hideImported),
   useSteamImport: (onSuccess: () => void) => mockUseImport(onSuccess),
   useSteamDisconnect: (onSuccess: () => void) => mockUseDisconnect(onSuccess),
 }));
@@ -50,7 +63,7 @@ describe('ImportSteam', () => {
 
   it('does not fetch games until connected', () => {
     renderPage();
-    expect(mockUseGames).toHaveBeenCalledWith(false, '');
+    expect(mockUseGames).toHaveBeenCalledWith(false, '', 0, 100, false);
   });
 
   it('disconnects and keeps a message that games stay', async () => {
@@ -87,6 +100,114 @@ describe('ImportSteam', () => {
     expect(screen.getAllByText(/in collection/i).length).toBe(1);
   });
 
+  it('requests and renders the server-provided hide-imported page', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_enabled, _search, _offset, _limit, hideImported) => ({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: hideImported ? 100 : 120,
+        titles: hideImported
+          ? Array.from({ length: 100 }, (_, index) => ({
+              externalGameId: String(index + 21),
+              title: `Importable ${index + 21}`,
+              playtimeMinutes: 0,
+              iconUrl: null,
+              state: 'importable' as const,
+            }))
+          : [{ externalGameId: '1', title: 'Imported 1', playtimeMinutes: 0, iconUrl: null, state: 'imported' as const }],
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage();
+    await user.click(screen.getByLabelText(/hide imported/i));
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 0, 100, true);
+    expect(screen.getAllByText(/Importable \d+/)).toHaveLength(100);
+    expect(screen.getByText('1–100 of 100')).toBeInTheDocument();
+  });
+
+  it('offers page sizes 25, 50, and 100 and resets to page one when changed', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: { status: 'ok', truncated: true, total: 300, titles: [] },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    const pageSize = screen.getByRole('combobox', { name: /games per page/i });
+    expect(pageSize).toHaveValue('100');
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['25', '50', '100']);
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 100, 100, false);
+    await user.selectOptions(pageSize, '25');
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 0, 25, false);
+  });
+
+  it('resets to page one immediately when hide-imported changes', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: { status: 'ok', truncated: true, total: 300, titles: [] },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 100, 100, false);
+    await user.click(screen.getByLabelText(/hide imported/i));
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 0, 100, true);
+  });
+
+  it('pages with Next and shows Prev only after the first page', async () => {
+    const user = userEvent.setup();
+    let callOffset = 0;
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_e, _s, offset: number) => {
+      callOffset = offset;
+      return {
+        data: {
+          status: 'ok',
+          truncated: true, // more pages after this one
+          total: 3,
+          titles: [
+            { externalGameId: String(offset + 1), title: `Game ${offset + 1}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+            { externalGameId: String(offset + 2), title: `Game ${offset + 2}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          ],
+        },
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    renderPage();
+
+    // Next is enabled (truncated), Prev disabled (offset 0).
+    const next = screen.getByRole('button', { name: /next/i });
+    const prev = screen.getByRole('button', { name: /prev/i });
+    expect(next).toBeEnabled();
+    expect(prev).toBeDisabled();
+
+    await user.click(next);
+    expect(callOffset).toBe(100);
+    // Changing the search term must reset the page offset back to 0 even while
+    // paged forward (the filter effect fires immediately, not gated on the
+    // 300ms debounce). This must be an IMMEDIATE assertion, not waitFor: a
+    // waitFor would allow the delayed [debouncedFilter] reset (300ms) to also
+    // satisfy it, so the mutant (regressing to [debouncedFilter]) would stay
+    // green and the test proves nothing about immediacy.
+    const filterInput = screen.getByLabelText(/filter owned games/i);
+    await user.clear(filterInput);
+    await user.type(filterInput, 'aha');
+    expect(callOffset).toBe(0);
+    expect(screen.getByRole('button', { name: /prev/i })).toBeDisabled();
+  });
+
   it('shows a qualified public-profile hint when Steam is unavailable', () => {
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
     mockUseGames.mockReturnValue({
@@ -113,6 +234,39 @@ describe('ImportSteam', () => {
 
     expect(screen.getByText(/public/i)).toBeInTheDocument();
     expect(screen.getByText(/no owned games returned/i)).toBeInTheDocument();
+  });
+
+  it('explains when hiding imported games leaves no owned games', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: { status: 'ok', titles: [], truncated: false, total: 0 },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByLabelText(/hide imported/i));
+
+    expect(screen.getByText('All owned games are already in your collection.')).toBeInTheDocument();
+    expect(screen.queryByText(/privacy settings/i)).not.toBeInTheDocument();
+  });
+
+  it('explains when no unimported games match the filter', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: { status: 'ok', titles: [], truncated: false, total: 0 },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByLabelText(/hide imported/i));
+    await user.type(screen.getByLabelText(/filter owned games/i), 'Hades');
+
+    expect(screen.getByText('No unimported games match “Hades”.')).toBeInTheDocument();
+    expect(screen.queryByText(/no matches for/i)).not.toBeInTheDocument();
   });
 
   it('filters the owned-games list by title (server-side search)', async () => {
@@ -151,9 +305,11 @@ describe('ImportSteam', () => {
   it('imports the selected games when the user clicks Import selected', async () => {
     const user = userEvent.setup();
     let onSuccess: (() => void) | null = null;
+    let hookCall = 0;
     const importMutate = vi.fn().mockResolvedValue({ imported: 1, alreadyImported: 0, items: [] });
     mockUseImport.mockImplementation((cb: () => void) => {
-      onSuccess = cb;
+      if (hookCall % 2 === 0) onSuccess = cb;
+      hookCall += 1;
       return { mutateAsync: importMutate, isPending: false };
     });
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
@@ -178,5 +334,344 @@ describe('ImportSteam', () => {
 
     expect(importMutate).toHaveBeenCalledWith(['1', '2']);
     expect(onSuccess).toBeTypeOf('function');
+    act(() => onSuccess?.());
+    expect(screen.getByRole('button', { name: /^import selected$/i })).toBeDisabled();
+  });
+
+  it('repair covers preserves the pending cross-page import selection', async () => {
+    const user = userEvent.setup();
+    const successCallbacks: Array<() => void> = [];
+    let hookCall = 0;
+    const importSelectedMutate = vi.fn().mockResolvedValue({ imported: 1, alreadyImported: 0, items: [] });
+    const repairCoversMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 1, items: [] });
+    mockUseImport.mockImplementation((onSuccess: () => void) => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      successCallbacks[instance] = onSuccess;
+      return {
+        mutateAsync: instance === 0 ? importSelectedMutate : repairCoversMutate,
+        isPending: false,
+      };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 200,
+        titles: [
+          { externalGameId: '101', title: 'Importable 101', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '102', title: 'Imported 102', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    await user.click(screen.getByRole('checkbox', { name: /Importable 101/ }));
+    expect(screen.getByRole('button', { name: /import selected \(1\)/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /repair covers/i }));
+    expect(repairCoversMutate).toHaveBeenCalledWith(['102']);
+    act(() => successCallbacks[1]?.());
+
+    await user.click(screen.getByRole('button', { name: /import selected \(1\)/i }));
+    expect(importSelectedMutate).toHaveBeenLastCalledWith(['101']);
+  });
+
+  it('disables Repair covers while the import-selected mutation is pending', () => {
+    let hookCall = 0;
+    mockUseImport.mockImplementation(() => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      return { mutateAsync: vi.fn(), isPending: instance === 0 };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: 1,
+        titles: [
+          { externalGameId: '1', title: 'Imported 1', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    expect(screen.getByRole('button', { name: /repair covers/i })).toBeDisabled();
+  });
+
+  it('disables Import selected while the repair mutation is pending', async () => {
+    const user = userEvent.setup();
+    let hookCall = 0;
+    mockUseImport.mockImplementation(() => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      return { mutateAsync: vi.fn(), isPending: instance === 1 };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: false,
+        total: 2,
+        titles: [
+          { externalGameId: '1', title: 'Importable 1', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Imported 2', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByRole('checkbox', { name: /Importable 1/ }));
+
+    expect(screen.getByRole('button', { name: /import selected \(1\)/i })).toBeDisabled();
+  });
+
+  it('repairs only imported ids from the currently fetched page', async () => {
+    const user = userEvent.setup();
+    const importMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 2, items: [] });
+    mockUseImport.mockReturnValue({ mutateAsync: importMutate, isPending: false });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 300,
+        titles: [
+          { externalGameId: '101', title: 'Imported 101', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '102', title: 'Importable 102', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '103', title: 'Imported 103', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByRole('button', { name: /repair covers/i }));
+
+    expect(importMutate).toHaveBeenCalledTimes(1);
+    expect(importMutate).toHaveBeenCalledWith(['101', '103']);
+  });
+
+  it('batches only current-page repair ids by the configured import cap', async () => {
+    const user = userEvent.setup();
+    let hookCall = 0;
+    const importSelectedMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 0, items: [] });
+    const repairCoversMutate = vi.fn()
+      .mockResolvedValueOnce({ imported: 1, alreadyImported: 1, items: [] })
+      .mockResolvedValueOnce({ imported: 0, alreadyImported: 1, items: [] });
+    mockUseImport.mockImplementation(() => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      return {
+        mutateAsync: instance === 0 ? importSelectedMutate : repairCoversMutate,
+        isPending: false,
+      };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        importCap: 2,
+        truncated: true,
+        total: 300,
+        titles: [
+          { externalGameId: '1', title: 'Imported 1', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '2', title: 'Imported 2', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '3', title: 'Imported 3', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '4', title: 'Importable 4', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByRole('checkbox', { name: /Importable 4/ }));
+    await user.click(screen.getByRole('button', { name: /repair covers/i }));
+
+    expect(repairCoversMutate.mock.calls).toEqual([[['1', '2']], [['3']]]);
+    expect(mockUseGames.mock.calls.every(([, , offset]) => offset === 0)).toBe(true);
+    expect(mockToastSuccess).toHaveBeenCalledTimes(1);
+    expect(mockToastSuccess).toHaveBeenCalledWith('Re-imported 1 game and refreshed covers');
+
+    await user.click(screen.getByRole('button', { name: /import selected \(1\)/i }));
+    expect(importSelectedMutate).toHaveBeenCalledWith(['4']);
+  });
+
+  it('merges select-all on a later page with selections made on earlier pages', async () => {
+    const user = userEvent.setup();
+    let importArg: string[] | null = null;
+    const importMutate = vi.fn().mockImplementation((ids: string[]) => {
+      importArg = ids;
+      return Promise.resolve({ imported: ids.length, alreadyImported: 0, items: [] });
+    });
+    mockUseImport.mockImplementation((cb: () => void) => ({ mutateAsync: importMutate, isPending: false }));
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_e, _s, offset: number) => ({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 4,
+        titles: [
+          { externalGameId: String(offset + 1), title: `Game ${offset + 1}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: String(offset + 2), title: `Game ${offset + 2}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage();
+
+    // Page 1: select Game 1 individually (the row checkbox's accessible label
+    // is the title plus the formatted playtime, so match with a regex role).
+    await user.click(screen.getByRole('checkbox', { name: /Game 1/ }));
+    // Advance to page 2.
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    // Select all on page 2 (games 101 and 102). This must MERGE, not replace.
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+
+    // Cumulative count: Game 1 (page 1) + Games 101/102 (page 2) = 3.
+    expect(screen.getByRole('button', { name: /import selected \(3\)/i })).toBeInTheDocument();
+
+    // The submit must include the page-1 pick, proving it was not dropped.
+    await user.click(screen.getByRole('button', { name: /import selected \(3\)/i }));
+    expect(importArg ? [...importArg].sort() : []).toEqual(['1', '101', '102'].sort());
+  });
+
+  it('deselecting all on a later page keeps earlier-page selections', async () => {
+    const user = userEvent.setup();
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_e, _s, offset: number) => ({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 4,
+        titles: [
+          { externalGameId: String(offset + 1), title: `Game ${offset + 1}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: String(offset + 2), title: `Game ${offset + 2}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage();
+
+    // Page 1: select-all (selects Games 1 and 2), then advance to page 2.
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    // Page 2 shows Games 101/102. First select-all click SELECTS them (else
+    // branch: adds {101,102} to the existing {1,2}, because allImportableSelected
+    // is false on page 2 on this click).
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+    // Now all importable on page 2 are selected, so the same button is a
+    // DISMISS. A second click removes ONLY this page's ids (101,102), keeping
+    // the earlier-page picks (1,2). Result: {1,2} -> "Import selected (2)".
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+
+    expect(screen.getByRole('button', { name: /import selected \(2\)/i })).toBeInTheDocument();
+  });
+
+  it('caps cross-page selections at 500 while allowing deselection and replacement', async () => {
+    const user = userEvent.setup();
+    const importMutate = vi.fn().mockImplementation((ids: string[]) =>
+      Promise.resolve({ imported: ids.length, alreadyImported: 0, items: [] }));
+    mockUseImport.mockReturnValue({ mutateAsync: importMutate, isPending: false });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_enabled, _search, offset: number) => ({
+      data: {
+        status: 'ok',
+        importCap: 500,
+        truncated: offset < 500,
+        total: 600,
+        titles: Array.from({ length: 100 }, (_, index) => {
+          const id = offset + index + 1;
+          return {
+            externalGameId: String(id),
+            title: `Game ${id}`,
+            playtimeMinutes: 0,
+            iconUrl: null,
+            state: 'importable' as const,
+          };
+        }),
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage();
+
+    for (let page = 1; page <= 5; page += 1) {
+      await user.click(screen.getByLabelText(/select all not-imported \(100\)/i));
+      if (page < 5) await user.click(screen.getByRole('button', { name: /next/i }));
+    }
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByLabelText(/select all not-imported \(100\)/i));
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+    expect(mockToastInfo).toHaveBeenCalledWith('You can select up to 500 games at a time.');
+
+    await user.click(screen.getByRole('checkbox', { name: /Game 501/ }));
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /import selected \(500\)/i }));
+    const submitted = importMutate.mock.calls.at(-1)?.[0] as string[];
+    expect(submitted).toHaveLength(500);
+    expect(new Set(submitted).size).toBe(500);
+
+    await user.click(screen.getByRole('button', { name: /prev/i }));
+    await user.click(screen.getByRole('checkbox', { name: /Game 401/ }));
+    expect(screen.getByRole('button', { name: /import selected \(499\)/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByRole('checkbox', { name: /Game 501/ }));
+    expect(screen.getByRole('button', { name: /import selected \(500\)/i })).toBeInTheDocument();
+  });
+
+  it('uses the configured import cap for select-all, its toast, and submission', async () => {
+    const user = userEvent.setup();
+    const importMutate = vi.fn().mockImplementation((ids: string[]) =>
+      Promise.resolve({ imported: ids.length, alreadyImported: 0, items: [] }));
+    mockUseImport.mockReturnValue({ mutateAsync: importMutate, isPending: false });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        importCap: 2,
+        truncated: false,
+        total: 3,
+        titles: [
+          { externalGameId: '1', title: 'One', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '2', title: 'Two', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '3', title: 'Three', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByLabelText(/select all not-imported \(3\)/i));
+
+    const submit = screen.getByRole('button', { name: /import selected \(2\)/i });
+    expect(submit).toBeInTheDocument();
+    expect(mockToastInfo).toHaveBeenCalledWith('You can select up to 2 games at a time.');
+
+    await user.click(submit);
+    const submitted = importMutate.mock.calls.at(-1)?.[0] as string[];
+    expect(submitted).toHaveLength(2);
+    expect(new Set(submitted).size).toBe(2);
   });
 });

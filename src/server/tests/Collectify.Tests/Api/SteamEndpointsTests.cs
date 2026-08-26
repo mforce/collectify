@@ -14,7 +14,7 @@ public class SteamEndpointsTests
     private record SteamConnectDto(bool Configured, string? RedirectUrl);
     private record SteamConnectionDto(bool Connected, string? SteamId, string? PersonaName);
     private record SteamOwnedTitleDto(string ExternalGameId, string Title, long PlaytimeMinutes, string? IconUrl, string? LogoUrl, string State);
-    private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated);
+    private record SteamPreviewDto(string Status, SteamOwnedTitleDto[] Titles, bool Truncated, int Total, int ImportCap);
     private record SteamImportResultDto(int Imported, int AlreadyImported, SteamImportItemDto[] Items);
     private record SteamImportItemDto(string ExternalGameId, bool Imported, bool AlreadyImported);
 
@@ -469,8 +469,28 @@ public class SteamEndpointsTests
         var hades = preview!.Titles.Single(t => t.ExternalGameId == "1");
         var celeste = preview.Titles.Single(t => t.ExternalGameId == "2");
         Assert.Equal("ok", preview.Status);
+        Assert.Equal(500, preview.ImportCap);
         Assert.Equal("imported", hades.State);
         Assert.Equal("importable", celeste.State);
+    }
+
+    [Fact]
+    public async Task Games_ExposesConfiguredImportCap()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamImportCap = 2,
+            SteamClient = new ScriptedSteamClient(),
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        var response = await alice.Client.GetAsync("/api/accounts/steam/games");
+        var preview = await response.ReadJsonAsync<SteamPreviewDto>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, preview!.ImportCap);
     }
 
     [Fact]
@@ -497,7 +517,7 @@ public class SteamEndpointsTests
         Assert.Equal(3, all!.Titles.Length);
 
         // Case-insensitive title search filters server-side across the full
-        // library, so a user with more than PreviewCap games can still reach a
+        // library, so a user with more than one page of games can still reach a
         // specific lower-playtime title no matter where it sorts.
         var celeste = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=celeste");
         Assert.Single(celeste!.Titles);
@@ -543,6 +563,130 @@ public class SteamEndpointsTests
         // qualified private/offline message), NOT a blank "you own nothing".
         Assert.Equal("unavailable", preview!.Status);
         Assert.Empty(preview.Titles);
+    }
+
+    [Fact]
+    public async Task Games_Unauthenticated_ReturnsUnauthorized()
+    {
+        await using var factory = new CollectifyApiFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/accounts/steam/games");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("-1", null)]
+    [InlineData(null, "0")]
+    [InlineData(null, "101")]
+    public async Task Games_InvalidPagination_Returns400(string? offset, string? limit)
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient { OwnedGames = [new SteamOwnedGame { AppId = 1, Name = "Hades" }] },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        var query = string.Join("&", new[]
+        {
+            offset is null ? null : $"offset={offset}",
+            limit is null ? null : $"limit={limit}",
+        }.Where(s => s is not null));
+        var res = await alice.Client.GetAsync($"/api/accounts/steam/games{(query.Length > 0 ? "?" + query : "")}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task Games_PaginatesWithinSearchedLibrary_WithTotal()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames =
+                [
+                    new SteamOwnedGame { AppId = 1, Name = "Game Alpha" },
+                    new SteamOwnedGame { AppId = 2, Name = "Game Beta" },
+                    new SteamOwnedGame { AppId = 3, Name = "Game Gamma" },
+                    new SteamOwnedGame { AppId = 4, Name = "Game Delta" },
+                ],
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+
+        // Page 0 of size 2: first 2 of the full, searched library.
+        var page1 = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?offset=0&limit=2");
+        Assert.Equal(4, page1!.Total);
+        Assert.Equal(2, page1.Titles.Length);
+        Assert.Equal("1", page1.Titles[0].ExternalGameId);
+        Assert.Equal("2", page1.Titles[1].ExternalGameId);
+        Assert.True(page1.Truncated); // more after this page
+
+        // Page 1 of size 2: the remaining slice.
+        var page2 = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?offset=2&limit=2");
+        Assert.Equal(4, page2!.Total);
+        Assert.Equal(2, page2.Titles.Length);
+        Assert.Equal("3", page2.Titles[0].ExternalGameId);
+        Assert.Equal("4", page2.Titles[1].ExternalGameId);
+        Assert.False(page2.Truncated); // end of set
+
+        // Search composes with paging across the FULL library BEFORE paging.
+        // "delta" is the 4th title — outside page 0 of size 2 — so this proves
+        // search is applied to the whole library first: a search-after-paging
+        // bug would find nothing here because "delta" is not on this page.
+        var searchPage = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=delta&offset=0&limit=2");
+        Assert.Equal(1, searchPage!.Total); // only 1 matches the search
+        Assert.Single(searchPage.Titles);
+        Assert.Equal("4", searchPage.Titles[0].ExternalGameId);
+        Assert.False(searchPage.Truncated);
+
+        // Default (no offset/limit): unchanged, full preview set, Total = library size.
+        var def = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games");
+        Assert.Equal(4, def!.Total);
+        Assert.Equal(4, def.Titles.Length);
+        Assert.False(def.Truncated);
+    }
+
+    [Fact]
+    public async Task Games_HideImported_FiltersBeforePaginationAndTotal()
+    {
+        await using var factory = new CollectifyApiFactory
+        {
+            SteamClient = new ScriptedSteamClient
+            {
+                OwnedGames = Enumerable.Range(1, 120)
+                    .Select(id => new SteamOwnedGame { AppId = (uint)id, Name = $"Game {id:D3}" })
+                    .ToArray(),
+            },
+            SteamOpenIdVerifier = new ScriptedSteamOpenIdVerifier(),
+        };
+        var alice = await factory.CreateAuthenticatedUserAsync("alice");
+        await LinkSteamAsync(factory, alice);
+        await alice.Client.PostAsJsonAsync("/api/accounts/steam/import", new
+        {
+            ExternalGameIds = Enumerable.Range(1, 20).Select(id => id.ToString()).ToArray(),
+        });
+
+        var hidden = await alice.Client.GetJsonAsync<SteamPreviewDto>(
+            "/api/accounts/steam/games?hideImported=true&offset=0&limit=100");
+
+        Assert.Equal(100, hidden!.Titles.Length);
+        Assert.All(hidden.Titles, title => Assert.Equal("importable", title.State));
+        Assert.Equal(100, hidden.Total);
+        Assert.False(hidden.Truncated);
+
+        var all = await alice.Client.GetJsonAsync<SteamPreviewDto>(
+            "/api/accounts/steam/games?offset=0&limit=100");
+
+        Assert.Equal(120, all!.Total);
+        Assert.Equal(100, all.Titles.Length);
+        Assert.Contains(all.Titles, title => title.State == "imported");
     }
 
     [Fact]

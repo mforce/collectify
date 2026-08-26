@@ -173,4 +173,17 @@ public class MetadataLookupServiceCollectionExtensionsTests
         var ex = Assert.Throws<OptionsValidationException>(() => host.Start());
         Assert.Contains("Collectify:Platforms:Steam:CacheTtl must be greater than zero.", ex.Message);
     }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    public void AddSteamStoreImport_InvalidImportCap_FailsOnStart(string importCap)
+    {
+        using var host = new HostBuilder()
+            .ConfigureServices((_, s) => s.AddSteamStoreImport(ConfigWith(("Collectify:Platforms:Steam:ImportCap", importCap))))
+            .Build();
+
+        var ex = Assert.Throws<OptionsValidationException>(() => host.Start());
+        Assert.Contains("Collectify:Platforms:Steam:ImportCap must be greater than zero.", ex.Message);
+    }
 }

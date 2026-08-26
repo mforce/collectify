@@ -16,4 +16,5 @@ public enum SteamPreviewStatus
 public sealed record SteamPreviewResult(
     SteamPreviewStatus Status,
     IReadOnlyList<SteamOwnedTitle> Titles,
-    bool Truncated);
+    bool Truncated,
+    int Total);

@@ -182,20 +182,25 @@ public sealed class SteamStoreImportService
     /// <summary>
     /// Owned titles for the preview: trusted Steam fetch joined against the
     /// owner's ledger to tag import state. Ordered by playtime desc.
-    /// Pass an optional <paramref name="search"/> term to filter server-side by
-    /// title across the FULL library (not just the capped preview slice), so
-    /// users with more than <see cref="SteamOptions.SteamSubOptions.PreviewCap"/>
-    /// games can still find, import, or repair lower-playtime titles.
+    /// The caller supplies the search, pagination, and visibility inputs.
+    /// Search applies across the full library before paging so users can still
+    /// find, import, or repair lower-playtime titles.
     /// </summary>
-    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(string ownerId, string? search = null, CancellationToken ct = default)
+    public async Task<SteamPreviewResult> GetOwnedTitlesAsync(
+        string ownerId,
+        string? search,
+        int offset,
+        int limit,
+        bool hideImported,
+        CancellationToken ct)
     {
         var connection = await GetConnectionAsync(ownerId, ct);
         if (connection is null)
-            return new SteamPreviewResult(SteamPreviewStatus.NotConnected, [], false);
+            return new SteamPreviewResult(SteamPreviewStatus.NotConnected, [], false, 0);
 
         var fetch = await _steam.GetOwnedGamesAsync(connection.ExternalAccountId, ct);
         if (fetch.Status == SteamFetchStatus.Unavailable)
-            return new SteamPreviewResult(SteamPreviewStatus.Unavailable, [], false);
+            return new SteamPreviewResult(SteamPreviewStatus.Unavailable, [], false, 0);
 
         // Successful fetch: bump LastSyncedAt so we don't keep re-pulling a
         // private/empty library as though nothing had synced.
@@ -226,17 +231,21 @@ public sealed class SteamStoreImportService
             .OrderByDescending(t => t.PlaytimeMinutes)
             .ToList();
 
-        // Apply an optional server-side search over the WHOLE library first so a
-        // matching lower-playtime title outside the capped preview is reachable.
+        // Apply an optional server-side search over the whole library first so a
+        // matching lower-playtime title outside the current page is reachable.
         if (!string.IsNullOrEmpty(searchTerm))
             all = all.Where(t => t.Title.ToLowerInvariant().Contains(searchTerm)).ToList();
 
-        // Bound the preview so a huge library stays navigable server-side; the
-        // client gets a "truncated" flag to show "show more"/search, and can
-        // request the rest later. PreviewCap covers the common self-hosted case.
-        var truncated = all.Count > _options.PreviewCap;
-        var titles = truncated ? all.Take(_options.PreviewCap).ToList() : all;
-        return new SteamPreviewResult(SteamPreviewStatus.Ok, titles, truncated);
+        if (hideImported)
+            all = all.Where(t => t.State != SteamTitleImportState.Imported).ToList();
+
+        // Paginate within the searched set. Total is the searched-library count
+        // (before paging); Truncated means "more results after this page".
+        var total = all.Count;
+        var effOffset = Math.Max(0, offset);
+        var page = all.Skip(effOffset).Take(limit).ToList();
+        var truncated = effOffset + page.Count < total;
+        return new SteamPreviewResult(SteamPreviewStatus.Ok, page, truncated, total);
     }
 
     private static string? IconUrl(uint appId, string? iconHash)

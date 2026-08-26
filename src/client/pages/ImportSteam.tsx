@@ -21,6 +21,10 @@ export default function ImportSteam() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('');
+  const [pageSize, setPageSize] = useState(100);
+  const [offset, setOffset] = useState(0);
+  const [hideImported, setHideImported] = useState(false);
+  const [repairBatchPending, setRepairBatchPending] = useState(false);
 
   const connection = useSteamConnection();
   const connect = useSteamConnect();
@@ -29,14 +33,19 @@ export default function ImportSteam() {
     const t = setTimeout(() => setDebouncedFilter(filter), 300);
     return () => clearTimeout(t);
   }, [filter]);
-  // Search is sent to the server so it filters across the FULL owned library,
-  // not just the capped preview slice — reaching lower-playtime titles a user
-  // might search for (Codex: paginate/search large libraries).
+  useEffect(() => setOffset(0), [filter]);
+  // Search is sent to the server so it filters across the full owned library,
+  // not just the current page, reaching lower-playtime titles a user might search for.
   const games = useSteamGames(
     connection.data?.connected === true,
     filter.trim() ? debouncedFilter : '',
+    offset,
+    pageSize,
+    hideImported,
   );
-  const doImport = useSteamImport(() => setSelected(new Set()));
+  const importSelected = useSteamImport(() => setSelected(new Set()));
+  const repairCovers = useSteamImport(() => {});
+  const steamMutationPending = importSelected.isPending || repairCovers.isPending || repairBatchPending;
   const disconnect = useSteamDisconnect(() => setSelected(new Set()));
 
   // Surface the OpenID callback outcome once, then clear it from the URL so
@@ -61,23 +70,43 @@ export default function ImportSteam() {
     [games.data],
   );
 
-  // The server already applies the search filter across the full library, so
-  // what we render is exactly the filtered result (no client-side re-filter).
-  const filtered = games.data?.titles ?? [];
+  const rendered = games.data?.titles ?? [];
+  const importCap = games.data?.importCap ?? 500;
 
-  const toggle = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const toggle = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) {
+      next.delete(id);
+      setSelected(next);
+      return;
+    }
+    if (next.size >= importCap) {
+      toast.info(`You can select up to ${importCap} games at a time.`);
+      return;
+    }
+    next.add(id);
+    setSelected(next);
+  };
 
   const allImportableSelected =
     importable.length > 0 && importable.every((g) => selected.has(g.externalGameId));
 
-  const toggleAll = () =>
-    setSelected(allImportableSelected ? new Set() : new Set(importable.map((g) => g.externalGameId)));
+  const toggleAll = () => {
+    const next = new Set(selected);
+    const pageIds = importable.map((g) => g.externalGameId);
+    if (allImportableSelected) {
+      pageIds.forEach((id) => next.delete(id));
+      setSelected(next);
+      return;
+    }
+
+    const additions = pageIds.filter((id) => !next.has(id));
+    const remaining = importCap - next.size;
+    additions.slice(0, remaining).forEach((id) => next.add(id));
+    setSelected(next);
+    if (additions.length > remaining)
+      toast.info(`You can select up to ${importCap} games at a time.`);
+  };
 
   const handleConnect = async () => {
     try {
@@ -104,8 +133,9 @@ export default function ImportSteam() {
   };
 
   const handleImport = async () => {
+    if (steamMutationPending) return;
     try {
-      const res = await doImport.mutateAsync([...selected]);
+      const res = await importSelected.mutateAsync([...selected]);
       if (res.imported > 0) toast.success(`Imported ${res.imported} game${res.imported === 1 ? '' : 's'}`);
       if (res.alreadyImported > 0) toast.info(`${res.alreadyImported} were already in your collection`);
       // Show the imported games in the collection (spec: import → toast → /games).
@@ -122,7 +152,7 @@ export default function ImportSteam() {
   // cover (the preview doesn't report that, so it's always available; the server
   // simply no-ops on titles that need no healing).
   const handleRepairCovers = async () => {
-    if (doImport.isPending) return;
+    if (steamMutationPending) return;
     const importedIds = (games.data?.titles ?? [])
       .filter((g) => g.state === 'imported')
       .map((g) => g.externalGameId);
@@ -130,15 +160,24 @@ export default function ImportSteam() {
       toast.info('Nothing to repair — no games imported yet.');
       return;
     }
+    setRepairBatchPending(true);
     try {
-      const res = await doImport.mutateAsync(importedIds);
+      let imported = 0;
+      let alreadyImported = 0;
+      for (let index = 0; index < importedIds.length; index += importCap) {
+        const res = await repairCovers.mutateAsync(importedIds.slice(index, index + importCap));
+        imported += res.imported;
+        alreadyImported += res.alreadyImported;
+      }
       toast.success(
-        res.imported > 0
-          ? `Re-imported ${res.imported} game${res.imported === 1 ? '' : 's'} and refreshed covers`
-          : `Refreshed covers for ${res.alreadyImported} imported game${res.alreadyImported === 1 ? '' : 's'}`,
+        imported > 0
+          ? `Re-imported ${imported} game${imported === 1 ? '' : 's'} and refreshed covers`
+          : `Refreshed covers for ${alreadyImported} imported game${alreadyImported === 1 ? '' : 's'}`,
       );
     } catch {
       toast.error('Could not refresh covers. Please try again.');
+    } finally {
+      setRepairBatchPending(false);
     }
   };
 
@@ -225,22 +264,60 @@ export default function ImportSteam() {
                 className="w-full rounded-md border border-border px-3 py-2 text-sm"
                 aria-label="Filter owned games"
               />
+              <div className="flex flex-col items-stretch gap-3 pt-2 sm:flex-row sm:items-center sm:gap-4">
+                <label className="flex shrink-0 items-center gap-2 text-sm font-semibold text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={hideImported}
+                    onChange={(e) => {
+                      setHideImported(e.target.checked);
+                      setOffset(0);
+                    }}
+                  />
+                  Hide imported
+                </label>
+                <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap sm:justify-end">
+                  <label className="flex items-center gap-2 text-xs text-text-tertiary">
+                    Games per page
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setOffset(0);
+                      }}
+                      className="rounded-md border border-border bg-card px-2 py-1 text-sm text-text-primary"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </label>
+                  <Button variant="secondary" onClick={() => setOffset((o) => Math.max(0, o - pageSize))} disabled={offset === 0}>
+                    Prev
+                  </Button>
+                  <span className="text-xs text-text-tertiary">
+                    {games.data.total > 0 ? `${offset + 1}–${Math.min(offset + games.data.titles.length, games.data.total)} of ${games.data.total}` : ''}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setOffset((o) => o + pageSize)}
+                    disabled={!games.data.truncated}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
               <div className="flex items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
                   <input type="checkbox" checked={allImportableSelected} onChange={toggleAll} disabled={games.data.titles.length === 0} />
                   Select all not-imported ({importable.length})
-                  {games.data.truncated && (
-                    <span className="font-normal text-xs text-text-tertiary">
-                      (showing first {games.data.titles.length})
-                    </span>
-                  )}
                 </label>
                 <Button
                   variant="primary"
                   onClick={handleImport}
-                  disabled={selected.size === 0 || doImport.isPending}
+                  disabled={selected.size === 0 || steamMutationPending}
                 >
-                  {doImport.isPending
+                  {importSelected.isPending
                     ? 'Importing…'
                     : `Import selected${selected.size ? ` (${selected.size})` : ''}`}
                 </Button>
@@ -248,7 +325,7 @@ export default function ImportSteam() {
                   <Button
                     variant="secondary"
                     onClick={handleRepairCovers}
-                    disabled={doImport.isPending}
+                    disabled={steamMutationPending}
                     title="Re-derive missing or stale covers for games imported before the cover fix"
                   >
                     Repair covers
@@ -257,14 +334,18 @@ export default function ImportSteam() {
               </div>
 
               <Card className="divide-y divide-border">
-                {filtered.length === 0 ? (
+                {rendered.length === 0 ? (
                   <p className="px-3 py-2.5 text-sm text-text-tertiary">
-                    {filter.trim()
-                      ? `No matches for “${filter}”.`
-                      : <>No owned games returned. Make sure your Steam profile's game details are set to <strong className="text-text-secondary">Public</strong> in Privacy Settings, then try again.</>}
+                    {hideImported
+                      ? filter.trim()
+                        ? `No unimported games match “${filter}”.`
+                        : 'All owned games are already in your collection.'
+                      : filter.trim()
+                        ? `No matches for “${filter}”.`
+                        : <>No owned games returned. Make sure your Steam profile's game details are set to <strong className="text-text-secondary">Public</strong> in Privacy Settings, then try again.</>}
                   </p>
                 ) : (
-                  filtered.map((g) => {
+                  rendered.map((g) => {
                     const isImported = g.state === 'imported';
                     const checked = selected.has(g.externalGameId);
                     return (

@@ -29,6 +29,10 @@ export interface SteamPreview {
   status: string;
   titles: SteamOwnedTitle[];
   truncated: boolean;
+  /** Total searched-library titles (before paging) — enables paging controls. */
+  total: number;
+  /** Server-configured maximum number of distinct games accepted per import. */
+  importCap: number;
 }
 
 export interface SteamImportResult {
@@ -50,12 +54,18 @@ export function useSteamConnect() {
   });
 }
 
-export function useSteamGames(enabled: boolean, search = '') {
+export function useSteamGames(enabled: boolean, search = '', offset = 0, limit = 100, hideImported = false) {
   return useQuery<SteamPreview>({
-    queryKey: ['steam', 'games', search.trim().toLowerCase()],
+    queryKey: ['steam', 'games', search.trim().toLowerCase(), offset, limit, hideImported],
     queryFn: () => {
+      const params = new URLSearchParams();
       const q = search.trim();
-      return api<SteamPreview>(`/api/accounts/steam/games${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+      if (q) params.set('q', q);
+      if (offset > 0) params.set('offset', String(offset));
+      params.set('limit', String(limit));
+      if (hideImported) params.set('hideImported', 'true');
+      const qs = params.toString();
+      return api<SteamPreview>(`/api/accounts/steam/games${qs ? `?${qs}` : ''}`);
     },
     enabled,
   });
