@@ -15,8 +15,8 @@ const mockConnectMutate = vi.fn();
 vi.mock('../services/steam', () => ({
   useSteamConnection: () => mockUseConnection(),
   useSteamConnect: () => mockUseConnect(),
-  useSteamGames: (enabled: boolean, search: string, offset: number, limit: number) =>
-    mockUseGames(enabled, search, offset, limit),
+  useSteamGames: (enabled: boolean, search: string, offset: number, limit: number, hideImported: boolean) =>
+    mockUseGames(enabled, search, offset, limit, hideImported),
   useSteamImport: (onSuccess: () => void) => mockUseImport(onSuccess),
   useSteamDisconnect: (onSuccess: () => void) => mockUseDisconnect(onSuccess),
 }));
@@ -51,7 +51,7 @@ describe('ImportSteam', () => {
 
   it('does not fetch games until connected', () => {
     renderPage();
-    expect(mockUseGames).toHaveBeenCalledWith(false, '', 0, 100);
+    expect(mockUseGames).toHaveBeenCalledWith(false, '', 0, 100, false);
   });
 
   it('disconnects and keeps a message that games stay', async () => {
@@ -88,86 +88,68 @@ describe('ImportSteam', () => {
     expect(screen.getAllByText(/in collection/i).length).toBe(1);
   });
 
-  it('hides already-imported titles when the Hide imported toggle is on', async () => {
+  it('requests and renders the server-provided hide-imported page', async () => {
     const user = userEvent.setup();
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
-    mockUseGames.mockReturnValue({
+    mockUseGames.mockImplementation((_enabled, _search, _offset, _limit, hideImported) => ({
       data: {
         status: 'ok',
         truncated: false,
-        total: 2,
-        titles: [
-          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
-          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
-        ],
+        total: hideImported ? 100 : 120,
+        titles: hideImported
+          ? Array.from({ length: 100 }, (_, index) => ({
+              externalGameId: String(index + 21),
+              title: `Importable ${index + 21}`,
+              playtimeMinutes: 0,
+              iconUrl: null,
+              state: 'importable' as const,
+            }))
+          : [{ externalGameId: '1', title: 'Imported 1', playtimeMinutes: 0, iconUrl: null, state: 'imported' as const }],
       },
       isLoading: false,
       error: null,
-    });
+    }));
 
     renderPage();
-
-    expect(screen.getByText('Hades')).toBeInTheDocument();
-    expect(screen.getByText('Celeste')).toBeInTheDocument();
-
     await user.click(screen.getByLabelText(/hide imported/i));
-    expect(screen.queryByText('Celeste')).not.toBeInTheDocument();
-    expect(screen.getByText('Hades')).toBeInTheDocument();
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 0, 100, true);
+    expect(screen.getAllByText(/Importable \d+/)).toHaveLength(100);
+    expect(screen.getByText('1–100 of 100')).toBeInTheDocument();
   });
 
-  it('shows the fetched page range even when Hide imported filters the visible list', async () => {
+  it('offers page sizes 25, 50, and 100 and resets to page one when changed', async () => {
     const user = userEvent.setup();
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
     mockUseGames.mockReturnValue({
-      data: {
-        status: 'ok',
-        truncated: false,
-        total: 3,
-        titles: [
-          { externalGameId: '1', title: 'ImportedA', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
-          { externalGameId: '2', title: 'ImportableB', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
-          { externalGameId: '3', title: 'ImportableC', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
-        ],
-      },
+      data: { status: 'ok', truncated: true, total: 300, titles: [] },
       isLoading: false,
       error: null,
     });
     renderPage();
-    // Full page visible first: range reflects 3 fetched titles.
-    expect(screen.getByText(/1–3 of 3/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox', { name: /hide imported/i }));
-    // Hide removes the imported row from the LIST but the RANGE still reflects
-    // the fetched page (3), and the select-all count still derives from the
-    // UN-HIDDEN page (2 importable).
-    expect(screen.queryByText('ImportedA')).not.toBeInTheDocument();
-    expect(screen.getByText(/1–3 of 3/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/select all not-imported \(2\)/i)).toBeInTheDocument();
+
+    const pageSize = screen.getByRole('combobox', { name: /games per page/i });
+    expect(pageSize).toHaveValue('100');
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['25', '50', '100']);
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 100, 100, false);
+    await user.selectOptions(pageSize, '25');
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 0, 25, false);
   });
 
-  it('keeps the Select all not-imported count derived from the full page, not the hidden subset', async () => {
+  it('resets to page one immediately when hide-imported changes', async () => {
     const user = userEvent.setup();
     mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
     mockUseGames.mockReturnValue({
-      data: {
-        status: 'ok',
-        truncated: false,
-        total: 2,
-        titles: [
-          { externalGameId: '1', title: 'Hades', playtimeMinutes: 300, iconUrl: null, state: 'importable' },
-          { externalGameId: '2', title: 'Celeste', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
-        ],
-      },
+      data: { status: 'ok', truncated: true, total: 300, titles: [] },
       isLoading: false,
       error: null,
     });
-
     renderPage();
 
-    // Before hiding, count shows the importable subset of the full page.
-    expect(screen.getByLabelText(/select all not-imported \(1\)/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 100, 100, false);
     await user.click(screen.getByLabelText(/hide imported/i));
-    // Count is unchanged by the hide toggle (still 1 importable on this page).
-    expect(screen.getByLabelText(/select all not-imported \(1\)/i)).toBeInTheDocument();
+    expect(mockUseGames).toHaveBeenLastCalledWith(true, '', 0, 100, true);
   });
 
   it('pages with Next and shows Prev only after the first page', async () => {
@@ -305,6 +287,33 @@ describe('ImportSteam', () => {
 
     expect(importMutate).toHaveBeenCalledWith(['1', '2']);
     expect(onSuccess).toBeTypeOf('function');
+  });
+
+  it('repairs only imported ids from the currently fetched page', async () => {
+    const user = userEvent.setup();
+    const importMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 2, items: [] });
+    mockUseImport.mockReturnValue({ mutateAsync: importMutate, isPending: false });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 300,
+        titles: [
+          { externalGameId: '101', title: 'Imported 101', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '102', title: 'Importable 102', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: '103', title: 'Imported 103', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByRole('button', { name: /repair covers/i }));
+
+    expect(importMutate).toHaveBeenCalledTimes(1);
+    expect(importMutate).toHaveBeenCalledWith(['101', '103']);
   });
 
   it('merges select-all on a later page with selections made on earlier pages', async () => {

@@ -21,7 +21,7 @@ export default function ImportSteam() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('');
-  const PAGE_SIZE = 100;
+  const [pageSize, setPageSize] = useState(100);
   const [offset, setOffset] = useState(0);
   const [hideImported, setHideImported] = useState(false);
 
@@ -40,7 +40,8 @@ export default function ImportSteam() {
     connection.data?.connected === true,
     filter.trim() ? debouncedFilter : '',
     offset,
-    PAGE_SIZE,
+    pageSize,
+    hideImported,
   );
   const doImport = useSteamImport(() => setSelected(new Set()));
   const disconnect = useSteamDisconnect(() => setSelected(new Set()));
@@ -67,15 +68,7 @@ export default function ImportSteam() {
     [games.data],
   );
 
-  // The server already applies the search filter across the full library, so
-  // what we render is exactly the filtered page (no client-side re-filter).
-  // "Hide imported" additionally drops imported rows from the RENDERED list so
-  // the remaining importable set is immediately visible; it never changes the
-  // selectable count (which stays derived from the un-hidden page via
-  // `importable` above).
-  const rendered = hideImported
-    ? (games.data?.titles ?? []).filter((g) => g.state === 'importable')
-    : (games.data?.titles ?? []);
+  const rendered = games.data?.titles ?? [];
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -251,12 +244,30 @@ export default function ImportSteam() {
                   <input
                     type="checkbox"
                     checked={hideImported}
-                    onChange={(e) => setHideImported(e.target.checked)}
+                    onChange={(e) => {
+                      setHideImported(e.target.checked);
+                      setOffset(0);
+                    }}
                   />
                   Hide imported
                 </label>
                 <div className="ml-auto flex items-center gap-2">
-                  <Button variant="secondary" onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))} disabled={offset === 0}>
+                  <label className="flex items-center gap-2 text-xs text-text-tertiary">
+                    Games per page
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setOffset(0);
+                      }}
+                      className="rounded-md border border-border bg-card px-2 py-1 text-sm text-text-primary"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </label>
+                  <Button variant="secondary" onClick={() => setOffset((o) => Math.max(0, o - pageSize))} disabled={offset === 0}>
                     Prev
                   </Button>
                   <span className="text-xs text-text-tertiary">
@@ -264,7 +275,7 @@ export default function ImportSteam() {
                   </span>
                   <Button
                     variant="secondary"
-                    onClick={() => setOffset((o) => o + PAGE_SIZE)}
+                    onClick={() => setOffset((o) => o + pageSize)}
                     disabled={!games.data.truncated}
                   >
                     Next
@@ -275,11 +286,6 @@ export default function ImportSteam() {
                 <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
                   <input type="checkbox" checked={allImportableSelected} onChange={toggleAll} disabled={games.data.titles.length === 0} />
                   Select all not-imported ({importable.length})
-                  {games.data.truncated && (
-                    <span className="font-normal text-xs text-text-tertiary">
-                      (showing first {games.data.titles.length})
-                    </span>
-                  )}
                 </label>
                 <Button
                   variant="primary"
@@ -305,9 +311,7 @@ export default function ImportSteam() {
               <Card className="divide-y divide-border">
                 {rendered.length === 0 ? (
                   <p className="px-3 py-2.5 text-sm text-text-tertiary">
-                    {hideImported && (games.data?.titles ?? []).length > 0
-                      ? 'All titles on this page are already in your collection.'
-                      : filter.trim()
+                    {filter.trim()
                         ? `No matches for “${filter}”.`
                         : <>No owned games returned. Make sure your Steam profile's game details are set to <strong className="text-text-secondary">Public</strong> in Privacy Settings, then try again.</>}
                   </p>
