@@ -182,18 +182,17 @@ public sealed class SteamStoreImportService
     /// <summary>
     /// Owned titles for the preview: trusted Steam fetch joined against the
     /// owner's ledger to tag import state. Ordered by playtime desc.
-    /// Pass an optional <paramref name="search"/> term to filter server-side by
-    /// title across the FULL library (not just the capped preview slice), so
-    /// users with more than <see cref="SteamOptions.SteamSubOptions.PreviewCap"/>
-    /// games can still find, import, or repair lower-playtime titles.
+    /// The caller supplies the search, pagination, and visibility inputs.
+    /// Search applies across the full library before paging so users can still
+    /// find, import, or repair lower-playtime titles.
     /// </summary>
     public async Task<SteamPreviewResult> GetOwnedTitlesAsync(
         string ownerId,
-        string? search = null,
-        int offset = 0,
-        int? limit = null,
-        bool hideImported = false,
-        CancellationToken ct = default)
+        string? search,
+        int offset,
+        int limit,
+        bool hideImported,
+        CancellationToken ct)
     {
         var connection = await GetConnectionAsync(ownerId, ct);
         if (connection is null)
@@ -232,8 +231,8 @@ public sealed class SteamStoreImportService
             .OrderByDescending(t => t.PlaytimeMinutes)
             .ToList();
 
-        // Apply an optional server-side search over the WHOLE library first so a
-        // matching lower-playtime title outside the capped preview is reachable.
+        // Apply an optional server-side search over the whole library first so a
+        // matching lower-playtime title outside the current page is reachable.
         if (!string.IsNullOrEmpty(searchTerm))
             all = all.Where(t => t.Title.ToLowerInvariant().Contains(searchTerm)).ToList();
 
@@ -244,8 +243,7 @@ public sealed class SteamStoreImportService
         // (before paging); Truncated means "more results after this page".
         var total = all.Count;
         var effOffset = Math.Max(0, offset);
-        var effLimit = limit ?? _options.PreviewCap;
-        var page = all.Skip(effOffset).Take(effLimit).ToList();
+        var page = all.Skip(effOffset).Take(limit).ToList();
         var truncated = effOffset + page.Count < total;
         return new SteamPreviewResult(SteamPreviewStatus.Ok, page, truncated, total);
     }

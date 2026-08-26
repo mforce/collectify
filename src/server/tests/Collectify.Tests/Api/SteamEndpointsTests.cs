@@ -517,7 +517,7 @@ public class SteamEndpointsTests
         Assert.Equal(3, all!.Titles.Length);
 
         // Case-insensitive title search filters server-side across the full
-        // library, so a user with more than PreviewCap games can still reach a
+        // library, so a user with more than one page of games can still reach a
         // specific lower-playtime title no matter where it sorts.
         var celeste = await alice.Client.GetJsonAsync<SteamPreviewDto>("/api/accounts/steam/games?q=celeste");
         Assert.Single(celeste!.Titles);

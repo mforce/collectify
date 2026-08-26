@@ -33,9 +33,8 @@ export default function ImportSteam() {
     return () => clearTimeout(t);
   }, [filter]);
   useEffect(() => setOffset(0), [filter]);
-  // Search is sent to the server so it filters across the FULL owned library,
-  // not just the capped preview slice — reaching lower-playtime titles a user
-  // might search for (Codex: paginate/search large libraries).
+  // Search is sent to the server so it filters across the full owned library,
+  // not just the current page, reaching lower-playtime titles a user might search for.
   const games = useSteamGames(
     connection.data?.connected === true,
     filter.trim() ? debouncedFilter : '',

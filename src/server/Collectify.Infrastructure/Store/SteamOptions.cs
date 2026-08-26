@@ -25,8 +25,6 @@ public sealed class SteamOptions
         public TimeSpan CacheTtl { get; set; } = TimeSpan.FromMinutes(5);
         /// <summary>Max titles a single import may create/select (payload bound).</summary>
         public int ImportCap { get; set; } = 500;
-        /// <summary>Max selections a preview may return.</summary>
-        public int PreviewCap { get; set; } = 500;
 
         public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
     }

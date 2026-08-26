@@ -28,6 +28,9 @@ public static class SteamStoreServiceCollectionExtensions
             .Validate(
                 options => options.Steam.CacheTtl > TimeSpan.Zero,
                 "Collectify:Platforms:Steam:CacheTtl must be greater than zero.")
+            .Validate(
+                options => options.Steam.ImportCap > 0,
+                "Collectify:Platforms:Steam:ImportCap must be greater than zero.")
             .ValidateOnStart();
 
         services.AddHttpClient(SteamClient.HttpClientName, (sp, client) =>
