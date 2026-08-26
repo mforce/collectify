@@ -89,7 +89,20 @@ export default function ImportSteam() {
     importable.length > 0 && importable.every((g) => selected.has(g.externalGameId));
 
   const toggleAll = () =>
-    setSelected(allImportableSelected ? new Set() : new Set(importable.map((g) => g.externalGameId)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const pageIds = importable.map((g) => g.externalGameId);
+      if (allImportableSelected) {
+        // All importable on the current page are already selected: drop only
+        // THIS page's ids, preserving selections made on other pages.
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        // Add this page's importable ids to the existing selection, preserving
+        // selections from other pages (matches per-row toggle semantics).
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
 
   const handleConnect = async () => {
     try {
