@@ -295,4 +295,45 @@ describe('ImportSteam', () => {
     expect(importMutate).toHaveBeenCalledWith(['1', '2']);
     expect(onSuccess).toBeTypeOf('function');
   });
+
+  it('merges select-all on a later page with selections made on earlier pages', async () => {
+    const user = userEvent.setup();
+    let importArg: string[] | null = null;
+    const importMutate = vi.fn().mockImplementation((ids: string[]) => {
+      importArg = ids;
+      return Promise.resolve({ imported: ids.length, alreadyImported: 0, items: [] });
+    });
+    mockUseImport.mockImplementation((cb: () => void) => ({ mutateAsync: importMutate, isPending: false }));
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockImplementation((_e, _s, offset: number) => ({
+      data: {
+        status: 'ok',
+        truncated: true,
+        total: 4,
+        titles: [
+          { externalGameId: String(offset + 1), title: `Game ${offset + 1}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+          { externalGameId: String(offset + 2), title: `Game ${offset + 2}`, playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    }));
+
+    renderPage();
+
+    // Page 1: select Game 1 individually (the row checkbox's accessible label
+    // is the title plus the formatted playtime, so match with a regex role).
+    await user.click(screen.getByRole('checkbox', { name: /Game 1/ }));
+    // Advance to page 2.
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    // Select all on page 2 (games 101 and 102). This must MERGE, not replace.
+    await user.click(screen.getByLabelText(/select all not-imported \(2\)/i));
+
+    // Cumulative count: Game 1 (page 1) + Games 101/102 (page 2) = 3.
+    expect(screen.getByRole('button', { name: /import selected \(3\)/i })).toBeInTheDocument();
+
+    // The submit must include the page-1 pick, proving it was not dropped.
+    await user.click(screen.getByRole('button', { name: /import selected \(3\)/i }));
+    expect(importArg ? [...importArg].sort() : []).toEqual(['1', '101', '102'].sort());
+  });
 });
