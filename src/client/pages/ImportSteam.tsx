@@ -24,6 +24,7 @@ export default function ImportSteam() {
   const [pageSize, setPageSize] = useState(100);
   const [offset, setOffset] = useState(0);
   const [hideImported, setHideImported] = useState(false);
+  const [repairBatchPending, setRepairBatchPending] = useState(false);
 
   const connection = useSteamConnection();
   const connect = useSteamConnect();
@@ -44,7 +45,7 @@ export default function ImportSteam() {
   );
   const importSelected = useSteamImport(() => setSelected(new Set()));
   const repairCovers = useSteamImport(() => {});
-  const steamMutationPending = importSelected.isPending || repairCovers.isPending;
+  const steamMutationPending = importSelected.isPending || repairCovers.isPending || repairBatchPending;
   const disconnect = useSteamDisconnect(() => setSelected(new Set()));
 
   // Surface the OpenID callback outcome once, then clear it from the URL so
@@ -159,15 +160,24 @@ export default function ImportSteam() {
       toast.info('Nothing to repair — no games imported yet.');
       return;
     }
+    setRepairBatchPending(true);
     try {
-      const res = await repairCovers.mutateAsync(importedIds);
+      let imported = 0;
+      let alreadyImported = 0;
+      for (let index = 0; index < importedIds.length; index += importCap) {
+        const res = await repairCovers.mutateAsync(importedIds.slice(index, index + importCap));
+        imported += res.imported;
+        alreadyImported += res.alreadyImported;
+      }
       toast.success(
-        res.imported > 0
-          ? `Re-imported ${res.imported} game${res.imported === 1 ? '' : 's'} and refreshed covers`
-          : `Refreshed covers for ${res.alreadyImported} imported game${res.alreadyImported === 1 ? '' : 's'}`,
+        imported > 0
+          ? `Re-imported ${imported} game${imported === 1 ? '' : 's'} and refreshed covers`
+          : `Refreshed covers for ${alreadyImported} imported game${alreadyImported === 1 ? '' : 's'}`,
       );
     } catch {
       toast.error('Could not refresh covers. Please try again.');
+    } finally {
+      setRepairBatchPending(false);
     }
   };
 

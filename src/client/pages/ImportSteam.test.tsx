@@ -11,11 +11,14 @@ const mockUseGames = vi.fn();
 const mockUseImport = vi.fn();
 const mockUseDisconnect = vi.fn();
 const mockConnectMutate = vi.fn();
-const { mockToastInfo } = vi.hoisted(() => ({ mockToastInfo: vi.fn() }));
+const { mockToastInfo, mockToastSuccess } = vi.hoisted(() => ({
+  mockToastInfo: vi.fn(),
+  mockToastSuccess: vi.fn(),
+}));
 
 vi.mock('../components/toaster', () => ({
   toast: {
-    success: vi.fn(),
+    success: mockToastSuccess,
     error: vi.fn(),
     info: mockToastInfo,
   },
@@ -458,6 +461,52 @@ describe('ImportSteam', () => {
 
     expect(importMutate).toHaveBeenCalledTimes(1);
     expect(importMutate).toHaveBeenCalledWith(['101', '103']);
+  });
+
+  it('batches only current-page repair ids by the configured import cap', async () => {
+    const user = userEvent.setup();
+    let hookCall = 0;
+    const importSelectedMutate = vi.fn().mockResolvedValue({ imported: 0, alreadyImported: 0, items: [] });
+    const repairCoversMutate = vi.fn()
+      .mockResolvedValueOnce({ imported: 1, alreadyImported: 1, items: [] })
+      .mockResolvedValueOnce({ imported: 0, alreadyImported: 1, items: [] });
+    mockUseImport.mockImplementation(() => {
+      const instance = hookCall % 2;
+      hookCall += 1;
+      return {
+        mutateAsync: instance === 0 ? importSelectedMutate : repairCoversMutate,
+        isPending: false,
+      };
+    });
+    mockUseConnection.mockReturnValue({ data: connected, isLoading: false, error: null });
+    mockUseGames.mockReturnValue({
+      data: {
+        status: 'ok',
+        importCap: 2,
+        truncated: true,
+        total: 300,
+        titles: [
+          { externalGameId: '1', title: 'Imported 1', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '2', title: 'Imported 2', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '3', title: 'Imported 3', playtimeMinutes: 0, iconUrl: null, state: 'imported' },
+          { externalGameId: '4', title: 'Importable 4', playtimeMinutes: 0, iconUrl: null, state: 'importable' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+    await user.click(screen.getByRole('checkbox', { name: /Importable 4/ }));
+    await user.click(screen.getByRole('button', { name: /repair covers/i }));
+
+    expect(repairCoversMutate.mock.calls).toEqual([[['1', '2']], [['3']]]);
+    expect(mockUseGames.mock.calls.every(([, , offset]) => offset === 0)).toBe(true);
+    expect(mockToastSuccess).toHaveBeenCalledTimes(1);
+    expect(mockToastSuccess).toHaveBeenCalledWith('Re-imported 1 game and refreshed covers');
+
+    await user.click(screen.getByRole('button', { name: /import selected \(1\)/i }));
+    expect(importSelectedMutate).toHaveBeenCalledWith(['4']);
   });
 
   it('merges select-all on a later page with selections made on earlier pages', async () => {
