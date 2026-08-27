@@ -33,8 +33,7 @@ export default function GamesList() {
             g.platform && g.platform !== 'Other'
               ? gamePlatformLabel(g.platform)
               : g.platformLegacy ?? null;
-          const year = g.year ? String(g.year) : null;
-          const meta = [platform, year].filter(Boolean).join(' · ');
+          const meta = platform ?? '';
           const showIcon = Boolean(g.platform && g.platform !== 'Other');
           return {
             primary: g.title,

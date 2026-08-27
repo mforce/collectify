@@ -1,24 +1,25 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CollectionList from './CollectionList';
 import type { Album, Game, MediaType, Movie } from '../services/types';
 
 const FIXTURE_MOVIES: Movie[] = [
-  { id: 1, title: 'Inception', formats: 2, status: 'Owned', watchStatus: 'Unwatched', watchCount: 0 },
-  { id: 2, title: 'Heat', formats: 1, status: 'Owned', watchStatus: 'Unwatched', watchCount: 0 },
+  { id: 1, title: 'Inception', year: 2010, director: 'Christopher Nolan', addedAt: '2026-08-20T14:30:00Z', personalRating: 9, formats: 2, status: 'Owned', watchStatus: 'Watched', watchCount: 3 },
+  { id: 2, title: 'Heat', year: null, director: 'Michael Mann', addedAt: 'not-a-date', personalRating: null, formats: 1, status: 'Owned', watchStatus: 'Unwatched', watchCount: 0 },
 ];
 
 const FIXTURE_ALBUMS: Album[] = [
-  { id: 1, title: 'OK Computer', artistName: 'Radiohead', format: 'Cd', status: 'Owned', listenCount: 0 },
-  { id: 2, title: 'Kid A', artistName: 'Radiohead', format: 'Cd', status: 'Owned', listenCount: 0 },
+  { id: 1, title: 'OK Computer', artistName: 'Radiohead', year: 1997, addedAt: '2026-08-21', personalRating: 8, format: 'Cd', status: 'Owned', listenCount: 12 },
+  { id: 2, title: 'Kid A', artistName: 'Radiohead', year: null, personalRating: null, format: 'Cd', status: 'Owned', listenCount: 0 },
 ];
 
 const FIXTURE_GAMES: Game[] = [
-  { id: 1, title: 'Hades', platform: 'Pc', digitalStores: 0, status: 'Owned', completionStatus: 'NotStarted' },
-  { id: 2, title: 'Celeste', platform: 'Pc', digitalStores: 0, status: 'Owned', completionStatus: 'NotStarted' },
+  { id: 1, title: 'Hades', year: 2020, addedAt: '2026-08-22T01:02:03Z', personalRating: 10, platform: 'Pc', digitalStores: 0, status: 'Owned', completionStatus: 'HundredPercent', hoursPlayed: 42.5 },
+  { id: 2, title: 'Celeste', year: null, personalRating: null, platform: 'Pc', digitalStores: 0, status: 'Owned', completionStatus: 'NotStarted', hoursPlayed: 0 },
 ];
 
 const TITLES: Record<MediaType, string> = { movies: 'Movies', music: 'Music', games: 'Games' };
@@ -63,22 +64,63 @@ function mockFetch(onBulk?: () => unknown) {
   return spy;
 }
 
-function renderList(opts?: { type?: MediaType; initialEntries?: string[] }) {
+function LocationObserver({ onLocation }: { onLocation: (location: { key: string; path: string }) => void }) {
+  const location = useLocation();
+  useEffect(() => {
+    onLocation({ key: location.key, path: `${location.pathname}${location.search}` });
+  }, [location.key, location.pathname, location.search, onLocation]);
+  return null;
+}
+
+function renderList(opts?: {
+  type?: MediaType;
+  initialEntries?: string[];
+  onLocation?: (location: { key: string; path: string }) => void;
+}) {
   const type = opts?.type ?? 'movies';
+  const renderItem = (item: Movie | Album | Game) => {
+    if (type === 'movies') {
+      const movie = item as Movie;
+      return { primary: movie.title, secondary: movie.director, tertiary: 'Blu-ray' };
+    }
+    if (type === 'music') {
+      const album = item as Album;
+      return { primary: album.title, secondary: album.artistName, tertiary: 'CD' };
+    }
+    const game = item as Game;
+    return { primary: game.title, secondary: 'PC', tertiary: 'Physical' };
+  };
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={opts?.initialEntries ?? ['/']}>
+        {opts?.onLocation && <LocationObserver onLocation={opts.onLocation} />}
         <CollectionList
           type={type}
           title={TITLES[type]}
           newPath={`/${type}/new`}
           category={type}
-          renderItem={(m: Movie | Album | Game) => ({ primary: m.title })}
+          renderItem={renderItem}
         />
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+function metadataPairs(title: string): [string, string][] {
+  const card = screen.getByRole('heading', { level: 3, name: title }).closest('a');
+  const metadata = card?.querySelector('dl[aria-label="Sortable metadata"]');
+  expect(metadata).not.toBeNull();
+  const labels = within(metadata as HTMLElement).getAllByRole('term').map((node) => node.textContent ?? '');
+  const values = within(metadata as HTMLElement).getAllByRole('definition').map((node) => node.textContent ?? '');
+  return labels.map((label, index) => [label, values[index]]);
+}
+
+async function selectViewAndAssertMetadata(mode: string, title: string, expected: [string, string][]) {
+  const user = userEvent.setup();
+  await user.click(screen.getByTitle(mode));
+  expect(metadataPairs(title)).toEqual(expected);
+  expect(metadataPairs(title).filter(([label]) => label === 'Rating')).toHaveLength(1);
 }
 
 describe('CollectionList — bulk select + update', () => {
@@ -351,7 +393,12 @@ describe('CollectionList — sort controls', () => {
 
   it('invalid URL is replaced once with defaults without a second fetch loop', async () => {
     const fetchSpy = mockFetch();
-    renderList({ type: 'movies', initialEntries: ['/?sort=bogus'] });
+    const locations: { key: string; path: string }[] = [];
+    renderList({
+      type: 'movies',
+      initialEntries: ['/?q=heat&sort=bogus'],
+      onLocation: (location) => locations.push(location),
+    });
 
     await screen.findByText('Inception');
 
@@ -360,9 +407,12 @@ describe('CollectionList — sort controls', () => {
     });
     expect((screen.getByLabelText('Direction') as HTMLSelectElement).value).toBe('desc');
 
-    // Give a runaway canonicalization/refetch loop a chance to fire before
-    // asserting the call count is settled at exactly one.
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await waitFor(() => expect(locations).toHaveLength(2));
+    expect(new Set(locations.map(({ key }) => key)).size).toBe(2);
+    expect(locations.map(({ path }) => path)).toEqual([
+      '/?q=heat&sort=bogus',
+      '/?q=heat&sort=addedAt&dir=desc',
+    ]);
 
     const movieCalls = fetchSpy.mock.calls.filter(([u]) => pathnameOf(String(u)) === '/api/movies');
     expect(movieCalls).toHaveLength(1);
@@ -397,7 +447,122 @@ describe('CollectionList — sort controls', () => {
     order = [2, 1];
     await user.selectOptions(screen.getByLabelText('Direction'), 'asc');
 
-    await waitFor(() => expect(screen.getAllByText(/^(Inception|Heat)$/)).toHaveLength(2));
+    await waitFor(() => {
+      expect(spy.mock.calls.filter(([u]) => pathnameOf(String(u)) === '/api/movies')).toHaveLength(2);
+    });
+    await waitFor(() => {
+      const titles = screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent);
+      expect(titles).toEqual(['Heat', 'Inception']);
+    });
     expect(screen.getByText('1 selected')).toBeInTheDocument();
+  });
+
+  it('membership change still prunes missing selected IDs', async () => {
+    let narrowed = false;
+    const spy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? 'GET';
+      if (method === 'GET' && pathnameOf(url) === '/api/movies') {
+        return jsonResponse(narrowed ? [FIXTURE_MOVIES[1]] : FIXTURE_MOVIES);
+      }
+      throw new Error(`Unexpected fetch: ${method} ${url}`);
+    });
+    globalThis.fetch = spy as unknown as typeof fetch;
+
+    renderList({ type: 'movies' });
+    const user = userEvent.setup();
+
+    await screen.findByText('Inception');
+    const checkboxes = screen.getAllByLabelText('Select item');
+    await user.click(checkboxes[0]);
+    await user.click(checkboxes[1]);
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+
+    narrowed = true;
+    await user.type(screen.getByPlaceholderText('Search movies…'), 'h');
+
+    await waitFor(() => {
+      expect(spy.mock.calls.filter(([u]) => pathnameOf(String(u)) === '/api/movies')).toHaveLength(2);
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Heat')).toBeInTheDocument();
+      expect(screen.queryByText('Inception')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+  });
+});
+
+describe('CollectionList — sortable metadata', () => {
+  it.each(['List', 'Medium', 'Big'])('shows movie sortable values in %s view', async (mode) => {
+    mockFetch();
+    renderList({ type: 'movies' });
+    await screen.findByText('Inception');
+
+    await selectViewAndAssertMetadata(mode, 'Inception', [
+      ['Year', '2010'],
+      ['Date added', 'Aug 20, 2026'],
+      ['Rating', '9/10'],
+      ['Watch status', 'Watched'],
+      ['Watch count', '3'],
+    ]);
+    expect(metadataPairs('Heat')).toEqual([
+      ['Year', '—'],
+      ['Date added', '—'],
+      ['Rating', '—'],
+      ['Watch status', 'Unwatched'],
+      ['Watch count', '0'],
+    ]);
+    expect(screen.getByText('Christopher Nolan')).toBeInTheDocument();
+    expect(screen.getAllByText('Blu-ray').length).toBeGreaterThan(0);
+  });
+
+  it.each(['List', 'Medium', 'Big'])('shows only music sortable values in %s view', async (mode) => {
+    mockFetch();
+    renderList({ type: 'music' });
+    await screen.findByText('OK Computer');
+
+    await selectViewAndAssertMetadata(mode, 'OK Computer', [
+      ['Year', '1997'],
+      ['Date added', 'Aug 21, 2026'],
+      ['Rating', '8/10'],
+      ['Listen count', '12'],
+    ]);
+    expect(metadataPairs('Kid A')).toEqual([
+      ['Year', '—'],
+      ['Date added', '—'],
+      ['Rating', '—'],
+      ['Listen count', '0'],
+    ]);
+    expect(metadataPairs('OK Computer').map(([label]) => label)).not.toEqual(
+      expect.arrayContaining(['Watch status', 'Watch count', 'Hours played', 'Completion status']),
+    );
+    expect(screen.getAllByText('Radiohead').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('CD').length).toBeGreaterThan(0);
+  });
+
+  it.each(['List', 'Medium', 'Big'])('shows only game sortable values in %s view', async (mode) => {
+    mockFetch();
+    renderList({ type: 'games' });
+    await screen.findByText('Hades');
+
+    await selectViewAndAssertMetadata(mode, 'Hades', [
+      ['Year', '2020'],
+      ['Date added', 'Aug 22, 2026'],
+      ['Rating', '10/10'],
+      ['Hours played', '42.5h'],
+      ['Completion status', '100%'],
+    ]);
+    expect(metadataPairs('Celeste')).toEqual([
+      ['Year', '—'],
+      ['Date added', '—'],
+      ['Rating', '—'],
+      ['Hours played', '0h'],
+      ['Completion status', 'Not started'],
+    ]);
+    expect(metadataPairs('Hades').map(([label]) => label)).not.toEqual(
+      expect.arrayContaining(['Watch status', 'Watch count', 'Listen count']),
+    );
+    expect(screen.getAllByText('PC').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Physical').length).toBeGreaterThan(0);
   });
 });

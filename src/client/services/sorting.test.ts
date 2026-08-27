@@ -3,26 +3,13 @@ import { readSortState, serializeSortParams, sortOptions, writeSortState, type S
 
 describe('sortOptions', () => {
   it('sortOptions_ForEachType_ContainsSharedAndOnlyItsOwnExtras', () => {
-    const shared = ['title', 'year', 'addedAt', 'personalRating'];
-
     const movieValues = sortOptions('movies').map((o) => o.value);
     const musicValues = sortOptions('music').map((o) => o.value);
     const gameValues = sortOptions('games').map((o) => o.value);
 
-    for (const key of shared) {
-      expect(movieValues).toContain(key);
-      expect(musicValues).toContain(key);
-      expect(gameValues).toContain(key);
-    }
-
-    expect(movieValues).toEqual(expect.arrayContaining(['watchStatus', 'watchCount']));
-    expect(musicValues).toEqual(expect.arrayContaining(['listenCount']));
-    expect(gameValues).toEqual(expect.arrayContaining(['hoursPlayed', 'completionStatus']));
-
-    // Cross-type extras must never leak onto another type's option list.
-    expect(movieValues).not.toEqual(expect.arrayContaining(['listenCount', 'hoursPlayed', 'completionStatus']));
-    expect(musicValues).not.toEqual(expect.arrayContaining(['watchStatus', 'watchCount', 'hoursPlayed', 'completionStatus']));
-    expect(gameValues).not.toEqual(expect.arrayContaining(['watchStatus', 'watchCount', 'listenCount']));
+    expect(movieValues).toEqual(['title', 'year', 'addedAt', 'personalRating', 'watchStatus', 'watchCount']);
+    expect(musicValues).toEqual(['title', 'year', 'addedAt', 'personalRating', 'listenCount']);
+    expect(gameValues).toEqual(['title', 'year', 'addedAt', 'personalRating', 'hoursPlayed', 'completionStatus']);
   });
 });
 

@@ -13,7 +13,7 @@ export default function MusicList() {
         const label = musicFormatLabel(a.format);
         return {
           primary: a.title,
-          secondary: [a.artistName, a.year].filter(Boolean).join(' · '),
+          secondary: a.artistName,
           tertiary:
             label ? (
               <span className="inline-flex items-center gap-1">

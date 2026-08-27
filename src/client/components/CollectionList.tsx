@@ -13,7 +13,10 @@ import { useViewPreference, type ViewMode } from '../hooks/useViewPreference';
 import {
   COLLECTION_STATUSES,
   WATCH_STATUSES,
+  completionStatusLabel,
+  watchStatusLabel,
   type CollectionItemBase,
+  type CompletionStatus,
   type CollectionStatus,
   type MediaType,
   type WatchStatus,
@@ -57,6 +60,76 @@ const CARD_BORDER: Record<string, string> = {
 interface BaseItem extends CollectionItemBase {
   id?: number;
   imagePath?: string | null;
+  year?: number | null;
+  addedAt?: string;
+  watchStatus?: WatchStatus;
+  watchCount?: number | null;
+  listenCount?: number | null;
+  hoursPlayed?: number | null;
+  completionStatus?: CompletionStatus;
+}
+
+interface MetadataRow {
+  label: string;
+  value: string;
+}
+
+function formatAddedAt(value?: string): string {
+  if (!value) return '—';
+  let date: Date;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) {
+    date = new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])));
+    if (
+      date.getUTCFullYear() !== Number(dateOnly[1])
+      || date.getUTCMonth() !== Number(dateOnly[2]) - 1
+      || date.getUTCDate() !== Number(dateOnly[3])
+    ) return '—';
+  } else {
+    date = new Date(value);
+  }
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
+function sortableMetadata(item: BaseItem, category?: string): MetadataRow[] {
+  const rows: MetadataRow[] = [
+    { label: 'Year', value: item.year != null ? String(item.year) : '—' },
+    { label: 'Date added', value: formatAddedAt(item.addedAt) },
+    { label: 'Rating', value: item.personalRating != null ? `${item.personalRating}/10` : '—' },
+  ];
+  if (category === 'movies') {
+    rows.push(
+      { label: 'Watch status', value: item.watchStatus ? (watchStatusLabel(item.watchStatus) ?? '—') : '—' },
+      { label: 'Watch count', value: item.watchCount != null ? String(item.watchCount) : '—' },
+    );
+  } else if (category === 'music') {
+    rows.push({ label: 'Listen count', value: item.listenCount != null ? String(item.listenCount) : '—' });
+  } else if (category === 'games') {
+    rows.push(
+      { label: 'Hours played', value: item.hoursPlayed != null ? `${item.hoursPlayed}h` : '—' },
+      { label: 'Completion status', value: item.completionStatus ? (completionStatusLabel(item.completionStatus) ?? '—') : '—' },
+    );
+  }
+  return rows;
+}
+
+function SortableMetadata({ item, category }: { item: BaseItem; category?: string }) {
+  return (
+    <dl aria-label="Sortable metadata" className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-secondary">
+      {sortableMetadata(item, category).map(({ label, value }) => (
+        <div key={label} className="flex min-w-0 gap-1">
+          <dt className="font-semibold text-text-tertiary">{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 // A checkbox rendered as a sibling of the surrounding <Link>; stopping
@@ -122,6 +195,7 @@ function ListCard({ item, r, category, selected, onToggle }: { item: BaseItem; r
           {r.tertiary && (
             <span className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</span>
           )}
+          <SortableMetadata item={item} category={category} />
         </div>
       </div>
     </Card>
@@ -149,9 +223,7 @@ function MediumCard({ item, r, category, selected, onToggle }: { item: BaseItem;
           {r.tertiary && (
             <div className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</div>
           )}
-          {item.personalRating != null && (
-            <div className={`text-sm font-medium ${titleClass}`}>★ {item.personalRating}/10</div>
-          )}
+          <SortableMetadata item={item} category={category} />
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {tags.slice(0, 3).map((t) => (
@@ -187,9 +259,7 @@ function BigCard({ item, r, category, selected, onToggle }: { item: BaseItem; r:
           {r.tertiary && (
             <div className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</div>
           )}
-          {item.personalRating != null && (
-            <div className={`text-sm font-medium ${titleClass}`}>★ {item.personalRating}/10</div>
-          )}
+          <SortableMetadata item={item} category={category} />
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-auto pt-1">
               {tags.slice(0, 4).map((t) => (
