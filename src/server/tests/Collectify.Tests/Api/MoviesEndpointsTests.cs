@@ -38,6 +38,17 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         UpdatedAt = DateTime.UtcNow.AddDays(-1),
     };
 
+    protected override Movie NewSortableEntity(
+        string ownerId, string title, int? year = null, int? personalRating = null, DateTime? addedAt = null) => new()
+    {
+        OwnerId = ownerId,
+        Title = title,
+        Year = year,
+        PersonalRating = personalRating,
+        AddedAt = addedAt ?? DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow.AddDays(-1),
+    };
+
     protected override int IdOf(Movie entity) => entity.Id;
     protected override string OwnerIdOf(Movie entity) => entity.OwnerId;
     protected override string TitleOf(Movie entity) => entity.Title;

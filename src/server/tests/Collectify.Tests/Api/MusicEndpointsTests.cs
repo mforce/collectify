@@ -38,6 +38,18 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
         UpdatedAt = DateTime.UtcNow.AddDays(-1),
     };
 
+    protected override MusicAlbum NewSortableEntity(
+        string ownerId, string title, int? year = null, int? personalRating = null, DateTime? addedAt = null) => new()
+    {
+        OwnerId = ownerId,
+        Title = title,
+        ArtistName = "Radiohead",
+        Year = year,
+        PersonalRating = personalRating,
+        AddedAt = addedAt ?? DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow.AddDays(-1),
+    };
+
     protected override int IdOf(MusicAlbum entity) => entity.Id;
     protected override string OwnerIdOf(MusicAlbum entity) => entity.OwnerId;
     protected override string TitleOf(MusicAlbum entity) => entity.Title;

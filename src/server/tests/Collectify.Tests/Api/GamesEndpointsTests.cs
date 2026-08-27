@@ -40,6 +40,17 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
         UpdatedAt = DateTime.UtcNow.AddDays(-1),
     };
 
+    protected override Game NewSortableEntity(
+        string ownerId, string title, int? year = null, int? personalRating = null, DateTime? addedAt = null) => new()
+    {
+        OwnerId = ownerId,
+        Title = title,
+        Year = year,
+        PersonalRating = personalRating,
+        AddedAt = addedAt ?? DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow.AddDays(-1),
+    };
+
     protected override int IdOf(Game entity) => entity.Id;
     protected override string OwnerIdOf(Game entity) => entity.OwnerId;
     protected override string TitleOf(Game entity) => entity.Title;
