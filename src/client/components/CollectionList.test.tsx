@@ -22,14 +22,18 @@ function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
+function pathnameOf(url: string): string {
+  return new URL(url, 'http://localhost').pathname;
+}
+
 function mockFetch(onBulk?: () => unknown) {
   const spy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = init?.method ?? 'GET';
-    if (method === 'GET' && url === '/api/movies') {
+    if (method === 'GET' && pathnameOf(url) === '/api/movies') {
       return jsonResponse(FIXTURE_MOVIES);
     }
-    if (method === 'PATCH' && url === '/api/movies/bulk') {
+    if (method === 'PATCH' && pathnameOf(url) === '/api/movies/bulk') {
       return jsonResponse(onBulk ? onBulk() : []);
     }
     throw new Error(`Unexpected fetch: ${method} ${url}`);
@@ -92,7 +96,7 @@ describe('CollectionList — bulk select + update', () => {
     const user = userEvent.setup();
 
     await screen.findByText('Inception');
-    expect(fetchSpy.mock.calls.filter(([u]) => String(u) === '/api/movies')).toHaveLength(1);
+    expect(fetchSpy.mock.calls.filter(([u]) => pathnameOf(String(u)) === '/api/movies')).toHaveLength(1);
 
     const checkboxes = screen.getAllByLabelText('Select item');
     await user.click(checkboxes[0]);
@@ -116,7 +120,7 @@ describe('CollectionList — bulk select + update', () => {
 
     // The bulk mutation invalidates the list query, triggering a refetch.
     await waitFor(() => {
-      expect(fetchSpy.mock.calls.filter(([u]) => String(u) === '/api/movies')).toHaveLength(2);
+      expect(fetchSpy.mock.calls.filter(([u]) => pathnameOf(String(u)) === '/api/movies')).toHaveLength(2);
     });
   });
 
