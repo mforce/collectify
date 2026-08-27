@@ -38,6 +38,17 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         UpdatedAt = DateTime.UtcNow.AddDays(-1),
     };
 
+    protected override Movie NewSortableEntity(
+        string ownerId, string title, int? year = null, int? personalRating = null, DateTime? addedAt = null) => new()
+    {
+        OwnerId = ownerId,
+        Title = title,
+        Year = year,
+        PersonalRating = personalRating,
+        AddedAt = addedAt ?? DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow.AddDays(-1),
+    };
+
     protected override int IdOf(Movie entity) => entity.Id;
     protected override string OwnerIdOf(Movie entity) => entity.OwnerId;
     protected override string TitleOf(Movie entity) => entity.Title;
@@ -109,6 +120,51 @@ public class MoviesEndpointsTests : CollectionEndpointsTestsBase<Movie, MovieRes
         var stored = await Factory.WithDbAsync(db =>
             db.Movies.FirstAsync(m => m.Id == createdId));
         Assert.Equal(MovieFormat.Vhs | MovieFormat.Digital, stored.Formats);
+    }
+
+    // -------- Sorting (movie-specific type keys) --------
+
+    public static IEnumerable<object[]> MovieSortCases()
+    {
+        yield return new object[] { "watchStatus", "asc" };
+        yield return new object[] { "watchStatus", "desc" };
+        yield return new object[] { "watchCount", "asc" };
+        yield return new object[] { "watchCount", "desc" };
+    }
+
+    [Theory]
+    [MemberData(nameof(MovieSortCases))]
+    public async Task List_SortsByWatchStatusAndWatchCount(string sort, string dir)
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "A", WatchStatus = WatchStatus.Watched, WatchCount = 5 });
+        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "B", WatchStatus = WatchStatus.Unwatched, WatchCount = 1 });
+        await Factory.SeedAsync(new Movie { OwnerId = alice.Id, Title = "C", WatchStatus = WatchStatus.Watching, WatchCount = 9 });
+
+        var items = await alice.Client.GetJsonAsync<MovieResponse[]>($"{RoutePrefix}?sort={sort}&dir={dir}");
+        var titles = items!.Select(i => i.Title).ToArray();
+
+        var expected = (sort, dir) switch
+        {
+            ("watchStatus", "asc") => new[] { "B", "C", "A" },   // Unwatched, Watching, Watched.
+            ("watchStatus", "desc") => new[] { "A", "C", "B" },
+            ("watchCount", "asc") => new[] { "B", "A", "C" },
+            ("watchCount", "desc") => new[] { "C", "A", "B" },
+            _ => throw new InvalidOperationException($"Unhandled case: {sort}/{dir}"),
+        };
+        Assert.Equal(expected, titles);
+    }
+
+    [Fact]
+    public async Task List_RejectsWrongTypeSortKey_ListenCount()
+    {
+        var alice = await NewAliceAsync();
+
+        var response = await alice.Client.GetAsync($"{RoutePrefix}?sort=listenCount");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Invalid value for query parameter 'sort'.", body.GetProperty("error").GetString());
     }
 
     // -------- Personal / acquisition / watch fields round-trip --------

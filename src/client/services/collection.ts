@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import { filtersToParams, type Filters } from './filters';
+import { serializeSortParams, DEFAULT_SORT_FIELD, DEFAULT_SORT_DIRECTION, type SortState } from './sorting';
 import type {
   Album,
   CollectionStatus,
@@ -15,22 +16,34 @@ import type {
 
 type ItemMap = { movies: Movie; music: Album; games: Game };
 
+const DEFAULT_SORT_STATE: SortState<MediaType> = { field: DEFAULT_SORT_FIELD, direction: DEFAULT_SORT_DIRECTION };
+
 /**
- * List with an optional filter object. `query` stays the free-text
- * search; the filter object gets serialised to the per-endpoint query
- * params via {@link filtersToParams}. The query key includes both so
- * TanStack Query caches by the full (query + filters) pair and a
- * filter change refetches deterministically.
+ * List with an optional filter object and an optional resolved sort state.
+ * `query` stays the free-text search; the filter object gets serialised to
+ * the per-endpoint query params via {@link filtersToParams}. Sort defaults
+ * internally to addedAt/desc when omitted (matching the server's default) so
+ * every caller gets a canonical request even before it has sort controls.
+ * The query key includes query, filters, AND the resolved sort state so
+ * TanStack Query caches by the full request shape and any change refetches
+ * deterministically.
  */
-export function useList<T extends MediaType>(type: T, query: string, filters?: Filters<T>) {
+export function useList<T extends MediaType>(type: T, query: string, filters?: Filters<T>, sort?: SortState<T>) {
+  const resolvedSort = sort ?? (DEFAULT_SORT_STATE as SortState<T>);
   return useQuery({
-    queryKey: [type, 'list', query, filters ?? {}],
+    queryKey: [type, 'list', query, filters ?? {}, resolvedSort],
     queryFn: () => {
       const params = filters ? filtersToParams(filters as Record<string, unknown>) : new URLSearchParams();
       if (query) params.set('query', query);
+      for (const [k, v] of serializeSortParams(resolvedSort).entries()) params.set(k, v);
       const qs = params.toString();
       return api<ItemMap[T][]>(`/api/${type}${qs ? `?${qs}` : ''}`);
     },
+    // A sort/filter/search change is a NEW query key, not a background
+    // refetch of the same one; without this, TanStack Query briefly reports
+    // `data: undefined` for the new key, which would spuriously prune bulk
+    // selection (the membership effect reads an empty list) on every change.
+    placeholderData: keepPreviousData,
   });
 }
 

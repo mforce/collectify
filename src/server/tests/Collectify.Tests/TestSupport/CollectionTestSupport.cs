@@ -11,11 +11,13 @@ public interface ICollectionResponse
 {
     int Id { get; }
     string Title { get; }
+    int? Year { get; }
     int? PersonalRating { get; }
     string? AcquisitionCurrency { get; }
     string? ImagePath { get; }
     string[] Tags { get; }
     string[] Genres { get; }
+    DateTime AddedAt { get; }
     DateTime UpdatedAt { get; }
 }
 

@@ -101,6 +101,14 @@ public static class MusicEndpoints
             return (q, null);
         },
         OnDelete = null,
+        SortFields = new Dictionary<string, SortDescriptor<MusicAlbum>>
+        {
+            ["listenCount"] = new SortDescriptor<MusicAlbum>
+            {
+                Ascending = q => q.OrderBy(a => a.ListenCount),
+                Descending = q => q.OrderByDescending(a => a.ListenCount),
+            },
+        },
         BulkFields = new Dictionary<string, BulkField<MusicAlbum>>
         {
             ["status"] = BulkFieldBuilder.Enum<MusicAlbum, CollectionStatus>("status", (e, v) => e.Status = v),

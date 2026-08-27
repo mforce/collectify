@@ -13,7 +13,7 @@ export default function MoviesList() {
         const fmts = MOVIE_FORMAT_FLAGS.filter((f) => ((m.formats ?? 0) & f.value) !== 0);
         return {
           primary: m.title,
-          secondary: [m.year, m.director].filter(Boolean).join(' · '),
+          secondary: m.director,
           tertiary:
             fmts.length > 0 ? (
               <span className="inline-flex items-center gap-1">

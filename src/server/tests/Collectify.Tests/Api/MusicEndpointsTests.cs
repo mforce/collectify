@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Collectify.Domain.Entities;
 using Collectify.Domain.Enums;
 using Collectify.Tests.Infrastructure;
@@ -38,6 +39,18 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
         UpdatedAt = DateTime.UtcNow.AddDays(-1),
     };
 
+    protected override MusicAlbum NewSortableEntity(
+        string ownerId, string title, int? year = null, int? personalRating = null, DateTime? addedAt = null) => new()
+    {
+        OwnerId = ownerId,
+        Title = title,
+        ArtistName = "Radiohead",
+        Year = year,
+        PersonalRating = personalRating,
+        AddedAt = addedAt ?? DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow.AddDays(-1),
+    };
+
     protected override int IdOf(MusicAlbum entity) => entity.Id;
     protected override string OwnerIdOf(MusicAlbum entity) => entity.OwnerId;
     protected override string TitleOf(MusicAlbum entity) => entity.Title;
@@ -45,6 +58,37 @@ public class MusicEndpointsTests : CollectionEndpointsTestsBase<MusicAlbum, Albu
 
     protected override Task<int> GenreLinkCountAsync(int itemId) =>
         Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.MusicAlbums.Any(a => a.Id == itemId)));
+
+    // -------- Sorting (music-specific type key) --------
+
+    [Theory]
+    [InlineData("asc")]
+    [InlineData("desc")]
+    public async Task List_SortsByListenCount(string dir)
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "A", ArtistName = "X", ListenCount = 5 });
+        await Factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "B", ArtistName = "X", ListenCount = 1 });
+        await Factory.SeedAsync(new MusicAlbum { OwnerId = alice.Id, Title = "C", ArtistName = "X", ListenCount = 9 });
+
+        var items = await alice.Client.GetJsonAsync<AlbumResponse[]>($"{RoutePrefix}?sort=listenCount&dir={dir}");
+        var titles = items!.Select(i => i.Title).ToArray();
+
+        var expected = dir == "asc" ? new[] { "B", "A", "C" } : new[] { "C", "A", "B" };
+        Assert.Equal(expected, titles);
+    }
+
+    [Fact]
+    public async Task List_RejectsWrongTypeSortKey_HoursPlayed()
+    {
+        var alice = await NewAliceAsync();
+
+        var response = await alice.Client.GetAsync($"{RoutePrefix}?sort=hoursPlayed");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Invalid value for query parameter 'sort'.", body.GetProperty("error").GetString());
+    }
 
     [Fact]
     public async Task CreateAndGet_RoundTripsReleaseDate()

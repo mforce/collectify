@@ -2,6 +2,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, type ReactNode } from 'react';
 import { useBulkUpdate, useList, type BulkUpdates } from '../services/collection';
 import { useFiltersState } from '../services/filters';
+import { DIRECTION_OPTIONS, sortOptions, useSortState, type SortDirection, type SortField } from '../services/sorting';
 import { ApiError } from '../services/client';
 import { Button, Card, Field, Input, RatingInput, Select, StatusPill, TagChip, TagInput, ViewSwitcher } from './ui';
 import BarcodeLookup from './BarcodeLookup';
@@ -12,7 +13,10 @@ import { useViewPreference, type ViewMode } from '../hooks/useViewPreference';
 import {
   COLLECTION_STATUSES,
   WATCH_STATUSES,
+  completionStatusLabel,
+  watchStatusLabel,
   type CollectionItemBase,
+  type CompletionStatus,
   type CollectionStatus,
   type MediaType,
   type WatchStatus,
@@ -55,7 +59,93 @@ const CARD_BORDER: Record<string, string> = {
 
 interface BaseItem extends CollectionItemBase {
   id?: number;
+  title: string;
   imagePath?: string | null;
+  year?: number | null;
+  addedAt?: string;
+  watchStatus?: WatchStatus;
+  watchCount?: number | null;
+  listenCount?: number | null;
+  hoursPlayed?: number | null;
+  completionStatus?: CompletionStatus;
+}
+
+interface MetadataRow {
+  label: string;
+  value: string;
+}
+
+function formatAddedAt(value?: string): string {
+  if (!value) return '—';
+  let date: Date;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) {
+    date = new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])));
+    if (
+      date.getUTCFullYear() !== Number(dateOnly[1])
+      || date.getUTCMonth() !== Number(dateOnly[2]) - 1
+      || date.getUTCDate() !== Number(dateOnly[3])
+    ) return '—';
+  } else {
+    const offsetlessDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value);
+    date = new Date(offsetlessDateTime ? `${value}Z` : value);
+  }
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
+function selectedSortMetadata(item: BaseItem, type: MediaType, sortKey: SortField<MediaType>): MetadataRow {
+  const option = sortOptions(type).find(({ value }) => value === sortKey);
+  if (!option) throw new Error(`Unreachable sort field "${sortKey}" for ${type}`);
+
+  let value: string;
+  switch (sortKey) {
+    case 'title':
+      value = item.title;
+      break;
+    case 'year':
+      value = item.year != null ? String(item.year) : '—';
+      break;
+    case 'addedAt':
+      value = formatAddedAt(item.addedAt);
+      break;
+    case 'personalRating':
+      value = item.personalRating != null ? `${item.personalRating}/10` : '—';
+      break;
+    case 'watchStatus':
+      value = item.watchStatus ? (watchStatusLabel(item.watchStatus) ?? '—') : '—';
+      break;
+    case 'watchCount':
+      value = item.watchCount != null ? String(item.watchCount) : '—';
+      break;
+    case 'listenCount':
+      value = item.listenCount != null ? String(item.listenCount) : '—';
+      break;
+    case 'hoursPlayed':
+      value = item.hoursPlayed != null ? `${item.hoursPlayed}h` : '—';
+      break;
+    case 'completionStatus':
+      value = item.completionStatus ? (completionStatusLabel(item.completionStatus) ?? '—') : '—';
+      break;
+  }
+  return { label: option.label, value };
+}
+
+function SortableMetadata({ item, type, sortKey }: { item: BaseItem; type: MediaType; sortKey: SortField<MediaType> }) {
+  const { label, value } = selectedSortMetadata(item, type, sortKey);
+  return (
+    <dl aria-label="Sortable metadata" className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-secondary">
+      <div className="flex min-w-0 gap-1">
+        <dt className="font-semibold text-text-tertiary">{label}</dt>
+        <dd>{value}</dd>
+      </div>
+    </dl>
+  );
 }
 
 // A checkbox rendered as a sibling of the surrounding <Link>; stopping
@@ -101,7 +191,7 @@ interface CardSelectProps {
   onToggle: (id: number) => void;
 }
 
-function ListCard({ item, r, category, selected, onToggle }: { item: BaseItem; r: RenderedItem; category?: string } & CardSelectProps) {
+function ListCard({ item, r, type, sortKey, category, selected, onToggle }: { item: BaseItem; r: RenderedItem; type: MediaType; sortKey: SortField<MediaType>; category?: string } & CardSelectProps) {
   const titleClass = category ? TITLE_CLASS[category] : 'text-text-primary';
   return (
     <Card className={`relative !p-0 overflow-hidden transition-all hover:-translate-y-0.5 ${category ? CARD_BORDER[category] : 'group-hover:border-brand/30'}`}>
@@ -121,13 +211,14 @@ function ListCard({ item, r, category, selected, onToggle }: { item: BaseItem; r
           {r.tertiary && (
             <span className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</span>
           )}
+          <SortableMetadata item={item} type={type} sortKey={sortKey} />
         </div>
       </div>
     </Card>
   );
 }
 
-function MediumCard({ item, r, category, selected, onToggle }: { item: BaseItem; r: RenderedItem; category?: string } & CardSelectProps) {
+function MediumCard({ item, r, type, sortKey, category, selected, onToggle }: { item: BaseItem; r: RenderedItem; type: MediaType; sortKey: SortField<MediaType>; category?: string } & CardSelectProps) {
   const titleClass = category ? TITLE_CLASS[category] : 'text-text-primary';
   const tags = item.tags ?? [];
   return (
@@ -148,9 +239,7 @@ function MediumCard({ item, r, category, selected, onToggle }: { item: BaseItem;
           {r.tertiary && (
             <div className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</div>
           )}
-          {item.personalRating != null && (
-            <div className={`text-sm font-medium ${titleClass}`}>★ {item.personalRating}/10</div>
-          )}
+          <SortableMetadata item={item} type={type} sortKey={sortKey} />
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {tags.slice(0, 3).map((t) => (
@@ -165,7 +254,7 @@ function MediumCard({ item, r, category, selected, onToggle }: { item: BaseItem;
   );
 }
 
-function BigCard({ item, r, category, selected, onToggle }: { item: BaseItem; r: RenderedItem; category?: string } & CardSelectProps) {
+function BigCard({ item, r, type, sortKey, category, selected, onToggle }: { item: BaseItem; r: RenderedItem; type: MediaType; sortKey: SortField<MediaType>; category?: string } & CardSelectProps) {
   const titleClass = category ? TITLE_CLASS[category] : 'text-text-primary';
   const tags = item.tags ?? [];
   return (
@@ -186,9 +275,7 @@ function BigCard({ item, r, category, selected, onToggle }: { item: BaseItem; r:
           {r.tertiary && (
             <div className="text-xs text-text-tertiary truncate shrink-0">{r.tertiary}</div>
           )}
-          {item.personalRating != null && (
-            <div className={`text-sm font-medium ${titleClass}`}>★ {item.personalRating}/10</div>
-          )}
+          <SortableMetadata item={item} type={type} sortKey={sortKey} />
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-auto pt-1">
               {tags.slice(0, 4).map((t) => (
@@ -215,7 +302,8 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
     setSearchParams(params, { replace: true });
   };
   const { filters, setFilters, clear } = useFiltersState(type);
-  const list = useList(type, query, filters);
+  const { state: sortState, setSortState } = useSortState(type);
+  const list = useList(type, query, filters, sortState);
   const items = list.data ?? [];
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useViewPreference(type);
@@ -358,6 +446,31 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
 
       <Input placeholder={`Search ${title.toLowerCase()}…`} value={query} onChange={(e) => setQuery(e.target.value)} />
 
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Sort by">
+          <Select
+            aria-label="Sort by"
+            value={sortState.field}
+            onChange={(e) => setSortState({ field: e.target.value as typeof sortState.field, direction: sortState.direction })}
+          >
+            {sortOptions(type).map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Direction">
+          <Select
+            aria-label="Direction"
+            value={sortState.direction}
+            onChange={(e) => setSortState({ field: sortState.field, direction: e.target.value as SortDirection })}
+          >
+            {DIRECTION_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+
       <FiltersPanel type={type} value={filters} onChange={setFilters} onClear={clear} />
 
       {selected.size > 0 && (
@@ -383,9 +496,9 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
           const isSelected = base.id != null && selected.has(base.id);
           return (
             <Link key={base.id} to={`${newPath.replace(/\/new$/, '')}/${base.id}`} className="group block">
-              {viewMode === 'list' && <ListCard item={base} r={r} category={category} selected={isSelected} onToggle={toggleSelected} />}
-              {viewMode === 'medium' && <MediumCard item={base} r={r} category={category} selected={isSelected} onToggle={toggleSelected} />}
-              {viewMode === 'big' && <BigCard item={base} r={r} category={category} selected={isSelected} onToggle={toggleSelected} />}
+              {viewMode === 'list' && <ListCard item={base} r={r} type={type} sortKey={sortState.field} category={category} selected={isSelected} onToggle={toggleSelected} />}
+              {viewMode === 'medium' && <MediumCard item={base} r={r} type={type} sortKey={sortState.field} category={category} selected={isSelected} onToggle={toggleSelected} />}
+              {viewMode === 'big' && <BigCard item={base} r={r} type={type} sortKey={sortState.field} category={category} selected={isSelected} onToggle={toggleSelected} />}
             </Link>
           );
         })}

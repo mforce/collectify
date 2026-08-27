@@ -39,6 +39,12 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
 
     protected abstract TEntity NewMinimalEntity(string ownerId, string title);
 
+    /// <summary>Constructs an entity with explicit sortable field values, used
+    /// only by the shared sort tests below (list-endpoint sorting is generic
+    /// across media types, so the fixtures must be too).</summary>
+    protected abstract TEntity NewSortableEntity(
+        string ownerId, string title, int? year = null, int? personalRating = null, DateTime? addedAt = null);
+
     protected abstract int IdOf(TEntity entity);
     protected abstract string OwnerIdOf(TEntity entity);
     protected abstract string TitleOf(TEntity entity);
@@ -223,6 +229,132 @@ public abstract class CollectionEndpointsTestsBase<TEntity, TResponse>
 
         Assert.Single(aliceList!);
         Assert.Equal("Alice-Row", aliceList![0].Title);
+    }
+
+    // -------- Sorting --------
+
+    [Fact]
+    public async Task List_WithoutSort_DefaultsToAddedAtDescendingThenId()
+    {
+        var alice = await NewAliceAsync();
+        var now = DateTime.UtcNow;
+
+        // Seeded out of AddedAt order so a bug that relies on insertion/ID
+        // order for the default sort would not accidentally pass.
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "Middle", addedAt: now.AddDays(-1)));
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "Newest", addedAt: now));
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "Oldest", addedAt: now.AddDays(-2)));
+        // Equal timestamps: the tie must break on ascending ID, i.e. seed order.
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "TieFirst", addedAt: now.AddDays(-3)));
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "TieSecond", addedAt: now.AddDays(-3)));
+
+        var items = await alice.Client.GetJsonAsync<TResponse[]>(RoutePrefix);
+
+        var titles = items!.Select(i => i.Title).ToArray();
+        Assert.Equal(new[] { "Newest", "Middle", "Oldest", "TieFirst", "TieSecond" }, titles);
+    }
+
+    public static IEnumerable<object[]> SharedSortCases()
+    {
+        yield return new object[] { "title", "asc" };
+        yield return new object[] { "title", "desc" };
+        yield return new object[] { "year", "asc" };
+        yield return new object[] { "year", "desc" };
+        yield return new object[] { "addedAt", "asc" };
+        yield return new object[] { "addedAt", "desc" };
+        yield return new object[] { "personalRating", "asc" };
+        yield return new object[] { "personalRating", "desc" };
+    }
+
+    [Theory]
+    [MemberData(nameof(SharedSortCases))]
+    public async Task List_SortsSharedFieldsInBothDirections(string sort, string dir)
+    {
+        var alice = await NewAliceAsync();
+        var now = DateTime.UtcNow;
+
+        // Title, year, addedAt, and personalRating are deliberately
+        // discordant across these three rows so each theory case actually
+        // exercises its own field rather than coasting on a coincidental
+        // shared order. "alpha" vs "Zulu"/"Mike" also discriminates raw
+        // (case-sensitive) title ordering from ASCII case-insensitive order.
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "Zulu", year: 2000, personalRating: 3, addedAt: now.AddDays(-10)));
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "alpha", year: 2010, personalRating: 9, addedAt: now.AddDays(-5)));
+        await Factory.SeedAsync(NewSortableEntity(alice.Id, "Mike", year: null, personalRating: null, addedAt: now));
+
+        var items = await alice.Client.GetJsonAsync<TResponse[]>($"{RoutePrefix}?sort={sort}&dir={dir}");
+        var titles = items!.Select(i => i.Title).ToArray();
+
+        var expected = (sort, dir) switch
+        {
+            ("title", "asc") => new[] { "alpha", "Mike", "Zulu" },
+            ("title", "desc") => new[] { "Zulu", "Mike", "alpha" },
+            ("year", "asc") => new[] { "Zulu", "alpha", "Mike" },       // Mike (null) last.
+            ("year", "desc") => new[] { "alpha", "Zulu", "Mike" },     // Mike (null) last.
+            ("addedAt", "asc") => new[] { "Zulu", "alpha", "Mike" },
+            ("addedAt", "desc") => new[] { "Mike", "alpha", "Zulu" },
+            ("personalRating", "asc") => new[] { "Zulu", "alpha", "Mike" },   // Mike (null) last.
+            ("personalRating", "desc") => new[] { "alpha", "Zulu", "Mike" }, // Mike (null) last.
+            _ => throw new InvalidOperationException($"Unhandled case: {sort}/{dir}"),
+        };
+        Assert.Equal(expected, titles);
+    }
+
+    [Fact]
+    public async Task List_SortsFilteredSubsetBeforeCap()
+    {
+        var alice = await NewAliceAsync();
+        var now = DateTime.UtcNow;
+
+        // 500 rows that all sort after the 501st ("AAAA-Row-Final") when
+        // sorted by title ascending. A Take(500)-before-sort bug would apply
+        // the cap by insertion/ID order first, dropping the final-seeded row
+        // (which would otherwise legitimately sort first).
+        var bulk = Enumerable.Range(0, 500)
+            .Select(i => NewSortableEntity(alice.Id, $"ZRow-{i:D4}", addedAt: now))
+            .ToArray();
+        var finalRow = NewSortableEntity(alice.Id, "AAAA-Row-Final", addedAt: now);
+
+        await Factory.WithDbAsync(async db =>
+        {
+            db.Set<TEntity>().AddRange(bulk);
+            db.Set<TEntity>().Add(finalRow);
+            await db.SaveChangesAsync();
+            return true;
+        });
+
+        var items = await alice.Client.GetJsonAsync<TResponse[]>($"{RoutePrefix}?query=Row&sort=title&dir=asc");
+
+        Assert.Equal(500, items!.Length);
+        Assert.Equal("AAAA-Row-Final", items[0].Title);
+    }
+
+    public static IEnumerable<object[]> SharedSortQueryCases()
+    {
+        yield return new object[] { "sort=bogus", HttpStatusCode.BadRequest, "Invalid value for query parameter 'sort'." };
+        yield return new object[] { "dir=bogus", HttpStatusCode.BadRequest, "Invalid value for query parameter 'dir'." };
+        yield return new object[] { "sort=title&sort=year", HttpStatusCode.BadRequest, "Query parameter 'sort' must have a single value." };
+        yield return new object[] { "dir=asc&dir=desc", HttpStatusCode.BadRequest, "Query parameter 'dir' must have a single value." };
+        yield return new object[] { "sort=", HttpStatusCode.BadRequest, "Invalid value for query parameter 'sort'." };
+        yield return new object[] { "dir=", HttpStatusCode.BadRequest, "Invalid value for query parameter 'dir'." };
+        // Valid control case: must stay 200 while every malformed case above 400s.
+        yield return new object[] { "sort=title&dir=asc", HttpStatusCode.OK, null! };
+    }
+
+    [Theory]
+    [MemberData(nameof(SharedSortQueryCases))]
+    public async Task List_InvalidSharedSortQuery_ReturnsPinnedBadRequest(string queryString, HttpStatusCode expectedStatus, string? expectedError)
+    {
+        var alice = await NewAliceAsync();
+
+        var response = await alice.Client.GetAsync($"{RoutePrefix}?{queryString}");
+
+        Assert.Equal(expectedStatus, response.StatusCode);
+        if (expectedError is not null)
+        {
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal(expectedError, body.GetProperty("error").GetString());
+        }
     }
 
     // -------- Validation --------

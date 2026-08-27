@@ -40,6 +40,17 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
         UpdatedAt = DateTime.UtcNow.AddDays(-1),
     };
 
+    protected override Game NewSortableEntity(
+        string ownerId, string title, int? year = null, int? personalRating = null, DateTime? addedAt = null) => new()
+    {
+        OwnerId = ownerId,
+        Title = title,
+        Year = year,
+        PersonalRating = personalRating,
+        AddedAt = addedAt ?? DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow.AddDays(-1),
+    };
+
     protected override int IdOf(Game entity) => entity.Id;
     protected override string OwnerIdOf(Game entity) => entity.OwnerId;
     protected override string TitleOf(Game entity) => entity.Title;
@@ -47,6 +58,53 @@ public class GamesEndpointsTests : CollectionEndpointsTestsBase<Game, GameRespon
 
     protected override Task<int> GenreLinkCountAsync(int itemId) =>
         Factory.WithDbAsync(db => db.Set<Genre>().AsNoTracking().CountAsync(g => g.Games.Any(x => x.Id == itemId)));
+
+    // -------- Sorting (game-specific type keys) --------
+
+    public static IEnumerable<object[]> GameSortCases()
+    {
+        yield return new object[] { "completionStatus", "asc" };
+        yield return new object[] { "completionStatus", "desc" };
+        yield return new object[] { "hoursPlayed", "asc" };
+        yield return new object[] { "hoursPlayed", "desc" };
+    }
+
+    [Theory]
+    [MemberData(nameof(GameSortCases))]
+    public async Task List_SortsByHoursPlayedAndCompletionStatus(string sort, string dir)
+    {
+        var alice = await NewAliceAsync();
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "A", CompletionStatus = CompletionStatus.Beaten, HoursPlayed = 10 });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "B", CompletionStatus = CompletionStatus.NotStarted, HoursPlayed = null });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "C", CompletionStatus = CompletionStatus.Playing, HoursPlayed = 3 });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "D", CompletionStatus = CompletionStatus.HundredPercent, HoursPlayed = 50 });
+        await Factory.SeedAsync(new Game { OwnerId = alice.Id, Title = "E", CompletionStatus = CompletionStatus.Abandoned, HoursPlayed = 1 });
+
+        var items = await alice.Client.GetJsonAsync<GameResponse[]>($"{RoutePrefix}?sort={sort}&dir={dir}");
+        var titles = items!.Select(i => i.Title).ToArray();
+
+        var expected = (sort, dir) switch
+        {
+            ("completionStatus", "asc") => new[] { "B", "C", "A", "D", "E" },   // NotStarted..Abandoned.
+            ("completionStatus", "desc") => new[] { "E", "D", "A", "C", "B" },
+            ("hoursPlayed", "asc") => new[] { "E", "C", "A", "D", "B" },        // B (null) last.
+            ("hoursPlayed", "desc") => new[] { "D", "A", "C", "E", "B" },       // B (null) last.
+            _ => throw new InvalidOperationException($"Unhandled case: {sort}/{dir}"),
+        };
+        Assert.Equal(expected, titles);
+    }
+
+    [Fact]
+    public async Task List_RejectsWrongTypeSortKey_WatchCount()
+    {
+        var alice = await NewAliceAsync();
+
+        var response = await alice.Client.GetAsync($"{RoutePrefix}?sort=watchCount");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Invalid value for query parameter 'sort'.", body.GetProperty("error").GetString());
+    }
 
     [Fact]
     public async Task CreateAndGet_RoundTripsRichDetailFields()
