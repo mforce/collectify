@@ -87,7 +87,8 @@ function formatAddedAt(value?: string): string {
       || date.getUTCDate() !== Number(dateOnly[3])
     ) return '—';
   } else {
-    date = new Date(value);
+    const offsetlessDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value);
+    date = new Date(offsetlessDateTime ? `${value}Z` : value);
   }
   if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat('en-US', {

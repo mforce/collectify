@@ -494,6 +494,23 @@ describe('CollectionList — sortable metadata', () => {
   ];
   const viewCases = ['List', 'Medium', 'Big'];
 
+  it('treats an offsetless AddedAt timestamp as UTC', async () => {
+    vi.stubEnv('TZ', 'America/Los_Angeles');
+    try {
+      const movies = FIXTURE_MOVIES.map((movie) => movie.id === 1
+        ? { ...movie, addedAt: '2026-08-20T23:30:00' }
+        : movie);
+      globalThis.fetch = vi.fn(async () => jsonResponse(movies)) as unknown as typeof fetch;
+
+      renderList({ type: 'movies' });
+      await screen.findByText('Inception');
+
+      expect(metadataPairs('Inception')).toEqual([['Date added', 'Aug 20, 2026']]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it.each(categoryCases.flatMap((category) => viewCases.map((view) => ({ ...category, view }))))(
     'shows exactly the selected Date added row for $type in $view view',
     async ({ type, title, date, identity, view }) => {
