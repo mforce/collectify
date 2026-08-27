@@ -2,6 +2,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect, type ReactNode } from 'react';
 import { useBulkUpdate, useList, type BulkUpdates } from '../services/collection';
 import { useFiltersState } from '../services/filters';
+import { DIRECTION_OPTIONS, sortOptions, useSortState, type SortDirection } from '../services/sorting';
 import { ApiError } from '../services/client';
 import { Button, Card, Field, Input, RatingInput, Select, StatusPill, TagChip, TagInput, ViewSwitcher } from './ui';
 import BarcodeLookup from './BarcodeLookup';
@@ -215,7 +216,8 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
     setSearchParams(params, { replace: true });
   };
   const { filters, setFilters, clear } = useFiltersState(type);
-  const list = useList(type, query, filters);
+  const { state: sortState, setSortState } = useSortState(type);
+  const list = useList(type, query, filters, sortState);
   const items = list.data ?? [];
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useViewPreference(type);
@@ -357,6 +359,31 @@ export default function CollectionList<T extends MediaType>({ type, title, newPa
       </div>
 
       <Input placeholder={`Search ${title.toLowerCase()}…`} value={query} onChange={(e) => setQuery(e.target.value)} />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Sort by">
+          <Select
+            aria-label="Sort by"
+            value={sortState.field}
+            onChange={(e) => setSortState({ field: e.target.value as typeof sortState.field, direction: sortState.direction })}
+          >
+            {sortOptions(type).map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Direction">
+          <Select
+            aria-label="Direction"
+            value={sortState.direction}
+            onChange={(e) => setSortState({ field: sortState.field, direction: e.target.value as SortDirection })}
+          >
+            {DIRECTION_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+        </Field>
+      </div>
 
       <FiltersPanel type={type} value={filters} onChange={setFilters} onClear={clear} />
 

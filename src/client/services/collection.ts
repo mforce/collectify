@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import { filtersToParams, type Filters } from './filters';
 import { serializeSortParams, DEFAULT_SORT_FIELD, DEFAULT_SORT_DIRECTION, type SortState } from './sorting';
@@ -39,6 +39,11 @@ export function useList<T extends MediaType>(type: T, query: string, filters?: F
       const qs = params.toString();
       return api<ItemMap[T][]>(`/api/${type}${qs ? `?${qs}` : ''}`);
     },
+    // A sort/filter/search change is a NEW query key, not a background
+    // refetch of the same one; without this, TanStack Query briefly reports
+    // `data: undefined` for the new key, which would spuriously prune bulk
+    // selection (the membership effect reads an empty list) on every change.
+    placeholderData: keepPreviousData,
   });
 }
 
