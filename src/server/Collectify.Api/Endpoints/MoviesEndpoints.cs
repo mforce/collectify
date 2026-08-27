@@ -123,6 +123,19 @@ public static class MoviesEndpoints
             return (q, null);
         },
         OnDelete = null,
+        SortFields = new Dictionary<string, SortDescriptor<Movie>>
+        {
+            ["watchStatus"] = new SortDescriptor<Movie>
+            {
+                Ascending = q => q.OrderBy(m => m.WatchStatus),
+                Descending = q => q.OrderByDescending(m => m.WatchStatus),
+            },
+            ["watchCount"] = new SortDescriptor<Movie>
+            {
+                Ascending = q => q.OrderBy(m => m.WatchCount),
+                Descending = q => q.OrderByDescending(m => m.WatchCount),
+            },
+        },
         BulkFields = new Dictionary<string, BulkField<Movie>>
         {
             ["status"] = BulkFieldBuilder.Enum<Movie, CollectionStatus>("status", (e, v) => e.Status = v),

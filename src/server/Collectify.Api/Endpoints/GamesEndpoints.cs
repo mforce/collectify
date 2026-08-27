@@ -166,6 +166,19 @@ public static class GamesEndpoints
                 child.UpdatedAt = DateTime.UtcNow;
             }
         },
+        SortFields = new Dictionary<string, SortDescriptor<Game>>
+        {
+            ["hoursPlayed"] = new SortDescriptor<Game>
+            {
+                Ascending = q => q.OrderBy(g => g.HoursPlayed == null).ThenBy(g => g.HoursPlayed),
+                Descending = q => q.OrderBy(g => g.HoursPlayed == null).ThenByDescending(g => g.HoursPlayed),
+            },
+            ["completionStatus"] = new SortDescriptor<Game>
+            {
+                Ascending = q => q.OrderBy(g => g.CompletionStatus),
+                Descending = q => q.OrderByDescending(g => g.CompletionStatus),
+            },
+        },
         BulkFields = new Dictionary<string, BulkField<Game>>
         {
             ["status"] = BulkFieldBuilder.Enum<Game, CollectionStatus>("status", (e, v) => e.Status = v),
