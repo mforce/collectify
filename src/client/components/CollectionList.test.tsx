@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CollectionList from './CollectionList';
+import { sortOptions } from '../services/sorting';
 import type { Album, Game, MediaType, Movie } from '../services/types';
 
 const FIXTURE_MOVIES: Movie[] = [
@@ -114,13 +115,6 @@ function metadataPairs(title: string): [string, string][] {
   const labels = within(metadata as HTMLElement).getAllByRole('term').map((node) => node.textContent ?? '');
   const values = within(metadata as HTMLElement).getAllByRole('definition').map((node) => node.textContent ?? '');
   return labels.map((label, index) => [label, values[index]]);
-}
-
-async function selectViewAndAssertMetadata(mode: string, title: string, expected: [string, string][]) {
-  const user = userEvent.setup();
-  await user.click(screen.getByTitle(mode));
-  expect(metadataPairs(title)).toEqual(expected);
-  expect(metadataPairs(title).filter(([label]) => label === 'Rating')).toHaveLength(1);
 }
 
 describe('CollectionList — bulk select + update', () => {
@@ -493,76 +487,83 @@ describe('CollectionList — sort controls', () => {
 });
 
 describe('CollectionList — sortable metadata', () => {
-  it.each(['List', 'Medium', 'Big'])('shows movie sortable values in %s view', async (mode) => {
-    mockFetch();
-    renderList({ type: 'movies' });
-    await screen.findByText('Inception');
+  const categoryCases = [
+    { type: 'movies' as const, title: 'Inception', date: 'Aug 20, 2026', identity: 'Christopher Nolan' },
+    { type: 'music' as const, title: 'OK Computer', date: 'Aug 21, 2026', identity: 'Radiohead' },
+    { type: 'games' as const, title: 'Hades', date: 'Aug 22, 2026', identity: 'PC' },
+  ];
+  const viewCases = ['List', 'Medium', 'Big'];
 
-    await selectViewAndAssertMetadata(mode, 'Inception', [
-      ['Year', '2010'],
-      ['Date added', 'Aug 20, 2026'],
-      ['Rating', '9/10'],
-      ['Watch status', 'Watched'],
-      ['Watch count', '3'],
-    ]);
-    expect(metadataPairs('Heat')).toEqual([
-      ['Year', '—'],
-      ['Date added', '—'],
-      ['Rating', '—'],
-      ['Watch status', 'Unwatched'],
-      ['Watch count', '0'],
-    ]);
-    expect(screen.getByText('Christopher Nolan')).toBeInTheDocument();
-    expect(screen.getAllByText('Blu-ray').length).toBeGreaterThan(0);
+  it.each(categoryCases.flatMap((category) => viewCases.map((view) => ({ ...category, view }))))(
+    'shows exactly the selected Date added row for $type in $view view',
+    async ({ type, title, date, identity, view }) => {
+      mockFetch();
+      renderList({ type });
+      await screen.findByText(title);
+      await userEvent.setup().click(screen.getByTitle(view));
+
+      expect(metadataPairs(title)).toEqual([['Date added', date]]);
+      expect(screen.getAllByText(identity).length).toBeGreaterThan(0);
+    },
+  );
+
+  const fieldCases = categoryCases.flatMap(({ type, title }) => {
+    const values: Record<string, string> = type === 'movies'
+      ? { title: 'Inception', year: '2010', addedAt: 'Aug 20, 2026', personalRating: '9/10', watchStatus: 'Watched', watchCount: '3' }
+      : type === 'music'
+        ? { title: 'OK Computer', year: '1997', addedAt: 'Aug 21, 2026', personalRating: '8/10', listenCount: '12' }
+        : { title: 'Hades', year: '2020', addedAt: 'Aug 22, 2026', personalRating: '10/10', hoursPlayed: '42.5h', completionStatus: '100%' };
+    return sortOptions(type).map((option) => ({ type, title, option, expected: values[option.value] }));
   });
 
-  it.each(['List', 'Medium', 'Big'])('shows only music sortable values in %s view', async (mode) => {
-    mockFetch();
-    renderList({ type: 'music' });
-    await screen.findByText('OK Computer');
+  it.each(fieldCases)(
+    'uses the selected $option.value field for $type',
+    async ({ type, title, option, expected }) => {
+      const fetchSpy = mockFetch();
+      renderList({ type });
+      await screen.findByText(title);
 
-    await selectViewAndAssertMetadata(mode, 'OK Computer', [
-      ['Year', '1997'],
-      ['Date added', 'Aug 21, 2026'],
-      ['Rating', '8/10'],
-      ['Listen count', '12'],
-    ]);
-    expect(metadataPairs('Kid A')).toEqual([
-      ['Year', '—'],
-      ['Date added', '—'],
-      ['Rating', '—'],
-      ['Listen count', '0'],
-    ]);
-    expect(metadataPairs('OK Computer').map(([label]) => label)).not.toEqual(
-      expect.arrayContaining(['Watch status', 'Watch count', 'Hours played', 'Completion status']),
-    );
-    expect(screen.getAllByText('Radiohead').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('CD').length).toBeGreaterThan(0);
+      await userEvent.setup().click(screen.getByTitle('List'));
+      await userEvent.setup().selectOptions(screen.getByLabelText('Sort by'), option.value);
+      await waitFor(() => {
+        const call = lastCallTo(fetchSpy.mock.calls, `/api/${type}`);
+        expect(new URL(String(call![0]), 'http://localhost').searchParams.get('sort')).toBe(option.value);
+      });
+
+      expect(metadataPairs(title)).toEqual([[option.label, expected]]);
+      const inactiveLabel = sortOptions(type).find((candidate) => candidate.value !== option.value)!.label;
+      expect(metadataPairs(title).map(([label]) => label)).not.toContain(inactiveLabel);
+    },
+  );
+
+  it.each([
+    { type: 'movies' as const, title: 'Heat', field: 'year', expected: '—' },
+    { type: 'movies' as const, title: 'Heat', field: 'personalRating', expected: '—' },
+    { type: 'games' as const, title: 'Celeste', field: 'hoursPlayed', expected: '0h' },
+    { type: 'movies' as const, title: 'Heat', field: 'watchCount', expected: '0' },
+    { type: 'music' as const, title: 'Kid A', field: 'listenCount', expected: '0' },
+  ])('formats missing and zero $field values for $type', async ({ type, title, field, expected }) => {
+    mockFetch();
+    renderList({ type });
+    await screen.findByText(title);
+
+    await userEvent.setup().click(screen.getByTitle('List'));
+    await userEvent.setup().selectOptions(screen.getByLabelText('Sort by'), field);
+
+    const label = sortOptions(type).find((option) => option.value === field)!.label;
+    await waitFor(() => expect(metadataPairs(title)).toEqual([[label, expected]]));
   });
 
-  it.each(['List', 'Medium', 'Big'])('shows only game sortable values in %s view', async (mode) => {
-    mockFetch();
+  it('renders an em dash for selected nullable Hours played', async () => {
+    const games = FIXTURE_GAMES.map((game) => game.id === 2 ? { ...game, hoursPlayed: null } : game);
+    const spy = vi.fn(async () => jsonResponse(games));
+    globalThis.fetch = spy as unknown as typeof fetch;
     renderList({ type: 'games' });
-    await screen.findByText('Hades');
+    await screen.findByText('Celeste');
 
-    await selectViewAndAssertMetadata(mode, 'Hades', [
-      ['Year', '2020'],
-      ['Date added', 'Aug 22, 2026'],
-      ['Rating', '10/10'],
-      ['Hours played', '42.5h'],
-      ['Completion status', '100%'],
-    ]);
-    expect(metadataPairs('Celeste')).toEqual([
-      ['Year', '—'],
-      ['Date added', '—'],
-      ['Rating', '—'],
-      ['Hours played', '0h'],
-      ['Completion status', 'Not started'],
-    ]);
-    expect(metadataPairs('Hades').map(([label]) => label)).not.toEqual(
-      expect.arrayContaining(['Watch status', 'Watch count', 'Listen count']),
-    );
-    expect(screen.getAllByText('PC').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Physical').length).toBeGreaterThan(0);
+    await userEvent.setup().click(screen.getByTitle('List'));
+    await userEvent.setup().selectOptions(screen.getByLabelText('Sort by'), 'hoursPlayed');
+
+    await waitFor(() => expect(metadataPairs('Celeste')).toEqual([['Hours played', '—']]));
   });
 });
