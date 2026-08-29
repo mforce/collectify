@@ -150,7 +150,8 @@ through `MetadataLookupOptions.Vision`.
 ## Migrations
 
 - Always generated via `dotnet ef migrations add <Name> --project Collectify.Infrastructure --startup-project Collectify.Api --output-dir Data/Migrations`.
-- Applied automatically on container start (`db.Database.MigrateAsync()` in `Program.cs`).
+- `DatabaseMigrationCoordinator` owns startup schema changes for both providers. PostgreSQL is provisioned when its target database is missing, then migrated through its provider-native lineage.
+- Before applying pending SQLite migrations to an existing file, the coordinator creates and verifies a snapshot under `<DataDir>/backups`. It prunes completed snapshots only after migration succeeds; a backup, verification, or migration failure stops startup.
 - Never edit a migration once it's been applied to anyone's database — write a new migration instead.
 
 ## What we are NOT doing (to keep things small)

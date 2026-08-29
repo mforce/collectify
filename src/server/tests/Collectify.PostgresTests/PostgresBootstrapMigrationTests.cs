@@ -59,7 +59,7 @@ public sealed class PostgresBootstrapMigrationTests
             })
             .Build();
 
-        // This is the production entry point Program.cs calls before MigrateAsync().
+        // This is the provisioning step DatabaseMigrationCoordinator runs before MigrateAsync().
         await CollectifyDbContextExtensions.EnsurePostgresDatabaseAsync(configuration);
 
         // Assert the exact hostile name exists as a single database...

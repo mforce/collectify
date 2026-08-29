@@ -11,6 +11,8 @@ public static class DatabaseOptions
     public const string ConnectionStringKey = SectionName + ":ConnectionString";
     public const string AdminConnectionStringKey = SectionName + ":AdminConnectionString";
     public const string AdminDatabaseKey = SectionName + ":AdminDatabase";
+    public const string BackupRetentionKey = SectionName + ":BackupRetention";
+    public const int DefaultBackupRetention = 10;
 
     public const string SqliteProvider = "sqlite";
     public const string PostgresProvider = "postgres";

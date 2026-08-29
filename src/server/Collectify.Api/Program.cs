@@ -167,17 +167,11 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CollectifyDbContext>();
 
-    // Both providers own their schema through EF Core migrations (issue #100).
-    // PostgreSQL is provisioned (created if missing) then migrated; SQLite is
-    // migrated in place. Failure to migrate stops startup.
-    var provider = (builder.Configuration[Collectify.Infrastructure.DatabaseOptions.ProviderKey]
-        ?? Collectify.Infrastructure.DatabaseOptions.DefaultProvider).Trim();
-    if (provider.Equals(Collectify.Infrastructure.DatabaseOptions.PostgresProvider, StringComparison.OrdinalIgnoreCase))
-    {
-        await CollectifyDbContextExtensions.EnsurePostgresDatabaseAsync(builder.Configuration);
-    }
-
-    await db.Database.MigrateAsync();
+    // The coordinator preserves PostgreSQL's provision-then-migrate lifecycle
+    // and creates a verified SQLite snapshot before applying pending migrations.
+    // Any provisioning, backup, verification, or migration failure stops startup.
+    await scope.ServiceProvider.GetRequiredService<DatabaseMigrationCoordinator>()
+        .MigrateAsync(db, app.Lifetime.ApplicationStopping);
 
     // Record whether the Steam store-import tables exist. On Postgres an upgrade
     // of an existing install leaves them absent (EnsureCreated is a no-op); the

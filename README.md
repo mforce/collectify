@@ -24,6 +24,36 @@ PUID=$(id -u) PGID=$(id -g) docker compose up -d
 
 For named volumes the defaults usually work. For bind mounts, set `PUID` and `PGID` to the host user that should own the data directory.
 
+### Automatic SQLite migration backups
+
+Before Collectify applies pending migrations to an existing SQLite database, it creates a verified snapshot in `/data/backups`. Fresh installs and ordinary restarts with no pending migration do not create a snapshot. The newest 10 completed snapshots are retained by default; set `Collectify__Database__BackupRetention` to another positive integer to change that limit. An invalid value, a failed backup, or a failed integrity check stops startup before the database is migrated.
+
+Snapshots contain the full collection, including cached cover images. Protect the backup directory like the primary database. PostgreSQL deployments are not copied by Collectify; use PostgreSQL's provider-native backup and restore tools.
+
+To recover from a failed SQLite upgrade:
+
+1. Download the previous release's `image.json` asset and note its immutable `reference` digest (see [Releases & container images](#releases--container-images)).
+2. Stop Collectify:
+
+   ```bash
+   docker compose stop collectify
+   ```
+
+3. Replace `<snapshot>` with the selected filename from `/data/backups` and restore it while the application is stopped:
+
+   ```bash
+   docker compose run --rm --no-deps --entrypoint sh collectify -c \
+     'cp "/data/backups/<snapshot>" /data/collectify.db && rm -f /data/collectify.db-wal /data/collectify.db-shm'
+   ```
+
+4. Temporarily set the compose service's `image:` to the exact `reference` from `image.json` (for example, `ghcr.io/mforce/collectify@sha256:…`), then start it:
+
+   ```bash
+   docker compose up -d
+   ```
+
+Do not recover with a mutable tag such as `latest`; it may already point at the image whose migration failed.
+
 ### PostgreSQL (optional)
 
 Collectify defaults to SQLite (zero-config, single-file DB). If you prefer PostgreSQL for persistence, backups, or operational tooling:

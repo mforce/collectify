@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 
 namespace Collectify.Infrastructure.Data;
@@ -30,6 +31,11 @@ public static class CollectifyDbContextExtensions
         }
 
         services.AddSingleton<CollectifyDbContextRegistrationMarker>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<ISqliteBackupVerifier, SqliteBackupVerifier>();
+        services.TryAddSingleton<IBackupFileDeleter, BackupFileDeleter>();
+        services.AddScoped<ISqliteMigrationBackup, SqliteMigrationBackup>();
+        services.AddScoped<DatabaseMigrationCoordinator>();
 
         return services.AddDbContext<CollectifyDbContext>((serviceProvider, options) =>
         {
