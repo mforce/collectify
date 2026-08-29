@@ -126,19 +126,47 @@ public sealed class SqliteMigrationBackup : ISqliteMigrationBackup
             ?? throw new InvalidOperationException("The SQLite backup path has no parent directory.");
         if (!Directory.Exists(directory)) return Task.CompletedTask;
 
-        var completed = Directory.EnumerateFiles(directory)
-            .Select(path => (Path: path, Match: CompletedBackupPattern.Match(Path.GetFileName(path))))
-            .Where(item => item.Match.Success)
-            .Select(item => (
-                item.Path,
-                Timestamp: DateTimeOffset.ParseExact(
-                    item.Match.Groups["timestamp"].Value,
+        var normalizedNewestBackupPath = Path.GetFullPath(newestBackupPath);
+        var pathComparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        var candidates = new List<(string Path, DateTimeOffset Timestamp)>();
+
+        foreach (var path in Directory.EnumerateFiles(directory))
+        {
+            var match = CompletedBackupPattern.Match(Path.GetFileName(path));
+            if (!match.Success) continue;
+
+            if (!DateTimeOffset.TryParseExact(
+                    match.Groups["timestamp"].Value,
                     TimestampFormat,
                     CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal)))
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out var timestamp))
+            {
+                _logger.LogWarning(
+                    "Ignoring SQLite migration backup with invalid timestamp {BackupPath}",
+                    path);
+                continue;
+            }
+
+            candidates.Add((path, timestamp));
+        }
+
+        var protectsNewestBackup = candidates.Any(item =>
+            string.Equals(
+                Path.GetFullPath(item.Path),
+                normalizedNewestBackupPath,
+                pathComparison));
+        var remainingRetention = retention - (protectsNewestBackup ? 1 : 0);
+        var completed = candidates
+            .Where(item => !string.Equals(
+                Path.GetFullPath(item.Path),
+                normalizedNewestBackupPath,
+                pathComparison))
             .OrderByDescending(item => item.Timestamp)
             .ThenByDescending(item => item.Path, StringComparer.Ordinal)
-            .Skip(retention)
+            .Skip(remainingRetention)
             .ToArray();
 
         foreach (var item in completed)

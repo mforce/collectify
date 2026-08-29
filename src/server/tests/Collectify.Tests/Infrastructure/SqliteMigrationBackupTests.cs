@@ -118,6 +118,44 @@ public sealed class SqliteMigrationBackupTests : IDisposable
     }
 
     [Fact]
+    public async Task PruneAsync_FutureDatedOlderBackup_ProtectsNewestBackupPath()
+    {
+        var backupDirectory = Path.Combine(_directory, "backups-clock-skew");
+        Directory.CreateDirectory(backupDirectory);
+        var older = CreateBackupFile(backupDirectory, "Older", "20250101T000000000Z");
+        var newestBackupPath = CreateBackupFile(backupDirectory, "Current", "20260101T000000000Z");
+        var futureDatedOlderBackup = CreateBackupFile(
+            backupDirectory,
+            "FutureDatedOlder",
+            "20270101T000000000Z");
+
+        await NewBackup().PruneAsync(newestBackupPath, retention: 1);
+
+        Assert.True(File.Exists(newestBackupPath));
+        Assert.False(File.Exists(futureDatedOlderBackup));
+        Assert.False(File.Exists(older));
+    }
+
+    [Fact]
+    public async Task PruneAsync_InvalidMatchingTimestamp_IgnoresFileAndCompletes()
+    {
+        var backupDirectory = Path.Combine(_directory, "backups-invalid-timestamp");
+        Directory.CreateDirectory(backupDirectory);
+        var newestBackupPath = CreateBackupFile(backupDirectory, "Current", "20260301T000000000Z");
+        var old = CreateBackupFile(backupDirectory, "Old", "20250101T000000000Z");
+        var invalidTimestamp = Path.Combine(
+            backupDirectory,
+            "collectify-Invalid-20261301T000000000Z.db");
+        File.WriteAllText(invalidTimestamp, "invalid-timestamp");
+
+        await NewBackup().PruneAsync(newestBackupPath, retention: 1);
+
+        Assert.True(File.Exists(newestBackupPath));
+        Assert.False(File.Exists(old));
+        Assert.True(File.Exists(invalidTimestamp));
+    }
+
+    [Fact]
     public async Task PruneAsync_UsesParsedTimestampAcrossMigrationPrefixes()
     {
         var backupDirectory = Path.Combine(_directory, "backups-order");
