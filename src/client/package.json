@@ -12,12 +12,12 @@
     "check:enums": "node scripts/check-enum-parity.mjs"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-query": "^5.102.8",
     "@zxing/browser": "^0.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-hook-form": "^7.85.0",
-    "react-router-dom": "^7.18.2"
+    "react-hook-form": "^7.86.0",
+    "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",
