@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.9](https://github.com/mforce/collectify/compare/v0.0.8...v0.0.9) (2026-09-02)
+
+
+### Features
+
+* **database:** add verified SQLite migration snapshots ([4accc41](https://github.com/mforce/collectify/commit/4accc4141e93dbc7b66fde31886b0d4e5b13f819))
+* **database:** back up SQLite before startup migrations ([23ecf51](https://github.com/mforce/collectify/commit/23ecf51143d6f03e01d682cbfb4d321806e90c7f))
+* **database:** back up SQLite before startup migrations ([53cf83b](https://github.com/mforce/collectify/commit/53cf83b5b742c2125dfba0652626948e9cf27ddf))
+
+
+### Bug fixes
+
+* **database:** preserve the current migration snapshot ([16d6dd8](https://github.com/mforce/collectify/commit/16d6dd8bd2dde14b8b694b3c97cdc96ab498b43c))
+
+
+### Documentation
+
+* **database:** document migration backup recovery ([c8ee805](https://github.com/mforce/collectify/commit/c8ee805b43166f255203d2f21da6a8f2e87d9a35))
+
 ## [0.0.8](https://github.com/mforce/collectify/compare/v0.0.7...v0.0.8) (2026-08-27)
 
 
