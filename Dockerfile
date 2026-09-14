@@ -4,7 +4,7 @@
 # reproduces the exact bytes CI's Trivy scan cleared. A pinned digest never moves
 # on its own, so Dependabot's `docker` ecosystem owns bumping these (see
 # .github/dependabot.yml) and the Trivy gate then confirms the new base is clean.
-FROM node:26-alpine@sha256:2d984a15c9b54fd0aeb608b8e0d0d83529eb34d2966db27a1fb4f1edc3d298a3 AS client-build
+FROM node:26-alpine@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS client-build
 WORKDIR /client
 # Silence npm's update-notifier "new version available" notice in
 # build logs. Real warnings (deprecations, audit findings) still surface.
@@ -14,7 +14,7 @@ RUN npm install --no-audit --no-fund
 COPY src/client/ ./
 RUN npm run build
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:e1ffd2a92ae84c1291bc1b6887501f8af98e6331e7af6d4c8d37168c5e87a64c AS server-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:2fa828c68761b1b8c23d7662dc134421b9d3b59fe1425fdbc80804e390cdb24d AS server-build
 WORKDIR /server
 # Stamped into the published assembly; /api/health reads the informational
 # version. Both default to 0.0.0 for a local build. CI passes version.txt's
@@ -39,7 +39,7 @@ RUN dotnet publish Collectify.Api/Collectify.Api.csproj -c Release -o /app/publi
     /p:InformationalVersion=${INFORMATIONAL_VERSION} \
     /p:IncludeSourceRevisionInInformationalVersion=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:a4556ed033fa96f984bb7a8d348851cb2d36b1281dd2420070045f664fbb5f94 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:6a94333d37514e385650a3c81a55e5350b67253dbe136e9cf17e499c35606a8c AS runtime
 WORKDIR /app
 # curl isn't in the base image; install it so HEALTHCHECK below can use
 # it. Pulls in ~14 transitive deps for ~6 MiB of overhead, in exchange
