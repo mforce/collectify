@@ -64,7 +64,7 @@ public sealed class PostgresMigrationLineageTests
         {
             var rows = new List<(string, string)>(); while (await reader.ReadAsync()) rows.Add((reader.GetString(0), reader.GetString(1)));
             var count = Array.IndexOf(Ids, target) + 1;
-            Assert.Equal(Ids.Take(count).Select(x => (x, "10.0.11")), rows);
+            Assert.Equal(Ids.Take(count).Select(x => (x, ProductInfo.GetVersion())), rows);
         }
         var actual = await ExtractCatalogAsync(connection);
         var expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "generated", fixtureCommit, "catalog-manifest.json"));
