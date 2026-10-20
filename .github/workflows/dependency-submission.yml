@@ -58,7 +58,7 @@ jobs:
 
       - name: Submit dependency snapshot
         # SHA-pinned (not the mutable tag) — third-party action supply-chain rule.
-        uses: advanced-security/component-detection-dependency-submission-action@31f25a8de68ae5ce2ca274bc28546a78683c15ce # v0.1.4
+        uses: advanced-security/component-detection-dependency-submission-action@a02aeda7a175ad4dd38a13c4d3ff2df9da8f2cf0 # v0.2.0
         with:
           # Scope detection to the .NET tree so it never wanders into the client.
           filePath: src/server
