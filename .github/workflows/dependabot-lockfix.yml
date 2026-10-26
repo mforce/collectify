@@ -1,4 +1,4 @@
-# Repair Dependabot NuGet PRs (#224), ported from mforce/cluckwork#203.
+# Repair Dependabot NuGet PRs.
 #
 # A Dependabot NuGet group PR arrives broken in two ways:
 #   - it regenerates only some packages.lock.json files, so CI's `--locked-mode`
@@ -10,19 +10,16 @@
 # This reverts every csproj Dependabot modified to the merge base, regenerates
 # every lock, and pushes the result to the PR branch.
 #
-# SECURITY MODEL (as in cluckwork's
-# docs/superpowers/specs/2026-07-25-dependabot-lockfix-design.md):
+# SECURITY MODEL:
 #   - `on: workflow_run` runs the DEFAULT-branch copy of this file, so the PR
 #     cannot change what executes.
-#   - `compute` runs the untrusted restore with NO credentials; `commit` holds
-#     the write token and runs no project code, only scripts from the default
-#     branch. A restore-time exploit has no token to steal and no push rights.
+#   - `compute` runs the untrusted restore with no credential that can push.
+#     It still gets the Actions runtime token, which can write the default
+#     branch's cache scope. `commit` holds the write token and runs no project
+#     code, only scripts from the default branch.
 #   - The push uses a GitHub App token, not GITHUB_TOKEN: a GITHUB_TOKEN push
 #     does not re-trigger CI, so the PR would never go green. The App identity
 #     is not dependabot[bot], so the re-triggered CI is gated out (no loop).
-#
-# INERT UNTIL MERGED, and fails closed until the RELEASE_APP_* secrets exist in
-# the `app-token` environment.
 
 name: Dependabot lockfix
 
@@ -55,6 +52,13 @@ jobs:
       github.event.workflow_run.head_repository.id == github.event.repository.id
     permissions: {}
     steps:
+      - name: Check out trusted tooling (default branch)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          path: trusted
+
       - name: Check out the exact commit CI ran on
         uses: actions/checkout@v7
         with:
@@ -62,16 +66,15 @@ jobs:
           # that could advance after the gate passed).
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
-          # History for the merge base with the default branch.
+          path: pr
+          # for the merge base
           fetch-depth: 0
 
       - name: Revert csproj edits to the merge base
+        working-directory: pr
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          base="$(git merge-base HEAD "origin/$DEFAULT_BRANCH")"
-          git diff -z --name-only --diff-filter=M "$base" HEAD -- 'src/server/*.csproj' \
-            | xargs -0 -r git checkout "$base" --
+        run: bash ../trusted/.github/scripts/lockfix-revert.sh
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
@@ -82,17 +85,18 @@ jobs:
           cache: false
 
       - name: Regenerate every lock file
+        working-directory: pr
         env:
-          # Restore into a throwaway dir, not the shared global cache.
           NUGET_PACKAGES: ${{ runner.temp }}/nuget-packages
         run: >-
           dotnet restore src/server/Collectify.slnx --force-evaluate
-          --configfile .github/nuget.lockfix.config
+          --configfile ../trusted/.github/nuget.lockfix.config
 
-      # Staged under their repo-relative paths, which lockfix-apply.sh reads back.
+      # Repo-relative paths: lockfix-apply.sh reads them back.
       - name: Stage the allowlisted lock files
+        working-directory: pr
         run: |
-          node .github/scripts/lockfix.mjs --list | while IFS= read -r p; do
+          node ../trusted/.github/scripts/lockfix.mjs --list | while IFS= read -r p; do
             install -D -m 644 "$p" "$RUNNER_TEMP/locks/$p"
           done
 
@@ -111,8 +115,7 @@ jobs:
     timeout-minutes: 10
     # The App secrets live in the `app-token` environment, limited to main.
     # workflow_run sets GITHUB_REF to the default branch, so the rule admits
-    # this job whatever the Dependabot branch is called. `deployment: false`
-    # keeps the branch policy without a deployment record.
+    # this job whatever the Dependabot branch is called.
     environment:
       name: app-token
       deployment: false
@@ -134,18 +137,14 @@ jobs:
         with:
           client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          # The same App backs release-please, which needs pull-requests and
-          # issues write. This caps the token this job holds at contents only.
-          # It does not cap the private key, which can mint the App's full
-          # grant; what keeps this job safe is that it runs no PR-controlled
-          # code.
+          # Caps this token to contents. The key can still mint the App's full
+          # grant; safety rests on this job running no PR code.
           permission-contents: write
 
       - name: Check out the PR head for pushing
         uses: actions/checkout@v7
         with:
-          # Same immutable SHA as compute. A commit built on it fast-forwards
-          # only if the branch tip still equals it (the non-forced push below).
+          # Same SHA as compute; the non-forced push fails if the tip moved.
           ref: ${{ github.event.workflow_run.head_sha }}
           token: ${{ steps.app.outputs.token }}
           path: pr
