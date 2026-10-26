@@ -130,7 +130,7 @@ test("the CLI runs when invoked through a symlink", () => {
 
 // Runs lockfix-apply.sh in a scratch workspace laid out like the commit job:
 // trusted/ scripts, a pr/ checkout of a pushed branch, and an artifact of new
-// locks. `tamper(pr, git)` shapes the PR checkout before the run.
+// locks. `tamper(pr, git, commit)` shapes the PR checkout before the run.
 function runApply(tamper = () => {}) {
   const dir = mkdtempSync(join(tmpdir(), "lockfix-apply-"));
   const git = (cwd, ...args) => execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
@@ -194,7 +194,7 @@ test("apply: a symlink in the working tree over a 100644 entry -> abort without 
 });
 
 test("apply: a lock tracked with any mode but 100644 -> abort", () => {
-  const { run, pushed } = runApply((pr, git, commit) => {
+  const { run, pushed } = runApply((pr, git) => {
     git(pr, "update-index", "--chmod=+x", API_LOCK);
     git(pr, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "exec");
   });
