@@ -1,13 +1,7 @@
 #!/usr/bin/env node
-// Classifier for the dependabot-lockfix workflow (#224).
-//
-// The workflow reverts Dependabot's csproj edits, regenerates every
-// packages.lock.json, and must decide whether the result is safe to commit back
-// to the PR branch. This is that decision, kept out of the YAML so it can be
-// unit-tested (mirrors vuln-gate.mjs).
-//
-// It reads `git status --porcelain -z` on stdin (NUL-delimited, so a path with
-// a space or newline is one field) and answers with an exit code:
+// Decides whether the dependabot-lockfix result is safe to commit back to the
+// PR branch. It reads `git status --porcelain -z` on stdin (NUL-delimited, so a
+// path with a space or newline is one field) and answers with an exit code:
 //   0  every changed path is a known lock file, or a csproj now identical to
 //      the merge base -> commit
 //   2  anything else is dirty -> abort, do not commit (fail closed)
@@ -21,8 +15,7 @@ import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-// An EXACT allowlist, not a `**/packages.lock.json` glob: a lock written
-// somewhere unexpected (a new project, a planted file) must abort, not pass.
+// Exact paths, not a glob: a lock anywhere else (a planted file) must abort.
 export const LOCK_FILES = Object.freeze([
   "src/server/Collectify.Api/packages.lock.json",
   "src/server/Collectify.Domain/packages.lock.json",
@@ -35,15 +28,15 @@ export const LOCK_FILES = Object.freeze([
 const ALLOW = new Set(LOCK_FILES);
 const CSPROJ = /^src\/server\/.+\.csproj$/;
 
-// Parse `git status --porcelain -z` into records. A rename/copy (X or Y is
-// 'R'/'C') is followed by its source path as its own NUL field; both paths are
-// kept so a rename onto a lock file can't smuggle a foreign source past.
+// A rename/copy (X or Y is 'R'/'C') is followed by its source path as its own
+// NUL field; both paths are kept so a rename onto a lock file can't smuggle a
+// foreign source past.
 export function changedRecords(porcelainZ) {
   const parts = String(porcelainZ).split("\0");
   const records = [];
   for (let i = 0; i < parts.length; i++) {
     const rec = parts[i];
-    if (!rec) continue; // trailing empty field after the final NUL
+    if (!rec) continue;
     const xy = rec.slice(0, 2);
     records.push({ xy, path: rec.slice(3) });
     if (/[RC]/.test(xy)) {
@@ -54,13 +47,10 @@ export function changedRecords(porcelainZ) {
   return records;
 }
 
-// A csproj counts as a revert only when it was modified in place (no add,
-// delete, rename or untracked) and its content now equals the merge base.
 function isRevert({ xy, path }, matchesBase) {
   return CSPROJ.test(path) && /^[ M]{2}$/.test(xy) && matchesBase(path);
 }
 
-// commit | abort | noop, with the paths behind the verdict for the log.
 export function classify(porcelainZ, matchesBase) {
   const records = changedRecords(porcelainZ);
   if (records.length === 0) return { action: "noop", foreign: [], locks: [], reverted: [] };
@@ -73,7 +63,6 @@ export function classify(porcelainZ, matchesBase) {
   return { action: foreign.length > 0 ? "abort" : "commit", foreign, locks, reverted };
 }
 
-// The working-tree file is byte-identical to its content at `base`.
 export function gitMatchesBase(base) {
   return (path) => {
     try {
@@ -117,6 +106,5 @@ async function main() {
   process.exitCode = EXIT[action];
 }
 
-// realpath: run through a symlink, argv[1] differs from import.meta.url and the
-// guard would skip main(), exiting 0 ("commit") without classifying anything.
+// realpath: through a symlink the guard would skip main() and exit 0 ("commit").
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) await main();

@@ -64,7 +64,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # The App secrets live in the `app-token` environment, limited to main.
-    # `deployment: false` keeps the branch policy without a deployment record.
     environment:
       name: app-token
       deployment: false
@@ -373,7 +372,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # The App secrets live in the `app-token` environment, limited to main.
-    # `deployment: false` keeps the branch policy without a deployment record.
     environment:
       name: app-token
       deployment: false
