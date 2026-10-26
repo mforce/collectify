@@ -85,6 +85,10 @@ Treat these like a missing test and block on them:
   the run with `NU1004`. Regenerate the NuGet locks with
   `dotnet restore src/server/Collectify.slnx` and commit the changed
   `packages.lock.json` files.
+- On Dependabot NuGet PRs, the `Dependabot lockfix` workflow does this for you
+  after CI: it reverts any csproj edit Dependabot made (versions live in
+  `src/server/Directory.Packages.props`), regenerates the locks, and pushes the
+  result to the PR branch.
 - A known-vulnerable production dependency fails CI. The only mute is a dated
   entry in [`.github/security-exceptions.json`](.github/security-exceptions.json);
   prefer, in order: bump the package → pin/override the patched transitive →

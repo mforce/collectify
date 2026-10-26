@@ -1,0 +1,164 @@
+# Repair Dependabot NuGet PRs.
+#
+# A Dependabot NuGet group PR arrives broken in two ways:
+#   - it regenerates only some packages.lock.json files, so CI's `--locked-mode`
+#     restore fails with NU1004 on the rest;
+#   - it adds a `PackageReference` to a project that only gets the package
+#     transitively (its updater pins it that way under central package
+#     management). Versions live in Directory.Packages.props, so a bump never
+#     needs a csproj edit.
+# This reverts every csproj Dependabot modified to the merge base, regenerates
+# every lock, and pushes the result to the PR branch.
+#
+# SECURITY MODEL:
+#   - `on: workflow_run` runs the DEFAULT-branch copy of this file, so the PR
+#     cannot change what executes.
+#   - `compute` runs the untrusted restore with no credential that can push.
+#     It still gets the Actions runtime token, which can write the default
+#     branch's cache scope. `commit` holds the write token and runs no project
+#     code, only scripts from the default branch.
+#   - The push uses a GitHub App token, not GITHUB_TOKEN: a GITHUB_TOKEN push
+#     does not re-trigger CI, so the PR would never go green. The App identity
+#     is not dependabot[bot], so the re-triggered CI is gated out (no loop).
+
+name: Dependabot lockfix
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  # Serialize per branch; never cancel: a cancel mid-push could leave no fix.
+  group: lockfix-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  compute:
+    name: Regenerate lock files (no credentials)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Provenance gate. Requires BOTH actor and triggering_actor to be Dependabot
+    # (a re-run keeps actor but changes triggering_actor), run_attempt == 1, the
+    # nuget branch prefix, and a numeric repo-id match (never a fork).
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.triggering_actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.run_attempt == 1 &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/nuget/') &&
+      github.event.workflow_run.head_repository.id == github.event.repository.id
+    permissions: {}
+    steps:
+      - name: Check out trusted tooling (default branch)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          path: trusted
+
+      - name: Check out the exact commit CI ran on
+        uses: actions/checkout@v7
+        with:
+          # The immutable SHA the gate validated, NOT head_branch (a moving ref
+          # that could advance after the gate passed).
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          path: pr
+          # for the merge base
+          fetch-depth: 0
+
+      - name: Revert csproj edits to the merge base
+        working-directory: pr
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash ../trusted/.github/scripts/lockfix-revert.sh
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+          # No cache: a privileged workflow_run reading a PR-populated cache is a
+          # documented poisoning surface, and this job restores fresh anyway.
+          cache: false
+
+      - name: Regenerate every lock file
+        working-directory: pr
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/nuget-packages
+        run: >-
+          dotnet restore src/server/Collectify.slnx --force-evaluate
+          --configfile ../trusted/.github/nuget.lockfix.config
+
+      # Repo-relative paths: lockfix-apply.sh reads them back.
+      - name: Stage the allowlisted lock files
+        working-directory: pr
+        run: |
+          node ../trusted/.github/scripts/lockfix.mjs --list | while IFS= read -r p; do
+            install -D -m 644 "$p" "$RUNNER_TEMP/locks/$p"
+          done
+
+      - name: Upload the regenerated lock files
+        uses: actions/upload-artifact@v7
+        with:
+          name: lockfiles
+          if-no-files-found: error
+          retention-days: 1
+          path: ${{ runner.temp }}/locks
+
+  commit:
+    name: Commit and push the repaired PR
+    needs: compute
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The App secrets live in the `app-token` environment, limited to main.
+    # workflow_run sets GITHUB_REF to the default branch, so the rule admits
+    # this job whatever the Dependabot branch is called.
+    environment:
+      name: app-token
+      deployment: false
+    permissions:
+      contents: write
+    steps:
+      # The classifier and the allowlist must come from TRUSTED code, never the
+      # PR checkout (which a PR could have replaced). Default branch only.
+      - name: Check out trusted tooling (default branch)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          path: trusted
+
+      - name: Mint a short-lived GitHub App token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Caps this token to contents. The key can still mint the App's full
+          # grant; safety rests on this job running no PR code.
+          permission-contents: write
+
+      - name: Check out the PR head for pushing
+        uses: actions/checkout@v7
+        with:
+          # Same SHA as compute; the non-forced push fails if the tip moved.
+          ref: ${{ github.event.workflow_run.head_sha }}
+          token: ${{ steps.app.outputs.token }}
+          path: pr
+          fetch-depth: 0
+
+      - name: Download the regenerated lock files
+        uses: actions/download-artifact@v8
+        with:
+          name: lockfiles
+          path: ${{ runner.temp }}/locks
+
+      - name: Revert csproj edits, apply locks, classify, and push
+        env:
+          ARTIFACT_DIR: ${{ runner.temp }}/locks
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash trusted/.github/scripts/lockfix-apply.sh

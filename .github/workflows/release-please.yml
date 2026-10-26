@@ -63,6 +63,10 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The App secrets live in the `app-token` environment, limited to main.
+    environment:
+      name: app-token
+      deployment: false
     permissions:
       contents: read # every write goes through the App token minted below
     outputs:
@@ -367,6 +371,10 @@ jobs:
       && needs.promote.result != 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The App secrets live in the `app-token` environment, limited to main.
+    environment:
+      name: app-token
+      deployment: false
     permissions:
       contents: read # every write goes through the App token
     steps:
