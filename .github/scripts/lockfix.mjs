@@ -2,11 +2,12 @@
 // Decides whether the dependabot-lockfix result is safe to commit back to the
 // PR branch. It reads `git status --porcelain -z` on stdin (NUL-delimited, so a
 // path with a space or newline is one field) and answers with an exit code:
-//   0  every changed path is a known lock file, or a csproj now identical to
+//   4  every changed path is a known lock file, or a csproj now identical to
 //      the merge base -> commit
 //   2  anything else is dirty -> abort, do not commit (fail closed)
 //   3  nothing changed -> no-op
-// Any other exit (a crash) the caller also treats as abort.
+// Any other exit the caller also treats as abort: a crash, or 0 from a run
+// that never reached main().
 //
 // Usage: git status --porcelain -z | node .github/scripts/lockfix.mjs <merge-base-sha>
 //        node .github/scripts/lockfix.mjs --list   (print the lock allowlist)
@@ -74,7 +75,7 @@ export function gitMatchesBase(base) {
   };
 }
 
-const EXIT = { commit: 0, abort: 2, noop: 3 };
+const EXIT = { commit: 4, abort: 2, noop: 3 };
 
 async function readStdin() {
   const chunks = [];
@@ -106,5 +107,5 @@ async function main() {
   process.exitCode = EXIT[action];
 }
 
-// realpath: through a symlink the guard would skip main() and exit 0 ("commit").
+// realpath: through a symlink the guard would skip main() and exit 0.
 if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) await main();
