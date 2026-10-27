@@ -1,9 +1,10 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { changedRecords, classify, gitMatchesBase, LOCK_FILES } from "./lockfix.mjs";
 
 const z = (...records) => records.map((r) => r + "\0").join("");
@@ -11,6 +12,8 @@ const API_CSPROJ = "src/server/Collectify.Api/Collectify.Api.csproj";
 const MIGRATIONS_CSPROJ = "src/server/Collectify.PostgresMigrations/Collectify.PostgresMigrations.csproj";
 const atBase = () => true;
 const notAtBase = () => false;
+const scratch = mkdtempSync(join(tmpdir(), "lockfix-test-"));
+after(() => rmSync(scratch, { recursive: true, force: true }));
 
 // A hand-kept list silently misses a new project.
 test("the allowlist covers exactly the projects in Collectify.slnx", () => {
@@ -99,7 +102,7 @@ test("changedRecords returns both target and source of a rename", () => {
 });
 
 test("gitMatchesBase compares the working tree with the given commit", () => {
-  const dir = mkdtempSync(join(tmpdir(), "lockfix-"));
+  const dir = mkdtempSync(join(scratch, "base-"));
   const git = (...args) => execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" }).trim();
   git("init", "-q");
   mkdirSync(join(dir, "src/server/P"), { recursive: true });
@@ -121,9 +124,9 @@ test("gitMatchesBase compares the working tree with the given commit", () => {
 });
 
 test("the CLI runs when invoked through a symlink", () => {
-  const dir = mkdtempSync(join(tmpdir(), "lockfix-link-"));
+  const dir = mkdtempSync(join(scratch, "link-"));
   const link = join(dir, "lockfix.mjs");
-  symlinkSync(new URL("./lockfix.mjs", import.meta.url).pathname, link);
+  symlinkSync(fileURLToPath(new URL("./lockfix.mjs", import.meta.url)), link);
   const out = execFileSync(process.execPath, [link, "--list"], { encoding: "utf8" });
   assert.deepEqual(out.trim().split("\n"), [...LOCK_FILES]);
 });
@@ -134,7 +137,7 @@ test("the CLI runs when invoked through a symlink", () => {
 // `classifier` replaces the trusted lockfix.mjs, which stays importable as
 // lockfix-real.mjs.
 function runApply(tamper = () => {}, classifier) {
-  const dir = mkdtempSync(join(tmpdir(), "lockfix-apply-"));
+  const dir = mkdtempSync(join(scratch, "apply-"));
   const git = (cwd, ...args) => execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
   const scripts = join(dir, "trusted/.github/scripts");
   mkdirSync(scripts, { recursive: true });
@@ -199,10 +202,23 @@ test("apply: a symlink in the working tree over a 100644 entry -> abort without 
   assert.equal(applyScript, APPLY_SH);
 });
 
-test("apply: a lock tracked with any mode but 100644 -> abort", () => {
-  const { run, pushed } = runApply((pr, git) => {
-    git(pr, "update-index", "--chmod=+x", API_LOCK);
-    git(pr, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "exec");
+test("apply: a lock tracked as 100755 -> abort", () => {
+  const { run, pushed } = runApply((pr, git, commit) => {
+    chmodSync(join(pr, API_LOCK), 0o755);
+    commit("exec");
+  });
+  assert.notEqual(run.status, 0);
+  assert.match(run.stdout, /not a tracked regular file/);
+  assert.equal(pushed, "");
+});
+
+test("apply: a directory committed at the lock path -> abort", () => {
+  const { run, pushed } = runApply((pr, git, commit) => {
+    rmSync(join(pr, API_LOCK));
+    mkdirSync(join(pr, API_LOCK));
+    writeFileSync(join(pr, API_LOCK, "packages.lock.json"), "{}\n");
+    git(pr, "add", "-A");
+    commit("dir");
   });
   assert.notEqual(run.status, 0);
   assert.match(run.stdout, /not a tracked regular file/);

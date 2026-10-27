@@ -16,7 +16,8 @@ for rel in "${LOCKS[@]}"; do
   # outside pr/, for example over these trusted scripts.
   [ "$(realpath -m "pr/$rel")" = "$root/pr/$rel" ] \
     || { echo "lock path goes through a symlink: $rel"; exit 1; }
-  [ "$(git -C pr ls-files -s -- "$rel" | cut -c1-6)" = 100644 ] \
+  # ls-tree reads the exact entry; ls-files would match a directory's children.
+  [ "$(git -C pr ls-tree HEAD -- "$rel" | cut -c1-11)" = "100644 blob" ] \
     || { echo "lock is not a tracked regular file: $rel"; exit 1; }
   cp "$src" "pr/$rel"
 done
