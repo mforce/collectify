@@ -152,11 +152,12 @@ The `image` job does two builds:
 1. **amd64, `--load`** into the local daemon — this is the one Trivy scans and the
    smoke test actually *boots*. Native, no emulation.
 2. On a merge, **`linux/amd64,linux/arm64` pushed by digest** (`--output
-   type=image,push-by-digest=true`), reusing the cache warmed by build 1. A
-   manifest list can't round-trip through `docker save`/`--load`, so the two-job
-   handoff is the pushed digest, not a saved tarball; `publish` then tags that
-   exact digest (`docker buildx imagetools create --prefer-index=false`) and
-   attests it. It is **one build behind the gates, not a rebuild in publish.**
+   type=image,push-by-digest=true`), reusing the layer cache build 1 wrote in
+   the same job (no layer cache carries over between runs). A manifest list
+   can't round-trip through `docker save`/`--load`, so the two-job handoff is
+   the pushed digest, not a saved tarball; `publish` then tags that exact
+   digest (`docker buildx imagetools create --prefer-index=false`) and attests
+   it. It is **one build behind the gates, not a rebuild in publish.**
 
 So, stated at the strength the argument supports:
 
