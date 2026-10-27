@@ -4,6 +4,6 @@
 set -euo pipefail
 
 base="$(git merge-base HEAD "origin/$DEFAULT_BRANCH")"
-git diff -z --name-only --diff-filter=M "$base" HEAD -- 'src/server/*.csproj' \
+git diff -z --name-only --diff-filter=M "$base" HEAD -- ':(glob)src/server/**/*.csproj' \
   | xargs -0 -r git checkout "$base" --
 echo "$base"

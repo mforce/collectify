@@ -130,14 +130,20 @@ test("the CLI runs when invoked through a symlink", () => {
 
 // Runs lockfix-apply.sh in a scratch workspace laid out like the commit job:
 // trusted/ scripts, a pr/ checkout of a pushed branch, and an artifact of new
-// locks. `tamper(pr, git, commit)` shapes the PR checkout before the run.
-function runApply(tamper = () => {}) {
+// locks. `tamper(pr, git, commit)` shapes the PR checkout before the run;
+// `classifier` replaces the trusted lockfix.mjs, which stays importable as
+// lockfix-real.mjs.
+function runApply(tamper = () => {}, classifier) {
   const dir = mkdtempSync(join(tmpdir(), "lockfix-apply-"));
   const git = (cwd, ...args) => execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
   const scripts = join(dir, "trusted/.github/scripts");
   mkdirSync(scripts, { recursive: true });
   for (const f of ["lockfix.mjs", "lockfix-apply.sh", "lockfix-revert.sh"]) {
     copyFileSync(new URL(`./${f}`, import.meta.url), join(scripts, f));
+  }
+  if (classifier) {
+    copyFileSync(new URL("./lockfix.mjs", import.meta.url), join(scripts, "lockfix-real.mjs"));
+    writeFileSync(join(scripts, "lockfix.mjs"), classifier);
   }
   const pr = join(dir, "pr");
   git(dir, "init", "-q", "--bare", "remote.git");
@@ -160,8 +166,8 @@ function runApply(tamper = () => {}) {
     encoding: "utf8",
     env: { ...process.env, ARTIFACT_DIR: join(dir, "art"), DEFAULT_BRANCH: "main", HEAD_BRANCH: "pr" },
   });
-  const pushed = spawnSync("git", ["-C", join(dir, "remote.git"), "show", `pr:${LOCK_FILES[0]}`], { encoding: "utf8" });
-  return { run, pushed: pushed.stdout, applyScript: readFileSync(join(scripts, "lockfix-apply.sh"), "utf8") };
+  const show = (path) => spawnSync("git", ["-C", join(dir, "remote.git"), "show", `pr:${path}`], { encoding: "utf8" }).stdout;
+  return { run, show, pushed: show(LOCK_FILES[0]), applyScript: readFileSync(join(scripts, "lockfix-apply.sh"), "utf8") };
 }
 
 const API_LOCK = LOCK_FILES[0];
@@ -200,5 +206,31 @@ test("apply: a lock tracked with any mode but 100644 -> abort", () => {
   });
   assert.notEqual(run.status, 0);
   assert.match(run.stdout, /not a tracked regular file/);
+  assert.equal(pushed, "");
+});
+
+test("apply: csproj edits at any depth under src/server revert to the merge base", () => {
+  const csprojs = ["src/server/Top.csproj", "src/server/tests/Collectify.Tests/Collectify.Tests.csproj"];
+  const { run, show } = runApply((pr, git, commit) => {
+    for (const p of csprojs) writeFileSync(join(pr, p), "<Project />\n");
+    git(pr, "add", ".");
+    commit("csproj");
+    git(pr, "push", "-q", "origin", "HEAD:main");
+    git(pr, "fetch", "-q", "origin");
+    for (const p of csprojs) writeFileSync(join(pr, p), "<Project><ItemGroup /></Project>\n");
+    commit("dependabot csproj edit");
+  });
+  assert.equal(run.status, 0, run.stdout + run.stderr);
+  for (const p of csprojs) assert.equal(show(p), "<Project />\n", p);
+  assert.equal(show(API_LOCK), '{"new":1}\n');
+});
+
+test("apply: a classifier run that never reaches main() -> abort, nothing pushed", () => {
+  const { run, pushed } = runApply(undefined, [
+    'import { LOCK_FILES } from "./lockfix-real.mjs";',
+    'if (process.argv[2] === "--list") console.log(LOCK_FILES.join("\\n"));',
+  ].join("\n"));
+  assert.notEqual(run.status, 0);
+  assert.match(run.stdout, /Classifier refused \(exit 0\)/);
   assert.equal(pushed, "");
 });

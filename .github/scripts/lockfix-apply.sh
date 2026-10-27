@@ -31,13 +31,13 @@ set -e
 
 case "$verdict" in
   3) echo "Nothing changed: locks current, no csproj edits."; exit 0 ;;
-  0) : ;;
+  4) : ;;
   *) echo "Classifier refused (exit $verdict), not committing."; exit 1 ;;
 esac
 
 # Against HEAD: the csproj revert above is staged, the copied locks are not.
 locks="$(git diff HEAD --name-only -- "${LOCKS[@]}" | sed 's/^/- /')"
-reverted="$(git diff HEAD --name-only -- 'src/server/*.csproj' | sed 's/^/- /')"
+reverted="$(git diff HEAD --name-only -- ':(glob)src/server/**/*.csproj' | sed 's/^/- /')"
 
 git config user.name "collectify-lockfix[bot]"
 git config user.email "collectify-lockfix[bot]@users.noreply.github.com"
