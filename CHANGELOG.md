@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.0.9](https://github.com/mforce/collectify/compare/v0.0.8...v0.0.9) (2026-10-27)
+
+
+### Features
+
+* **database:** add verified SQLite migration snapshots ([4accc41](https://github.com/mforce/collectify/commit/4accc4141e93dbc7b66fde31886b0d4e5b13f819))
+* **database:** back up SQLite before startup migrations ([23ecf51](https://github.com/mforce/collectify/commit/23ecf51143d6f03e01d682cbfb4d321806e90c7f))
+* **database:** back up SQLite before startup migrations ([53cf83b](https://github.com/mforce/collectify/commit/53cf83b5b742c2125dfba0652626948e9cf27ddf))
+
+
+### Bug fixes
+
+* **ci:** check the exact lock tree entry and clean up lockfix test dirs ([#230](https://github.com/mforce/collectify/issues/230)) ([4c69642](https://github.com/mforce/collectify/commit/4c696429e6f6e022c49e8e0baa8a5d49e6e12a1f)), closes [#224](https://github.com/mforce/collectify/issues/224)
+* **ci:** fail closed on a skipped lockfix classifier ([#228](https://github.com/mforce/collectify/issues/228)) ([e4b654c](https://github.com/mforce/collectify/commit/e4b654cf1c639f3902bd7b9086efc8c5fd70237e)), closes [#227](https://github.com/mforce/collectify/issues/227)
+* **ci:** isolate the lockfix restore and drop the cross-run image cache ([#226](https://github.com/mforce/collectify/issues/226)) ([#229](https://github.com/mforce/collectify/issues/229)) ([0ba0c1d](https://github.com/mforce/collectify/commit/0ba0c1dd376cddbdcf8568fd11cfeff0b2677e0f))
+* **database:** preserve the current migration snapshot ([16d6dd8](https://github.com/mforce/collectify/commit/16d6dd8bd2dde14b8b694b3c97cdc96ab498b43c))
+* **security:** move .NET to 10.0.13 for the October advisories ([#214](https://github.com/mforce/collectify/issues/214)) ([a72498f](https://github.com/mforce/collectify/commit/a72498f527c3555c6014eaa8ca01e72c5dc29c9d))
+
+
+### Documentation
+
+* **database:** document migration backup recovery ([c8ee805](https://github.com/mforce/collectify/commit/c8ee805b43166f255203d2f21da6a8f2e87d9a35))
+
 ## [0.0.8](https://github.com/mforce/collectify/compare/v0.0.7...v0.0.8) (2026-08-27)
 
 
