@@ -10,6 +10,7 @@ mapfile -t sdk < <(sed -nE 's#^FROM (mcr\.microsoft\.com/dotnet/sdk:[^ @]+@sha25
 # so a container-written git config or hook would run with the runner's env.
 docker run --rm \
   --user "$(id -u):$(id -g)" \
+  --cap-drop ALL --security-opt no-new-privileges \
   -e HOME=/tmp -e NUGET_PACKAGES=/tmp/nuget \
   -v "$PWD/pr:/src" \
   --mount type=tmpfs,destination=/src/.git \

@@ -162,7 +162,7 @@ The `image` job does two builds:
 So, stated at the strength the argument supports:
 
 - **amd64** is built, scanned, *and booted* — the full guarantee.
-- **arm64** is built from the same source and cache and **is Trivy-scanned**
+- **arm64** is built from the same source in the same build (its layers are not cached) and **is Trivy-scanned**
   independently (the `image` job pulls the arm64 child of the pushed digest and
   holds it to the same HIGH/CRITICAL fixable gate). What it does **not** get is
   the boot test — emulated boot of the .NET runtime + Postgres is too slow and
@@ -170,7 +170,7 @@ So, stated at the strength the argument supports:
   would not be caught here.
 - The old single-arch save/load path could additionally prove
   scanned==published by image Id. Multi-arch trades that byte-level proof for
-  arch coverage: same source, same cache, one build, digest-pinned.
+  arch coverage: same source, one build, digest-pinned.
 
 If arm64 boot coverage is ever wanted, add a separate QEMU smoke job — accepting
 its cost and flake — rather than folding it into this gate. The structural check
