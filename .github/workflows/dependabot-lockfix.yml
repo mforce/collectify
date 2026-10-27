@@ -13,10 +13,12 @@
 # SECURITY MODEL:
 #   - `on: workflow_run` runs the DEFAULT-branch copy of this file, so the PR
 #     cannot change what executes.
-#   - `compute` runs the untrusted restore with no credential that can push.
-#     It still gets the Actions runtime token, which can write the default
-#     branch's cache scope. `commit` holds the write token and runs no project
-#     code, only scripts from the default branch.
+#   - `compute` runs the untrusted restore inside the SDK container that the
+#     default branch's Dockerfile pins. The container gets no runner env (so no
+#     Actions runtime token, which can write the default branch's cache scope),
+#     no docker socket, and only pr/ and the restore config mounted. `commit`
+#     holds the write token and runs no project code, only scripts from the
+#     default branch.
 #   - The push uses a GitHub App token, not GITHUB_TOKEN: a GITHUB_TOKEN push
 #     does not re-trigger CI, so the PR would never go green. The App identity
 #     is not dependabot[bot], so the re-triggered CI is gated out (no loop).
@@ -76,29 +78,11 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: bash ../trusted/.github/scripts/lockfix-revert.sh
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: 10.0.x
-          # No cache: a privileged workflow_run reading a PR-populated cache is a
-          # documented poisoning surface, and this job restores fresh anyway.
-          cache: false
+      - name: Regenerate every lock file (in the pinned SDK container)
+        run: bash trusted/.github/scripts/lockfix-restore.sh
 
-      - name: Regenerate every lock file
-        working-directory: pr
-        env:
-          NUGET_PACKAGES: ${{ runner.temp }}/nuget-packages
-        run: >-
-          dotnet restore src/server/Collectify.slnx --force-evaluate
-          --configfile ../trusted/.github/nuget.lockfix.config
-
-      # Repo-relative paths: lockfix-apply.sh reads them back.
       - name: Stage the allowlisted lock files
-        working-directory: pr
-        run: |
-          node ../trusted/.github/scripts/lockfix.mjs --list | while IFS= read -r p; do
-            install -D -m 644 "$p" "$RUNNER_TEMP/locks/$p"
-          done
+        run: bash trusted/.github/scripts/lockfix-stage.sh "$RUNNER_TEMP/locks"
 
       - name: Upload the regenerated lock files
         uses: actions/upload-artifact@v7
