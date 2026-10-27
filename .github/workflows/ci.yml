@@ -118,8 +118,8 @@ jobs:
       - name: Test the vulnerability gate
         run: node --test ../../.github/scripts/vuln-gate.test.mjs
 
-      - name: Test the Dependabot lockfix classifier
-        run: node --test ../../.github/scripts/lockfix.test.mjs
+      - name: Test the Dependabot lockfix scripts
+        run: node --test ../../.github/scripts/lockfix.test.mjs ../../.github/scripts/lockfix-stage.test.mjs
 
       - name: Install dependencies
         run: npm ci
@@ -266,21 +266,6 @@ jobs:
         with:
           driver: docker-container # the default builder can't export a local cache
 
-      # The key ends in the COMMIT — actions/cache never re-saves an exact-key
-      # hit, so a dependency-content-only key would freeze the cache at the first
-      # commit's source layers and every later source change would recompile
-      # against a stale cache forever. Per-commit keys make a re-run a full hit;
-      # the restore-keys ladder gives a fresh commit the newest same-dependency
-      # cache (base images + restore layers), then anything.
-      - name: Restore image layer cache
-        uses: actions/cache@v6
-        with:
-          path: /tmp/.buildx-cache
-          key: image-layers-${{ hashFiles('Dockerfile', 'src/server/**/packages.lock.json', 'src/client/package-lock.json', 'src/server/Directory.Packages.props', 'src/server/Directory.Build.props', '.dockerignore') }}-${{ github.sha }}
-          restore-keys: |
-            image-layers-${{ hashFiles('Dockerfile', 'src/server/**/packages.lock.json', 'src/client/package-lock.json', 'src/server/Directory.Packages.props', 'src/server/Directory.Build.props', '.dockerignore') }}-
-            image-layers-
-
       # Stamp the image with a version /api/health can report. The base is
       # version.txt AT THIS COMMIT: release-please bumps it IN the release commit,
       # which is the exact commit CI builds and promotion later retags — so the
@@ -300,9 +285,10 @@ jobs:
       # Build the amd64 image and `--load` it into the local daemon so Trivy
       # scans these freshly built bytes and the smoke test boots them — natively,
       # no emulation. `--load` is single-platform by nature; the arm64 half is
-      # built and pushed later (merge only), reusing the cache warmed here so its
-      # amd64 layers are the exact ones scanned and booted. The rm/mv rotation
-      # replaces the cache instead of accreting layers into it forever.
+      # built and pushed later (merge only), reusing the cache written here so its
+      # amd64 layers are the exact ones scanned and booted. That cache lives only
+      # for this job: nothing restores layers from another run, because any job
+      # on main (a workflow_run job, say) can create a cache entry main reads.
       - name: Build amd64 image for scan + smoke test
         run: |
           set -euo pipefail
@@ -310,11 +296,8 @@ jobs:
             --platform linux/amd64 \
             --build-arg VERSION="${{ steps.ver.outputs.version }}" \
             --build-arg INFORMATIONAL_VERSION="${{ steps.ver.outputs.informational }}" \
-            --cache-from type=local,src=/tmp/.buildx-cache \
-            --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+            --cache-to type=local,dest=/tmp/.buildx-cache,mode=max \
             --load -t collectify-api:ci .
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       # BLOCKING gate: fail on a HIGH or CRITICAL CVE — but only one that HAS a
       # fix (`ignore-unfixed: true`). Same philosophy as the dependency gates:
@@ -420,9 +403,9 @@ jobs:
       # not a saved tarball.
       #
       # THE INTEGRITY BOUNDARY, stated honestly. This is one build behind the same
-      # gates — not a rebuild in the publish job. It reuses the cache warmed by
-      # the scan/boot build above, so the amd64 layers are cache hits, not a
-      # recompile; arm64 builds fresh under emulation. BOTH arches are Trivy-
+      # gates — not a rebuild in the publish job. It reuses the job-local cache
+      # written by the scan/boot build above, so the amd64 layers are cache hits,
+      # not a recompile; arm64 builds fresh under emulation. BOTH arches are Trivy-
       # scanned (amd64 above from the --load image, arm64 below from the pushed
       # digest). What only amd64 gets is the BOOT test — arm64 rides the same
       # source and toolchain but is not itself booted (emulated boot of the .NET

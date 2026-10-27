@@ -152,16 +152,17 @@ The `image` job does two builds:
 1. **amd64, `--load`** into the local daemon — this is the one Trivy scans and the
    smoke test actually *boots*. Native, no emulation.
 2. On a merge, **`linux/amd64,linux/arm64` pushed by digest** (`--output
-   type=image,push-by-digest=true`), reusing the cache warmed by build 1. A
-   manifest list can't round-trip through `docker save`/`--load`, so the two-job
-   handoff is the pushed digest, not a saved tarball; `publish` then tags that
-   exact digest (`docker buildx imagetools create --prefer-index=false`) and
-   attests it. It is **one build behind the gates, not a rebuild in publish.**
+   type=image,push-by-digest=true`), reusing the layer cache build 1 wrote in
+   the same job (no layer cache carries over between runs). A manifest list
+   can't round-trip through `docker save`/`--load`, so the two-job handoff is
+   the pushed digest, not a saved tarball; `publish` then tags that exact
+   digest (`docker buildx imagetools create --prefer-index=false`) and attests
+   it. It is **one build behind the gates, not a rebuild in publish.**
 
 So, stated at the strength the argument supports:
 
 - **amd64** is built, scanned, *and booted* — the full guarantee.
-- **arm64** is built from the same source and cache and **is Trivy-scanned**
+- **arm64** is built from the same source in the same build (its layers are not cached) and **is Trivy-scanned**
   independently (the `image` job pulls the arm64 child of the pushed digest and
   holds it to the same HIGH/CRITICAL fixable gate). What it does **not** get is
   the boot test — emulated boot of the .NET runtime + Postgres is too slow and
@@ -169,7 +170,7 @@ So, stated at the strength the argument supports:
   would not be caught here.
 - The old single-arch save/load path could additionally prove
   scanned==published by image Id. Multi-arch trades that byte-level proof for
-  arch coverage: same source, same cache, one build, digest-pinned.
+  arch coverage: same source, one build, digest-pinned.
 
 If arm64 boot coverage is ever wanted, add a separate QEMU smoke job — accepting
 its cost and flake — rather than folding it into this gate. The structural check
