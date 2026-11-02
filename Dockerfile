@@ -4,7 +4,7 @@
 # reproduces the exact bytes CI's Trivy scan cleared. A pinned digest never moves
 # on its own, so Dependabot's `docker` ecosystem owns bumping these (see
 # .github/dependabot.yml) and the Trivy gate then confirms the new base is clean.
-FROM node:26-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS client-build
+FROM node:26-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS client-build
 WORKDIR /client
 # Silence npm's update-notifier "new version available" notice in
 # build logs. Real warnings (deprecations, audit findings) still surface.
